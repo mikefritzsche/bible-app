@@ -26,6 +26,7 @@ export default function Home() {
   const [selectedBook, setSelectedBook] = useState('Genesis')
   const [selectedChapter, setSelectedChapter] = useState(1)
   const [selectedVerse, setSelectedVerse] = useState<number | null>(null)
+  const [selectedVersion, setSelectedVersion] = useState('kjv_strongs')
   const [chapterContent, setChapterContent] = useState<Chapter | null>(null)
   const [strongsPopover, setStrongsPopover] = useState<StrongsPopoverState | null>(null)
   const [strongsHistory, setStrongsHistory] = useState<StrongsHistoryEntry[]>([])
@@ -38,25 +39,36 @@ export default function Home() {
     loadBible()
   }, [])
 
-  const loadBible = async () => {
+  // Reload Bible when version changes
+  useEffect(() => {
+    if (selectedVersion) {
+      loadBible(selectedVersion)
+    }
+  }, [selectedVersion])
+
+  const loadBible = async (version: string = 'kjv_strongs') => {
     setLoading(true)
     try {
-      const bible = await parser.loadBible('kjv_strongs')
+      const bible = await parser.loadBible(version)
       setBibleData(bible)
       const books = Object.keys(bible.books)
       setBookNames(books)
       
-      // Load first chapter
-      const chapter = parser.getChapter('Genesis', 1)
-      setChapterContent(chapter)
-      const chapters = Object.keys(bible.books['Genesis'].chapters).length
-      setChapterCount(chapters)
-      setVerseCount(Object.keys(chapter.verses).length)
+      // Load current chapter (maintain position when switching versions)
+      const chapter = parser.getChapter(selectedBook, selectedChapter)
+      if (chapter) {
+        setChapterContent(chapter)
+        const chapters = Object.keys(bible.books[selectedBook].chapters).length
+        setChapterCount(chapters)
+        setVerseCount(Object.keys(chapter.verses).length)
+      }
       
-      // Preload Strong's definitions
-      strongsManager.loadDefinitions()
-        .then(() => console.log('Strong\'s definitions loaded'))
-        .catch(err => console.error('Failed to load Strong\'s:', err))
+      // Preload Strong's definitions (only for versions with Strong's)
+      if (version === 'kjv_strongs' || version === 'asvs') {
+        strongsManager.loadDefinitions()
+          .then(() => console.log('Strong\'s definitions loaded'))
+          .catch(err => console.error('Failed to load Strong\'s:', err))
+      }
     } catch (error) {
       console.error('Failed to load Bible:', error)
     } finally {
@@ -185,7 +197,9 @@ export default function Home() {
         Bible Reader
       </h1>
       <p style={{ color: '#6b7280', marginBottom: '24px' }}>
-        KJV with Strong&apos;s Concordance
+        {selectedVersion === 'kjv_strongs' ? 'KJV with Strong\'s Concordance' : 
+         selectedVersion === 'asvs' ? 'ASV with Strong\'s Concordance' :
+         selectedVersion.toUpperCase()}
       </p>
 
       {loading && (
@@ -208,6 +222,52 @@ export default function Home() {
             borderRadius: '8px',
             border: '1px solid #d1d5db'
           }}>
+            {/* Bible Version Selector */}
+            <div style={{ 
+              marginBottom: '16px',
+              paddingBottom: '16px',
+              borderBottom: '1px solid #d1d5db'
+            }}>
+              <label style={{ 
+                display: 'block', 
+                marginBottom: '8px', 
+                fontWeight: '500',
+                color: '#374151',
+                fontSize: '0.875rem'
+              }}>
+                Bible Version
+              </label>
+              <select
+                value={selectedVersion}
+                onChange={(e) => setSelectedVersion(e.target.value)}
+                style={{
+                  width: '100%',
+                  maxWidth: '300px',
+                  padding: '10px',
+                  borderRadius: '6px',
+                  border: '2px solid #d1d5db',
+                  backgroundColor: 'white',
+                  fontSize: '16px',
+                  cursor: 'pointer',
+                  outline: 'none',
+                  color: '#111827'
+                }}
+                onFocus={(e) => e.target.style.borderColor = '#667eea'}
+                onBlur={(e) => e.target.style.borderColor = '#d1d5db'}
+              >
+                <option value="kjv_strongs">KJV with Strong's</option>
+                <option value="kjv">KJV (King James Version)</option>
+                <option value="asvs">ASV with Strong's</option>
+                <option value="asv">ASV (American Standard Version)</option>
+                <option value="web">WEB (World English Bible)</option>
+                <option value="net">NET (New English Translation)</option>
+                <option value="geneva">Geneva Bible</option>
+                <option value="bishops">Bishops' Bible</option>
+                <option value="coverdale">Coverdale Bible</option>
+                <option value="tyndale">Tyndale Bible</option>
+              </select>
+            </div>
+            
             <div style={{ 
               display: 'grid', 
               gridTemplateColumns: '2fr 1fr 1fr',
@@ -361,12 +421,14 @@ export default function Home() {
                 }}>
                   {selectedBook} Chapter {selectedChapter}
                 </h2>
-                <p style={{ 
-                  fontSize: '0.9rem', 
-                  color: '#6b7280'
-                }}>
-                  Click on Strong&apos;s numbers (blue/purple links) to see definitions
-                </p>
+                {(selectedVersion === 'kjv_strongs' || selectedVersion === 'asvs') && (
+                  <p style={{ 
+                    fontSize: '0.9rem', 
+                    color: '#6b7280'
+                  }}>
+                    Click on Strong&apos;s numbers (blue/purple links) to see definitions
+                  </p>
+                )}
               </div>
               
               <div style={{ fontSize: '1.1rem', lineHeight: '1.9' }}>
@@ -401,11 +463,18 @@ export default function Home() {
                       }
                     }}
                   >
-                    <VerseWithStrongs
-                      text={verse.text}
-                      verseNumber={verse.verse}
-                      onStrongsClick={handleStrongsClick}
-                    />
+                    {(selectedVersion === 'kjv_strongs' || selectedVersion === 'asvs') ? (
+                      <VerseWithStrongs
+                        text={verse.text}
+                        verseNumber={verse.verse}
+                        onStrongsClick={handleStrongsClick}
+                      />
+                    ) : (
+                      <span>
+                        <strong style={{ color: '#667eea', marginRight: '8px' }}>{verse.verse}</strong>
+                        {verse.text}
+                      </span>
+                    )}
                   </p>
                 ))}
               </div>
