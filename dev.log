@@ -1,0 +1,83 @@
+
+> bible-app@1.0.0 dev
+> next dev
+
+ ⚠ You are using a non-standard "NODE_ENV" value in your environment. This creates inconsistencies in the project and is strongly advised against. Read more: https://nextjs.org/docs/messages/non-standard-node-env
+  ▲ Next.js 14.2.32
+  - Local:        http://localhost:3001
+
+ ✓ Starting...
+ ✓ Ready in 1538ms
+ ○ Compiling / ...
+ ⨯ ./app/page.js:4:1
+Module not found: Can't resolve '@/lib/KJVBibleParser'
+[0m [90m 2 |[39m[0m
+[0m [90m 3 |[39m [36mimport[39m { useState[33m,[39m useEffect } [36mfrom[39m [32m'react'[39m[0m
+[0m[31m[1m>[22m[39m[90m 4 |[39m [36mimport[39m { [33mKJVBibleParser[39m } [36mfrom[39m [32m'@/lib/KJVBibleParser'[39m[0m
+[0m [90m   |[39m [31m[1m^[22m[39m[0m
+[0m [90m 5 |[39m [36mimport[39m { [33mStrongsManager[39m } [36mfrom[39m [32m'@/lib/StrongsManager'[39m[0m
+[0m [90m 6 |[39m [36mimport[39m { [33mVerseWithStrongs[39m } [36mfrom[39m [32m'@/components/VerseWithStrongs'[39m[0m
+[0m [90m 7 |[39m [36mimport[39m { [33mStrongsPopover[39m } [36mfrom[39m [32m'@/components/StrongsPopover'[39m[0m
+
+https://nextjs.org/docs/messages/module-not-found
+ ⨯ ./app/page.js:4:1
+Module not found: Can't resolve '@/lib/KJVBibleParser'
+[0m [90m 2 |[39m[0m
+[0m [90m 3 |[39m [36mimport[39m { useState[33m,[39m useEffect } [36mfrom[39m [32m'react'[39m[0m
+[0m[31m[1m>[22m[39m[90m 4 |[39m [36mimport[39m { [33mKJVBibleParser[39m } [36mfrom[39m [32m'@/lib/KJVBibleParser'[39m[0m
+[0m [90m   |[39m [31m[1m^[22m[39m[0m
+[0m [90m 5 |[39m [36mimport[39m { [33mStrongsManager[39m } [36mfrom[39m [32m'@/lib/StrongsManager'[39m[0m
+[0m [90m 6 |[39m [36mimport[39m { [33mVerseWithStrongs[39m } [36mfrom[39m [32m'@/components/VerseWithStrongs'[39m[0m
+[0m [90m 7 |[39m [36mimport[39m { [33mStrongsPopover[39m } [36mfrom[39m [32m'@/components/StrongsPopover'[39m[0m
+
+https://nextjs.org/docs/messages/module-not-found
+ ⨯ ./app/page.js:4:1
+Module not found: Can't resolve '@/lib/KJVBibleParser'
+[0m [90m 2 |[39m[0m
+[0m [90m 3 |[39m [36mimport[39m { useState[33m,[39m useEffect } [36mfrom[39m [32m'react'[39m[0m
+[0m[31m[1m>[22m[39m[90m 4 |[39m [36mimport[39m { [33mKJVBibleParser[39m } [36mfrom[39m [32m'@/lib/KJVBibleParser'[39m[0m
+[0m [90m   |[39m [31m[1m^[22m[39m[0m
+[0m [90m 5 |[39m [36mimport[39m { [33mStrongsManager[39m } [36mfrom[39m [32m'@/lib/StrongsManager'[39m[0m
+[0m [90m 6 |[39m [36mimport[39m { [33mVerseWithStrongs[39m } [36mfrom[39m [32m'@/components/VerseWithStrongs'[39m[0m
+[0m [90m 7 |[39m [36mimport[39m { [33mStrongsPopover[39m } [36mfrom[39m [32m'@/components/StrongsPopover'[39m[0m
+
+https://nextjs.org/docs/messages/module-not-found
+ GET / 500 in 1589ms
+ GET /.well-known/appspecific/com.chrome.devtools.json 500 in 38ms
+TypeError: Cannot read properties of undefined (reading 'baseUrl')
+    at /Users/mikefritzsche/repos/bible-app/node_modules/next/dist/server/lib/router-utils/setup-dev-bundler.js:461:92
+    at Array.forEach (<anonymous>)
+    at /Users/mikefritzsche/repos/bible-app/node_modules/next/dist/server/lib/router-utils/setup-dev-bundler.js:452:174
+    at Array.forEach (<anonymous>)
+    at Watchpack.<anonymous> (/Users/mikefritzsche/repos/bible-app/node_modules/next/dist/server/lib/router-utils/setup-dev-bundler.js:445:141)
+ ⨯ unhandledRejection: TypeError: Cannot read properties of undefined (reading 'baseUrl')
+    at /Users/mikefritzsche/repos/bible-app/node_modules/next/dist/server/lib/router-utils/setup-dev-bundler.js:461:92
+    at Array.forEach (<anonymous>)
+    at /Users/mikefritzsche/repos/bible-app/node_modules/next/dist/server/lib/router-utils/setup-dev-bundler.js:452:174
+    at Array.forEach (<anonymous>)
+    at Watchpack.<anonymous> (/Users/mikefritzsche/repos/bible-app/node_modules/next/dist/server/lib/router-utils/setup-dev-bundler.js:445:141)
+ ⨯ unhandledRejection: TypeError: Cannot read properties of undefined (reading 'baseUrl')
+    at /Users/mikefritzsche/repos/bible-app/node_modules/next/dist/server/lib/router-utils/setup-dev-bundler.js:461:92
+    at Array.forEach (<anonymous>)
+    at /Users/mikefritzsche/repos/bible-app/node_modules/next/dist/server/lib/router-utils/setup-dev-bundler.js:452:174
+    at Array.forEach (<anonymous>)
+    at Watchpack.<anonymous> (/Users/mikefritzsche/repos/bible-app/node_modules/next/dist/server/lib/router-utils/setup-dev-bundler.js:445:141)
+TypeError: Cannot read properties of undefined (reading 'baseUrl')
+    at /Users/mikefritzsche/repos/bible-app/node_modules/next/dist/server/lib/router-utils/setup-dev-bundler.js:461:92
+    at Array.forEach (<anonymous>)
+    at /Users/mikefritzsche/repos/bible-app/node_modules/next/dist/server/lib/router-utils/setup-dev-bundler.js:452:174
+    at Array.forEach (<anonymous>)
+    at Watchpack.<anonymous> (/Users/mikefritzsche/repos/bible-app/node_modules/next/dist/server/lib/router-utils/setup-dev-bundler.js:445:141)
+ ⨯ unhandledRejection: TypeError: Cannot read properties of undefined (reading 'baseUrl')
+    at /Users/mikefritzsche/repos/bible-app/node_modules/next/dist/server/lib/router-utils/setup-dev-bundler.js:461:92
+    at Array.forEach (<anonymous>)
+    at /Users/mikefritzsche/repos/bible-app/node_modules/next/dist/server/lib/router-utils/setup-dev-bundler.js:452:174
+    at Array.forEach (<anonymous>)
+    at Watchpack.<anonymous> (/Users/mikefritzsche/repos/bible-app/node_modules/next/dist/server/lib/router-utils/setup-dev-bundler.js:445:141)
+ ⨯ unhandledRejection: TypeError: Cannot read properties of undefined (reading 'baseUrl')
+    at /Users/mikefritzsche/repos/bible-app/node_modules/next/dist/server/lib/router-utils/setup-dev-bundler.js:461:92
+    at Array.forEach (<anonymous>)
+    at /Users/mikefritzsche/repos/bible-app/node_modules/next/dist/server/lib/router-utils/setup-dev-bundler.js:452:174
+    at Array.forEach (<anonymous>)
+    at Watchpack.<anonymous> (/Users/mikefritzsche/repos/bible-app/node_modules/next/dist/server/lib/router-utils/setup-dev-bundler.js:445:141)
+[?25h
