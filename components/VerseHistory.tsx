@@ -52,148 +52,59 @@ export function VerseHistory({
 
   if (history.length === 0) {
     return (
-      <div style={{
-        textAlign: 'center',
-        padding: '32px',
-        color: '#6b7280',
-        fontSize: '0.95rem'
-      }}>
-        <p style={{ marginBottom: '8px' }}>No verse history yet.</p>
-        <p style={{ fontSize: '0.875rem' }}>Click on verses to track your reading history.</p>
+      <div className="text-center p-8 text-gray-500 dark:text-gray-400">
+        <p className="mb-2">No verse history yet.</p>
+        <p className="text-sm">Click on verses to track your reading history.</p>
       </div>
     )
   }
 
   return (
-    <div style={{
-      backgroundColor: 'white',
-      borderRadius: '8px',
-      padding: '16px',
-      marginBottom: '24px',
-      border: '1px solid #e5e7eb',
-      boxShadow: '0 1px 3px rgba(0, 0, 0, 0.1)'
-    }}>
-      <div style={{
-        display: 'flex',
-        justifyContent: 'space-between',
-        alignItems: 'center',
-        marginBottom: '16px'
-      }}>
-        <h3 style={{
-          fontSize: '1.25rem',
-          fontWeight: 'bold',
-          color: '#111827'
-        }}>
+    <div className="bg-white dark:bg-gray-800 rounded-lg p-4 mb-6 border border-gray-200 dark:border-gray-700 shadow-sm">
+      <div className="flex justify-between items-center mb-4">
+        <h3 className="text-xl font-bold text-gray-900 dark:text-gray-100">
           Verse History
         </h3>
         <button
           onClick={onClearHistory}
-          style={{
-            padding: '6px 12px',
-            fontSize: '0.875rem',
-            color: '#dc2626',
-            backgroundColor: '#fee2e2',
-            border: 'none',
-            borderRadius: '4px',
-            cursor: 'pointer',
-            transition: 'background-color 0.2s'
-          }}
-          onMouseEnter={(e) => e.currentTarget.style.backgroundColor = '#fecaca'}
-          onMouseLeave={(e) => e.currentTarget.style.backgroundColor = '#fee2e2'}
+          className="px-3 py-1.5 text-sm text-red-600 dark:text-red-400 bg-red-50 dark:bg-red-900/20 rounded hover:bg-red-100 dark:hover:bg-red-900/30 transition-colors"
         >
           Clear All
         </button>
       </div>
 
       {history.length > 5 && (
-        <div style={{ marginBottom: '12px' }}>
+        <div className="mb-3">
           <input
             type="text"
             placeholder="Search history..."
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
-            style={{
-              width: '100%',
-              padding: '8px 12px',
-              borderRadius: '6px',
-              border: '1px solid #d1d5db',
-              fontSize: '0.875rem',
-              outline: 'none'
-            }}
-            onFocus={(e) => e.currentTarget.style.borderColor = '#667eea'}
-            onBlur={(e) => e.currentTarget.style.borderColor = '#d1d5db'}
+            className="w-full px-3 py-2 rounded-md border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 dark:focus:ring-blue-400 placeholder-gray-400 dark:placeholder-gray-500"
           />
         </div>
       )}
 
-      <div style={{
-        maxHeight: isExpanded ? '600px' : '400px',
-        overflowY: 'auto',
-        paddingRight: '4px'
-      }}>
+      <div className={`${isExpanded ? 'max-h-[600px]' : 'max-h-[400px]'} overflow-y-auto pr-1`}>
         {displayedHistory.map((entry) => (
           <div
             key={entry.id}
-            style={{
-              display: 'flex',
-              justifyContent: 'space-between',
-              alignItems: 'flex-start',
-              padding: '12px',
-              marginBottom: '8px',
-              backgroundColor: '#f9fafb',
-              borderRadius: '6px',
-              cursor: 'pointer',
-              transition: 'all 0.2s',
-              border: '1px solid transparent'
-            }}
+            className="flex justify-between items-start p-3 mb-2 bg-gray-50 dark:bg-gray-700/50 rounded-md cursor-pointer transition-all border border-transparent hover:bg-gray-100 dark:hover:bg-gray-700 hover:border-blue-500 dark:hover:border-blue-400"
             onClick={() => onVerseSelect(entry.book, entry.chapter, entry.verse)}
-            onMouseEnter={(e) => {
-              e.currentTarget.style.backgroundColor = '#f3f4f6'
-              e.currentTarget.style.borderColor = '#667eea'
-            }}
-            onMouseLeave={(e) => {
-              e.currentTarget.style.backgroundColor = '#f9fafb'
-              e.currentTarget.style.borderColor = 'transparent'
-            }}
           >
-            <div style={{ flex: 1 }}>
-              <div style={{
-                display: 'flex',
-                alignItems: 'center',
-                gap: '8px',
-                marginBottom: '4px'
-              }}>
-                <strong style={{ color: '#667eea', fontSize: '0.95rem' }}>
+            <div className="flex-1">
+              <div className="flex items-center gap-2 mb-1">
+                <strong className="text-blue-600 dark:text-blue-400">
                   {entry.reference}
                 </strong>
-                <span style={{ 
-                  fontSize: '0.75rem', 
-                  color: '#9ca3af',
-                  padding: '2px 6px',
-                  backgroundColor: '#e5e7eb',
-                  borderRadius: '3px'
-                }}>
+                <span className="text-xs text-gray-500 dark:text-gray-400 px-1.5 py-0.5 bg-gray-200 dark:bg-gray-600 rounded">
                   {entry.version.toUpperCase()}
                 </span>
               </div>
-              <p style={{
-                fontSize: '0.875rem',
-                color: '#4b5563',
-                lineHeight: '1.4',
-                margin: 0,
-                display: '-webkit-box',
-                WebkitLineClamp: 2,
-                WebkitBoxOrient: 'vertical',
-                overflow: 'hidden'
-              }}>
+              <p className="text-sm text-gray-600 dark:text-gray-300 leading-relaxed line-clamp-2">
                 {entry.verseText}
               </p>
-              <span style={{
-                fontSize: '0.75rem',
-                color: '#9ca3af',
-                marginTop: '4px',
-                display: 'inline-block'
-              }}>
+              <span className="text-xs text-gray-400 dark:text-gray-500 mt-1 inline-block">
                 {formatTimestamp(entry.timestamp)}
               </span>
             </div>
@@ -202,19 +113,7 @@ export function VerseHistory({
                 e.stopPropagation()
                 onRemoveEntry(entry.id)
               }}
-              style={{
-                padding: '4px',
-                marginLeft: '8px',
-                color: '#9ca3af',
-                backgroundColor: 'transparent',
-                border: 'none',
-                cursor: 'pointer',
-                fontSize: '1.2rem',
-                lineHeight: 1,
-                transition: 'color 0.2s'
-              }}
-              onMouseEnter={(e) => e.currentTarget.style.color = '#dc2626'}
-              onMouseLeave={(e) => e.currentTarget.style.color = '#9ca3af'}
+              className="p-1 ml-2 text-gray-400 dark:text-gray-500 hover:text-red-600 dark:hover:text-red-400 text-xl leading-none transition-colors"
               title="Remove from history"
             >
               ×
@@ -226,20 +125,7 @@ export function VerseHistory({
       {filteredHistory.length > 10 && (
         <button
           onClick={() => setIsExpanded(!isExpanded)}
-          style={{
-            width: '100%',
-            padding: '8px',
-            marginTop: '12px',
-            color: '#667eea',
-            backgroundColor: '#f3f4f6',
-            border: 'none',
-            borderRadius: '4px',
-            cursor: 'pointer',
-            fontSize: '0.875rem',
-            transition: 'background-color 0.2s'
-          }}
-          onMouseEnter={(e) => e.currentTarget.style.backgroundColor = '#e5e7eb'}
-          onMouseLeave={(e) => e.currentTarget.style.backgroundColor = '#f3f4f6'}
+          className="w-full py-2 mt-3 text-blue-600 dark:text-blue-400 bg-gray-100 dark:bg-gray-700 rounded hover:bg-gray-200 dark:hover:bg-gray-600 text-sm transition-colors"
         >
           {isExpanded ? 'Show Less' : `Show All (${filteredHistory.length})`}
         </button>

@@ -1,6 +1,7 @@
 'use client'
 
 import { useState, useEffect } from 'react'
+import { useSearchParams } from 'next/navigation'
 import { KJVBibleParser } from '@/lib/KJVBibleParser'
 import { StrongsManager } from '@/lib/StrongsManager'
 import { VerseHistoryManager } from '@/lib/VerseHistoryManager'
@@ -32,6 +33,7 @@ interface StrongsHistoryEntry {
 }
 
 export default function Home() {
+  const searchParams = useSearchParams()
   const [mounted, setMounted] = useState(false)
   const [parser] = useState(() => new KJVBibleParser())
   const [strongsManager] = useState(() => new StrongsManager())
@@ -48,7 +50,7 @@ export default function Home() {
   const [strongsPopover, setStrongsPopover] = useState<StrongsPopoverState | null>(null)
   const [strongsHistory, setStrongsHistory] = useState<StrongsHistoryEntry[]>([])
   const [verseHistory, setVerseHistory] = useState<VerseHistoryEntry[]>([])
-  const [chapterHighlights, setChapterHighlights] = useState<Map<number, VerseHighlight>>(new Map())
+  const [chapterHighlights, setChapterHighlights] = useState<Map<number, VerseHighlight[]>>(new Map())
   const [chapterNotes, setChapterNotes] = useState<Map<number, VerseNote>>(new Map())
   const [bookNames, setBookNames] = useState<string[]>([])
   const [chapterCount, setChapterCount] = useState(50)
@@ -78,7 +80,26 @@ export default function Home() {
   // Load Bible, history, highlights and notes on mount
   useEffect(() => {
     setMounted(true)
-    loadBible()
+    
+    // Handle URL parameters
+    const version = searchParams.get('version')
+    const book = searchParams.get('book')
+    const chapter = searchParams.get('chapter')
+    const verse = searchParams.get('verse')
+    
+    // Set initial values from URL params if they exist
+    if (version) {
+      setSelectedVersion(version)
+      // Don't load Bible here - let the selectedVersion effect handle it
+    } else {
+      // Only load default if no version in URL
+      loadBible()
+    }
+    
+    if (book) setSelectedBook(book)
+    if (chapter) setSelectedChapter(parseInt(chapter))
+    if (verse) setSelectedVerse(parseInt(verse))
+    
     loadVerseHistory()
     initHighlights()
     initNotes()
@@ -87,10 +108,10 @@ export default function Home() {
 
   // Reload Bible when version changes
   useEffect(() => {
-    if (selectedVersion) {
+    if (selectedVersion && mounted) {
       loadBible(selectedVersion)
     }
-  }, [selectedVersion])
+  }, [selectedVersion, mounted])
 
   const loadBible = async (version: string = 'kjv_strongs') => {
     setLoading(true)
@@ -275,7 +296,7 @@ export default function Home() {
     }
   }
 
-  const handleHighlightVerse = async (verse: number, color: string) => {
+  const handleHighlightVerse = async (verse: number, color: string, selectedText?: string, startOffset?: number, endOffset?: number) => {
     if (!chapterContent) return
     
     const verseData = chapterContent.verses[verse]
@@ -289,18 +310,23 @@ export default function Home() {
       verse,
       color,
       reference,
-      version: selectedVersion
+      version: selectedVersion,
+      selectedText,
+      startOffset,
+      endOffset
     })
     
     await loadChapterHighlights()
   }
 
-  const handleRemoveHighlight = async (verse: number) => {
+  const handleRemoveHighlight = async (verse: number, startOffset?: number, endOffset?: number) => {
     await highlightManager.removeHighlight(
       selectedBook,
       selectedChapter,
       verse,
-      selectedVersion
+      selectedVersion,
+      startOffset,
+      endOffset
     )
     
     await loadChapterHighlights()
@@ -422,30 +448,13 @@ export default function Home() {
   }, [selectedVerse])
 
   return (
-    <div style={{ 
-      backgroundColor: 'white',
-      borderRadius: '8px',
-      padding: '32px',
-      boxShadow: '0 1px 3px rgba(0, 0, 0, 0.1)'
-    }}>
-      <div style={{ 
-        display: 'flex', 
-        justifyContent: 'space-between', 
-        alignItems: 'center',
-        marginBottom: '24px'
-      }}>
+    <div className="bg-white dark:bg-gray-800 rounded-lg p-8 shadow-sm">
+      <div className="flex justify-between items-center mb-6">
         <div>
-          <h1 style={{ 
-            fontSize: '2.5rem', 
-            fontWeight: 'bold',
-            background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
-            WebkitBackgroundClip: 'text',
-            WebkitTextFillColor: 'transparent',
-            marginBottom: '8px'
-          }}>
+          <h1 className="text-4xl font-bold bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent mb-2">
             Bible Reader
           </h1>
-          <p style={{ color: '#6b7280' }}>
+          <p className="text-gray-600 dark:text-gray-400">
             {selectedVersion === 'kjv_strongs' ? 'KJV with Strong\'s Concordance' : 
              selectedVersion === 'asvs' ? 'ASV with Strong\'s Concordance' :
              selectedVersion.toUpperCase()}
@@ -453,7 +462,7 @@ export default function Home() {
         </div>
 
         {/* Quick Actions Toolbar */}
-        <div style={{ display: 'flex', gap: '8px' }}>
+        <div className="flex gap-2">
           {/* Today's Reading Button */}
           <button
             onClick={() => {
@@ -468,25 +477,11 @@ export default function Home() {
               setSelectedChapter(todayPsalm)
               setSelectedVerse(null)
             }}
-            style={{
-              padding: '8px 12px',
-              backgroundColor: '#22c55e',
-              color: 'white',
-              border: '2px solid #22c55e',
-              borderRadius: '6px',
-              cursor: 'pointer',
-              fontSize: '0.875rem',
-              display: 'flex',
-              alignItems: 'center',
-              gap: '6px',
-              transition: 'all 0.2s',
-              fontWeight: '500'
-            }}
+            className="px-3 py-2 bg-green-600 hover:bg-green-700 text-white rounded-md transition-colors flex items-center gap-2 text-sm font-medium"
             title="Go to today's reading plan"
           >
             <svg
-              width="18"
-              height="18"
+              className="w-4 h-4"
               viewBox="0 0 24 24"
               fill="none"
               stroke="currentColor"
@@ -504,23 +499,14 @@ export default function Home() {
           {/* History Button */}
           <button
             onClick={() => setShowHistoryPanel(!showHistoryPanel)}
-            style={{
-              padding: '8px 12px',
-              backgroundColor: showHistoryPanel ? '#667eea' : 'white',
-              color: showHistoryPanel ? 'white' : '#667eea',
-              border: '2px solid #667eea',
-              borderRadius: '6px',
-              cursor: 'pointer',
-              fontSize: '0.875rem',
-              display: 'flex',
-              alignItems: 'center',
-              gap: '6px',
-              transition: 'all 0.2s'
-            }}
+            className={`px-3 py-2 rounded-md transition-colors flex items-center gap-2 text-sm font-medium ${
+              showHistoryPanel 
+                ? 'bg-blue-600 text-white' 
+                : 'bg-white dark:bg-gray-700 text-blue-600 dark:text-blue-400 border-2 border-blue-600 dark:border-blue-400'
+            }`}
           >
             <svg
-              width="18"
-              height="18"
+              className="w-4 h-4"
               viewBox="0 0 24 24"
               fill="none"
               stroke="currentColor"
@@ -535,23 +521,14 @@ export default function Home() {
           {/* Notes Button */}
           <button
             onClick={() => setShowNotesPanel(!showNotesPanel)}
-            style={{
-              padding: '8px 12px',
-              backgroundColor: showNotesPanel ? '#667eea' : 'white',
-              color: showNotesPanel ? 'white' : '#667eea',
-              border: '2px solid #667eea',
-              borderRadius: '6px',
-              cursor: 'pointer',
-              fontSize: '0.875rem',
-              display: 'flex',
-              alignItems: 'center',
-              gap: '6px',
-              transition: 'all 0.2s'
-            }}
+            className={`px-3 py-2 rounded-md transition-colors flex items-center gap-2 text-sm font-medium ${
+              showNotesPanel 
+                ? 'bg-blue-600 text-white' 
+                : 'bg-white dark:bg-gray-700 text-blue-600 dark:text-blue-400 border-2 border-blue-600 dark:border-blue-400'
+            }`}
           >
             <svg
-              width="18"
-              height="18"
+              className="w-4 h-4"
               viewBox="0 0 24 24"
               fill="none"
               stroke="currentColor"
@@ -568,11 +545,7 @@ export default function Home() {
       </div>
 
       {loading && (
-        <div style={{ 
-          padding: '20px', 
-          textAlign: 'center',
-          color: '#667eea'
-        }}>
+        <div className="p-8 text-center text-blue-600 dark:text-blue-400">
           Loading Bible...
         </div>
       )}
@@ -580,46 +553,18 @@ export default function Home() {
       {!loading && bibleData && (
         <div>
           {/* Enhanced Chapter Selector */}
-          <div style={{ 
-            marginBottom: '24px',
-            padding: '20px',
-            background: 'linear-gradient(135deg, #f3f4f6 0%, #e5e7eb 100%)',
-            borderRadius: '8px',
-            border: '1px solid #d1d5db'
-          }}>
+          <div className="mb-6 p-5 bg-gradient-to-br from-gray-50 to-gray-100 dark:from-gray-700 dark:to-gray-600 rounded-lg border border-gray-200 dark:border-gray-600">
             {/* Bible Version Selector */}
-            <div style={{ 
-              marginBottom: '16px',
-              paddingBottom: '16px',
-              borderBottom: '1px solid #d1d5db'
-            }}>
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px' }}>
+            <div className="mb-4 pb-4 border-b border-gray-300 dark:border-gray-500">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div>
-                  <label style={{ 
-                    display: 'block', 
-                    marginBottom: '8px', 
-                    fontWeight: '500',
-                    color: '#374151',
-                    fontSize: '0.875rem'
-                  }}>
+                  <label className="block mb-2 font-medium text-gray-700 dark:text-gray-300 text-sm">
                     Primary Bible Version
                   </label>
                   <select
                     value={selectedVersion}
                     onChange={(e) => setSelectedVersion(e.target.value)}
-                    style={{
-                      width: '100%',
-                      padding: '10px',
-                      borderRadius: '6px',
-                      border: '2px solid #d1d5db',
-                      backgroundColor: 'white',
-                      fontSize: '16px',
-                      cursor: 'pointer',
-                      outline: 'none',
-                      color: '#111827'
-                    }}
-                    onFocus={(e) => e.target.style.borderColor = '#667eea'}
-                    onBlur={(e) => e.target.style.borderColor = '#d1d5db'}
+                    className="w-full px-3 py-2 rounded-md border-2 border-gray-300 dark:border-gray-500 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 focus:border-blue-500 focus:outline-none transition-colors [&>option]:bg-white dark:[&>option]:bg-gray-700 [&>option]:text-gray-900 dark:[&>option]:text-gray-100"
                   >
                     <option value="kjv_strongs">KJV with Strong's</option>
                     <option value="kjv">KJV (King James Version)</option>
@@ -635,31 +580,13 @@ export default function Home() {
                 </div>
                 
                 <div>
-                  <label style={{ 
-                    display: 'block', 
-                    marginBottom: '8px', 
-                    fontWeight: '500',
-                    color: '#374151',
-                    fontSize: '0.875rem'
-                  }}>
+                  <label className="block mb-2 font-medium text-gray-700 dark:text-gray-300 text-sm">
                     Parallel Comparison Version
                   </label>
                   <select
                     value={parallelVersion}
                     onChange={(e) => setParallelVersion(e.target.value)}
-                    style={{
-                      width: '100%',
-                      padding: '10px',
-                      borderRadius: '6px',
-                      border: '2px solid #d1d5db',
-                      backgroundColor: 'white',
-                      fontSize: '16px',
-                      cursor: 'pointer',
-                      outline: 'none',
-                      color: '#111827'
-                    }}
-                    onFocus={(e) => e.target.style.borderColor = '#764ba2'}
-                    onBlur={(e) => e.target.style.borderColor = '#d1d5db'}
+                    className="w-full px-3 py-2 rounded-md border-2 border-gray-300 dark:border-gray-500 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 focus:border-purple-500 focus:outline-none transition-colors [&>option]:bg-white dark:[&>option]:bg-gray-700 [&>option]:text-gray-900 dark:[&>option]:text-gray-100"
                   >
                     <option value="kjv_strongs">KJV with Strong's</option>
                     <option value="kjv">KJV (King James Version)</option>
@@ -676,21 +603,10 @@ export default function Home() {
               </div>
             </div>
             
-            <div style={{ 
-              display: 'grid', 
-              gridTemplateColumns: '2fr 1fr 1fr',
-              gap: '16px',
-              marginBottom: '12px'
-            }}>
+            <div className="grid grid-cols-2 md:grid-cols-3 gap-4 mb-3">
               {/* Book Selector */}
-              <div>
-                <label style={{ 
-                  display: 'block', 
-                  marginBottom: '8px', 
-                  fontWeight: '500',
-                  color: '#374151',
-                  fontSize: '0.875rem'
-                }}>
+              <div className="col-span-2 md:col-span-1">
+                <label className="block mb-2 font-medium text-gray-700 dark:text-gray-300 text-sm">
                   Book
                 </label>
                 <select
@@ -700,19 +616,7 @@ export default function Home() {
                     setSelectedChapter(1)
                     setSelectedVerse(null)
                   }}
-                  style={{
-                    width: '100%',
-                    padding: '10px',
-                    borderRadius: '6px',
-                    border: '2px solid #d1d5db',
-                    backgroundColor: 'white',
-                    fontSize: '16px',
-                    cursor: 'pointer',
-                    outline: 'none',
-                    color: '#111827'
-                  }}
-                  onFocus={(e) => e.target.style.borderColor = '#667eea'}
-                  onBlur={(e) => e.target.style.borderColor = '#d1d5db'}
+                  className="w-full px-3 py-2 rounded-md border-2 border-gray-300 dark:border-gray-500 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 focus:border-blue-500 focus:outline-none transition-colors [&>option]:bg-white dark:[&>option]:bg-gray-700 [&>option]:text-gray-900 dark:[&>option]:text-gray-100"
                 >
                   {bookNames.map(book => (
                     <option key={book} value={book}>{book}</option>
@@ -722,13 +626,7 @@ export default function Home() {
               
               {/* Chapter Selector */}
               <div>
-                <label style={{ 
-                  display: 'block', 
-                  marginBottom: '8px', 
-                  fontWeight: '500',
-                  color: '#374151',
-                  fontSize: '0.875rem'
-                }}>
+                <label className="block mb-2 font-medium text-gray-700 dark:text-gray-300 text-sm">
                   Chapter
                 </label>
                 <select
@@ -737,19 +635,7 @@ export default function Home() {
                     setSelectedChapter(parseInt(e.target.value))
                     setSelectedVerse(null)
                   }}
-                  style={{
-                    width: '100%',
-                    padding: '10px',
-                    borderRadius: '6px',
-                    border: '2px solid #d1d5db',
-                    backgroundColor: 'white',
-                    fontSize: '16px',
-                    cursor: 'pointer',
-                    outline: 'none',
-                    color: '#111827'
-                  }}
-                  onFocus={(e) => e.target.style.borderColor = '#667eea'}
-                  onBlur={(e) => e.target.style.borderColor = '#d1d5db'}
+                  className="w-full px-3 py-2 rounded-md border-2 border-gray-300 dark:border-gray-500 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 focus:border-blue-500 focus:outline-none transition-colors [&>option]:bg-white dark:[&>option]:bg-gray-700 [&>option]:text-gray-900 dark:[&>option]:text-gray-100"
                 >
                   {Array.from({ length: chapterCount }, (_, i) => i + 1).map(num => (
                     <option key={num} value={num}>Chapter {num}</option>
@@ -759,31 +645,13 @@ export default function Home() {
               
               {/* Verse Selector */}
               <div>
-                <label style={{ 
-                  display: 'block', 
-                  marginBottom: '8px', 
-                  fontWeight: '500',
-                  color: '#374151',
-                  fontSize: '0.875rem'
-                }}>
+                <label className="block mb-2 font-medium text-gray-700 dark:text-gray-300 text-sm">
                   Verse (Optional)
                 </label>
                 <select
                   value={selectedVerse || ''}
                   onChange={(e) => setSelectedVerse(e.target.value ? parseInt(e.target.value) : null)}
-                  style={{
-                    width: '100%',
-                    padding: '10px',
-                    borderRadius: '6px',
-                    border: '2px solid #d1d5db',
-                    backgroundColor: 'white',
-                    fontSize: '16px',
-                    cursor: 'pointer',
-                    outline: 'none',
-                    color: '#111827'
-                  }}
-                  onFocus={(e) => e.target.style.borderColor = '#667eea'}
-                  onBlur={(e) => e.target.style.borderColor = '#d1d5db'}
+                  className="w-full px-3 py-2 rounded-md border-2 border-gray-300 dark:border-gray-500 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 focus:border-blue-500 focus:outline-none transition-colors [&>option]:bg-white dark:[&>option]:bg-gray-700 [&>option]:text-gray-900 dark:[&>option]:text-gray-100"
                 >
                   <option value="">All Verses</option>
                   {Array.from({ length: verseCount }, (_, i) => i + 1).map(num => (
@@ -794,48 +662,19 @@ export default function Home() {
             </div>
             
             {/* Current Selection Display and Actions */}
-            <div style={{
-              display: 'flex',
-              justifyContent: 'space-between',
-              alignItems: 'center',
-              gap: '12px'
-            }}>
-              <div style={{
-                flex: 1,
-                padding: '12px',
-                backgroundColor: 'white',
-                borderRadius: '6px',
-                textAlign: 'center',
-                fontSize: '1.1rem',
-                fontWeight: '500',
-                color: '#667eea'
-              }}>
+            <div className="flex justify-between items-center gap-3">
+              <div className="flex-1 px-3 py-2 bg-white dark:bg-gray-800 rounded-md text-center text-lg font-medium text-blue-600 dark:text-blue-400">
                 {selectedBook} {selectedChapter}
                 {selectedVerse ? `:${selectedVerse}` : ''}
               </div>
               
               <button
                 onClick={() => setShowParallelScroll(true)}
-                style={{
-                  padding: '10px 16px',
-                  backgroundColor: '#764ba2',
-                  color: 'white',
-                  border: 'none',
-                  borderRadius: '6px',
-                  cursor: 'pointer',
-                  fontSize: '0.9rem',
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: '6px',
-                  transition: 'background-color 0.2s'
-                }}
-                onMouseEnter={(e) => e.currentTarget.style.backgroundColor = '#6b3e91'}
-                onMouseLeave={(e) => e.currentTarget.style.backgroundColor = '#764ba2'}
+                className="px-4 py-2 bg-purple-600 hover:bg-purple-700 text-white rounded-md transition-colors flex items-center gap-2 text-sm"
                 title="Open parallel reading view"
               >
                 <svg
-                  width="18"
-                  height="18"
+                  className="w-4 h-4"
                   viewBox="0 0 24 24"
                   fill="none"
                   stroke="currentColor"
@@ -853,42 +692,21 @@ export default function Home() {
 
           {/* Chapter Content */}
           {mounted && chapterContent && (
-            <div style={{
-              padding: '24px',
-              backgroundColor: 'white',
-              borderRadius: '8px',
-              border: '1px solid #e5e7eb',
-              marginBottom: selectedVerse ? '24px' : '0'
-            }}>
-              <div style={{ 
-                marginBottom: '20px',
-                paddingBottom: '16px',
-                borderBottom: '2px solid #e5e7eb'
-              }}>
-                <h2 style={{ 
-                  fontSize: '1.75rem',
-                  fontWeight: 'bold',
-                  color: '#111827',
-                  marginBottom: '8px'
-                }}>
+            <div className="p-6 bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 mb-6">
+              <div className="mb-5 pb-4 border-b-2 border-gray-200 dark:border-gray-600">
+                <h2 className="text-2xl font-bold text-gray-900 dark:text-gray-100 mb-2">
                   {selectedBook} Chapter {selectedChapter}
                 </h2>
                 {(selectedVersion === 'kjv_strongs' || selectedVersion === 'asvs') && (
-                  <p style={{ 
-                    fontSize: '0.9rem', 
-                    color: '#6b7280'
-                  }}>
-                    Click on Strong&apos;s numbers (blue/purple links) to see definitions
+                  <p className="text-sm text-gray-600 dark:text-gray-400">
+                    Click on Strong's numbers (blue/purple links) to see definitions
                   </p>
                 )}
               </div>
               
               <div 
                 id="verse-content"
-                style={{ 
-                  fontSize: '1.1rem', 
-                  lineHeight: '1.9'
-                }}
+                className="text-lg leading-relaxed"
                 suppressHydrationWarning>
                 {/* Show all verses */}
                 {Object.values(chapterContent.verses)
@@ -897,8 +715,10 @@ export default function Home() {
                   <VerseDisplay
                     key={verse.verse}
                     verse={verse}
+                    bookName={selectedBook}
+                    chapterNumber={selectedChapter}
                     isSelected={selectedVerse === verse.verse}
-                    highlight={chapterHighlights.get(verse.verse)}
+                    highlights={chapterHighlights.get(verse.verse)}
                     note={chapterNotes.get(verse.verse)}
                     hasStrongs={selectedVersion === 'kjv_strongs' || selectedVersion === 'asvs'}
                     onVerseClick={handleVerseClick}
@@ -977,51 +797,21 @@ export default function Home() {
 
       {/* History Panel */}
       {showHistoryPanel && (
-        <div style={{
-          position: 'fixed',
-          left: 0,
-          top: 0,
-          bottom: 0,
-          width: '400px',
-          backgroundColor: 'white',
-          boxShadow: '4px 0 20px rgba(0, 0, 0, 0.1)',
-          zIndex: 100,
-          display: 'flex',
-          flexDirection: 'column',
-          transform: showHistoryPanel ? 'translateX(0)' : 'translateX(-100%)',
-          transition: 'transform 0.3s ease'
-        }}>
-          <div style={{
-            padding: '20px',
-            borderBottom: '2px solid #e5e7eb',
-            backgroundColor: '#f9fafb',
-            display: 'flex',
-            justifyContent: 'space-between',
-            alignItems: 'center'
-          }}>
-            <h2 style={{
-              fontSize: '1.5rem',
-              fontWeight: 'bold',
-              color: '#111827'
-            }}>
+        <div className={`fixed left-0 top-0 bottom-0 w-96 bg-white dark:bg-gray-800 shadow-xl z-50 flex flex-col transform transition-transform duration-300 ${
+          showHistoryPanel ? 'translate-x-0' : '-translate-x-full'
+        }`}>
+          <div className="p-5 border-b-2 border-gray-200 dark:border-gray-600 bg-gray-50 dark:bg-gray-700 flex justify-between items-center">
+            <h2 className="text-xl font-bold text-gray-900 dark:text-gray-100">
               Verse History
             </h2>
             <button
               onClick={() => setShowHistoryPanel(false)}
-              style={{
-                padding: '6px',
-                fontSize: '1.5rem',
-                color: '#6b7280',
-                backgroundColor: 'transparent',
-                border: 'none',
-                cursor: 'pointer',
-                lineHeight: 1
-              }}
+              className="p-1 text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-100"
             >
               ×
             </button>
           </div>
-          <div style={{ flex: 1, overflowY: 'auto', padding: '16px' }}>
+          <div className="flex-1 overflow-y-auto p-4">
             <VerseHistory 
               history={verseHistory}
               onVerseSelect={(book, chapter, verse) => {

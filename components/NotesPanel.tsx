@@ -44,50 +44,16 @@ export function NotesPanel({
   if (!isOpen) return null
 
   return (
-    <div style={{
-      position: 'fixed',
-      right: 0,
-      top: 0,
-      bottom: 0,
-      width: '400px',
-      backgroundColor: 'white',
-      boxShadow: '-4px 0 20px rgba(0, 0, 0, 0.1)',
-      zIndex: 100,
-      display: 'flex',
-      flexDirection: 'column',
-      transform: isOpen ? 'translateX(0)' : 'translateX(100%)',
-      transition: 'transform 0.3s ease'
-    }}>
+    <div className={`fixed right-0 top-0 bottom-0 w-[400px] bg-white dark:bg-gray-800 shadow-xl z-[100] flex flex-col transition-transform duration-300 ease-in-out ${isOpen ? 'translate-x-0' : 'translate-x-full'}`}>
       {/* Header */}
-      <div style={{
-        padding: '20px',
-        borderBottom: '2px solid #e5e7eb',
-        backgroundColor: '#f9fafb'
-      }}>
-        <div style={{
-          display: 'flex',
-          justifyContent: 'space-between',
-          alignItems: 'center',
-          marginBottom: '16px'
-        }}>
-          <h2 style={{
-            fontSize: '1.5rem',
-            fontWeight: 'bold',
-            color: '#111827'
-          }}>
+      <div className="p-5 border-b-2 border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-900">
+        <div className="flex justify-between items-center mb-4">
+          <h2 className="text-2xl font-bold text-gray-900 dark:text-gray-100">
             My Notes ({notes.length})
           </h2>
           <button
             onClick={onClose}
-            style={{
-              padding: '6px',
-              fontSize: '1.5rem',
-              color: '#6b7280',
-              backgroundColor: 'transparent',
-              border: 'none',
-              cursor: 'pointer',
-              lineHeight: 1
-            }}
+            className="p-1.5 text-2xl text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200 leading-none transition-colors"
           >
             ×
           </button>
@@ -99,72 +65,29 @@ export function NotesPanel({
           placeholder="Search notes..."
           value={searchQuery}
           onChange={(e) => setSearchQuery(e.target.value)}
-          style={{
-            width: '100%',
-            padding: '10px',
-            borderRadius: '6px',
-            border: '1px solid #d1d5db',
-            fontSize: '0.875rem',
-            outline: 'none'
-          }}
+          className="w-full px-3 py-2.5 rounded-md border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 dark:focus:ring-blue-400 placeholder-gray-400 dark:placeholder-gray-500"
         />
       </div>
 
       {/* Notes List */}
-      <div style={{
-        flex: 1,
-        overflowY: 'auto',
-        padding: '16px'
-      }}>
+      <div className="flex-1 overflow-y-auto p-4">
         {filteredNotes.length === 0 ? (
-          <p style={{
-            textAlign: 'center',
-            color: '#9ca3af',
-            padding: '40px 20px'
-          }}>
+          <p className="text-center text-gray-400 dark:text-gray-500 py-10 px-5">
             {searchQuery ? 'No notes found matching your search.' : 'No notes yet. Select a verse and add a note to get started.'}
           </p>
         ) : (
           filteredNotes.map(note => (
             <div
               key={note.id}
-              style={{
-                marginBottom: '16px',
-                padding: '16px',
-                backgroundColor: '#f9fafb',
-                borderRadius: '8px',
-                border: '1px solid #e5e7eb',
-                cursor: 'pointer',
-                transition: 'all 0.2s'
-              }}
+              className="mb-4 p-4 bg-gray-50 dark:bg-gray-700 rounded-lg border border-gray-200 dark:border-gray-600 cursor-pointer transition-all hover:bg-gray-100 dark:hover:bg-gray-600 hover:border-blue-500 dark:hover:border-blue-400"
               onClick={() => onNoteSelect(note.book, note.chapter, note.verse)}
-              onMouseEnter={(e) => {
-                e.currentTarget.style.backgroundColor = '#f3f4f6'
-                e.currentTarget.style.borderColor = '#667eea'
-              }}
-              onMouseLeave={(e) => {
-                e.currentTarget.style.backgroundColor = '#f9fafb'
-                e.currentTarget.style.borderColor = '#e5e7eb'
-              }}
             >
-              <div style={{
-                display: 'flex',
-                justifyContent: 'space-between',
-                alignItems: 'flex-start',
-                marginBottom: '8px'
-              }}>
+              <div className="flex justify-between items-start mb-2">
                 <div>
-                  <strong style={{
-                    color: '#667eea',
-                    fontSize: '0.95rem'
-                  }}>
+                  <strong className="text-blue-600 dark:text-blue-400">
                     {note.reference}
                   </strong>
-                  <span style={{
-                    fontSize: '0.75rem',
-                    color: '#9ca3af',
-                    marginLeft: '8px'
-                  }}>
+                  <span className="text-xs text-gray-500 dark:text-gray-400 ml-2">
                     {note.version.toUpperCase()}
                   </span>
                 </div>
@@ -173,36 +96,16 @@ export function NotesPanel({
                     e.stopPropagation()
                     onDeleteNote(note.id)
                   }}
-                  style={{
-                    padding: '2px 6px',
-                    color: '#dc2626',
-                    backgroundColor: 'transparent',
-                    border: 'none',
-                    cursor: 'pointer',
-                    fontSize: '1.2rem',
-                    lineHeight: 1
-                  }}
+                  className="px-1.5 py-0.5 text-red-600 dark:text-red-400 hover:text-red-700 dark:hover:text-red-300 text-xl leading-none transition-colors"
                   title="Delete note"
                 >
                   ×
                 </button>
               </div>
-              <p style={{
-                fontSize: '0.875rem',
-                color: '#4b5563',
-                lineHeight: '1.5',
-                marginBottom: '8px',
-                display: '-webkit-box',
-                WebkitLineClamp: 3,
-                WebkitBoxOrient: 'vertical',
-                overflow: 'hidden'
-              }}>
+              <p className="text-sm text-gray-600 dark:text-gray-300 leading-relaxed mb-2 line-clamp-3">
                 {note.note}
               </p>
-              <div style={{
-                fontSize: '0.75rem',
-                color: '#9ca3af'
-              }}>
+              <div className="text-xs text-gray-400 dark:text-gray-500">
                 {formatDate(note.lastModified)}
               </div>
             </div>

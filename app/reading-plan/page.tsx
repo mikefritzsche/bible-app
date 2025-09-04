@@ -155,45 +155,20 @@ export default function ReadingPlanPage() {
   }
 
   return (
-    <div style={{ 
-      backgroundColor: 'white',
-      borderRadius: '8px',
-      padding: '32px',
-      boxShadow: '0 1px 3px rgba(0, 0, 0, 0.1)'
-    }}>
-      <header style={{ marginBottom: '32px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+    <div className="bg-white dark:bg-gray-800 rounded-lg p-8 shadow-sm">
+      <header className="mb-8 flex justify-between items-center">
         <div>
-          <h1 style={{ 
-            fontSize: '2.5rem', 
-            fontWeight: 'bold',
-            background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
-            WebkitBackgroundClip: 'text',
-            WebkitTextFillColor: 'transparent',
-            marginBottom: '8px'
-          }}>
+          <h1 className="text-4xl font-bold bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent mb-2">
             Daily Bible Reading Plan
           </h1>
-          <p style={{ color: '#6b7280' }}>
+          <p className="text-gray-500 dark:text-gray-400">
             Read through Psalms and Proverbs with a structured daily plan
           </p>
         </div>
-        <div style={{ display: 'flex', gap: '8px' }}>
+        <div className="flex gap-2">
           <Link
             href="/reading-plan-enhanced"
-            style={{
-              padding: '10px 16px',
-              backgroundColor: '#764ba2',
-              color: 'white',
-              border: 'none',
-              borderRadius: '8px',
-              cursor: 'pointer',
-              textDecoration: 'none',
-              display: 'flex',
-              alignItems: 'center',
-              gap: '6px',
-              fontSize: '0.9rem',
-              fontWeight: '500'
-            }}
+            className="px-4 py-2.5 bg-purple-600 hover:bg-purple-700 text-white rounded-lg no-underline flex items-center gap-1.5 text-sm font-medium transition-colors"
             title="Explore More Plans"
           >
             <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
@@ -203,14 +178,11 @@ export default function ReadingPlanPage() {
           </Link>
           <button
             onClick={() => setShowSettings(!showSettings)}
-            style={{
-              padding: '10px',
-              backgroundColor: showSettings ? '#667eea' : 'transparent',
-              color: showSettings ? 'white' : '#667eea',
-              border: '2px solid #667eea',
-              borderRadius: '8px',
-              cursor: 'pointer'
-            }}
+            className={`p-2.5 border-2 border-blue-600 dark:border-blue-400 rounded-lg transition-colors ${
+              showSettings 
+                ? 'bg-blue-600 dark:bg-blue-500 text-white' 
+                : 'bg-transparent text-blue-600 dark:text-blue-400 hover:bg-blue-50 dark:hover:bg-blue-900/20'
+            }`}
             title="Settings"
           >
             <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
@@ -223,49 +195,26 @@ export default function ReadingPlanPage() {
 
       {/* New Plans Announcement Banner */}
       {showPlanOptions && (
-        <div style={{
-          padding: '16px 20px',
-          backgroundColor: '#fef3c7',
-          borderRadius: '8px',
-          marginBottom: '24px',
-          border: '1px solid #fbbf24',
-          display: 'flex',
-          justifyContent: 'space-between',
-          alignItems: 'center'
-        }}>
-          <div style={{ flex: 1 }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '4px' }}>
-              <span style={{ fontSize: '1.2rem' }}>🎉</span>
-              <strong style={{ color: '#92400e' }}>New Reading Plans Available!</strong>
+        <div className="p-4 px-5 bg-yellow-50 dark:bg-yellow-900/20 rounded-lg mb-6 border border-yellow-400 dark:border-yellow-600 flex justify-between items-center">
+          <div className="flex-1">
+            <div className="flex items-center gap-2 mb-1">
+              <span className="text-xl">🎉</span>
+              <strong className="text-yellow-900 dark:text-yellow-200">New Reading Plans Available!</strong>
             </div>
-            <p style={{ color: '#78350f', fontSize: '0.875rem', margin: 0 }}>
+            <p className="text-yellow-800 dark:text-yellow-300 text-sm m-0">
               Explore Bible in a Year, Chronological, New Testament in 90 days, and more reading plans.
             </p>
           </div>
-          <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
+          <div className="flex gap-2 items-center">
             <Link
               href="/reading-plan-enhanced"
-              style={{
-                padding: '8px 16px',
-                backgroundColor: '#f59e0b',
-                color: 'white',
-                borderRadius: '6px',
-                textDecoration: 'none',
-                fontSize: '0.875rem',
-                fontWeight: '500'
-              }}
+              className="px-4 py-2 bg-amber-500 hover:bg-amber-600 text-white rounded-md no-underline text-sm font-medium transition-colors"
             >
               Explore Plans →
             </Link>
             <button
               onClick={dismissPlansBanner}
-              style={{
-                padding: '4px',
-                backgroundColor: 'transparent',
-                border: 'none',
-                cursor: 'pointer',
-                color: '#92400e'
-              }}
+              className="p-1 bg-transparent text-yellow-900 dark:text-yellow-200 hover:text-yellow-700 dark:hover:text-yellow-100 transition-colors"
             >
               ✕
             </button>
@@ -275,69 +224,34 @@ export default function ReadingPlanPage() {
 
       {/* Statistics Banner */}
       {statistics && (
-        <div style={{
-          display: 'grid',
-          gridTemplateColumns: 'repeat(auto-fit, minmax(150px, 1fr))',
-          gap: '16px',
-          marginBottom: '24px'
-        }}>
-          <div style={{
-            padding: '16px',
-            background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
-            borderRadius: '8px',
-            color: 'white',
-            textAlign: 'center'
-          }}>
-            <div style={{ fontSize: '2rem', fontWeight: 'bold' }}>{statistics.currentStreak}</div>
-            <div style={{ fontSize: '0.875rem', opacity: 0.9 }}>Current Streak</div>
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
+          <div className="p-4 bg-gradient-to-br from-blue-600 to-purple-600 rounded-lg text-white text-center">
+            <div className="text-3xl font-bold">{statistics.currentStreak}</div>
+            <div className="text-sm opacity-90">Current Streak</div>
           </div>
-          <div style={{
-            padding: '16px',
-            background: 'linear-gradient(135deg, #764ba2 0%, #f093fb 100%)',
-            borderRadius: '8px',
-            color: 'white',
-            textAlign: 'center'
-          }}>
-            <div style={{ fontSize: '2rem', fontWeight: 'bold' }}>{statistics.totalDaysRead}</div>
-            <div style={{ fontSize: '0.875rem', opacity: 0.9 }}>Total Days Read</div>
+          <div className="p-4 bg-gradient-to-br from-purple-600 to-pink-400 rounded-lg text-white text-center">
+            <div className="text-3xl font-bold">{statistics.totalDaysRead}</div>
+            <div className="text-sm opacity-90">Total Days Read</div>
           </div>
-          <div style={{
-            padding: '16px',
-            background: 'linear-gradient(135deg, #fa709a 0%, #fee140 100%)',
-            borderRadius: '8px',
-            color: 'white',
-            textAlign: 'center'
-          }}>
-            <div style={{ fontSize: '2rem', fontWeight: 'bold' }}>{statistics.completionRate}%</div>
-            <div style={{ fontSize: '0.875rem', opacity: 0.9 }}>30-Day Completion</div>
+          <div className="p-4 bg-gradient-to-br from-pink-500 to-yellow-400 rounded-lg text-white text-center">
+            <div className="text-3xl font-bold">{statistics.completionRate}%</div>
+            <div className="text-sm opacity-90">30-Day Completion</div>
           </div>
-          <div style={{
-            padding: '16px',
-            background: 'linear-gradient(135deg, #30cfd0 0%, #330867 100%)',
-            borderRadius: '8px',
-            color: 'white',
-            textAlign: 'center'
-          }}>
-            <div style={{ fontSize: '2rem', fontWeight: 'bold' }}>{statistics.longestStreak}</div>
-            <div style={{ fontSize: '0.875rem', opacity: 0.9 }}>Longest Streak</div>
+          <div className="p-4 bg-gradient-to-br from-cyan-500 to-indigo-900 rounded-lg text-white text-center">
+            <div className="text-3xl font-bold">{statistics.longestStreak}</div>
+            <div className="text-sm opacity-90">Longest Streak</div>
           </div>
         </div>
       )}
       
       {/* Today's Reading Card */}
       {todayReading && (
-        <div style={{
-          padding: '24px',
-          background: 'linear-gradient(135deg, #f3f4f6 0%, #e5e7eb 100%)',
-          borderRadius: '8px',
-          marginBottom: '24px',
-          border: '1px solid #d1d5db'
-        }}>
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
-            <h2 style={{ fontSize: '1.5rem', fontWeight: 'bold', color: '#111827' }}>
+        <div className="p-6 bg-gradient-to-br from-gray-50 to-gray-100 dark:from-gray-700 dark:to-gray-600 rounded-lg mb-6 border border-gray-300 dark:border-gray-600">
+          <div className="flex justify-between items-center mb-4">
+            <h2 className="text-2xl font-bold text-gray-900 dark:text-gray-100">
               Today's Reading
             </h2>
-            <span style={{ color: '#6b7280', fontSize: '0.875rem' }}>
+            <span className="text-gray-500 dark:text-gray-400 text-sm">
               {todayReading.date.toLocaleDateString('en-US', {
                 weekday: 'long',
                 month: 'long',
@@ -348,29 +262,16 @@ export default function ReadingPlanPage() {
           </div>
 
           {/* Tab Navigation */}
-          <div style={{
-            display: 'flex',
-            gap: '8px',
-            marginBottom: '20px',
-            borderBottom: '2px solid #d1d5db',
-            paddingBottom: '2px'
-          }}>
+          <div className="flex gap-2 mb-5 border-b-2 border-gray-300 dark:border-gray-600 pb-0.5">
             {(['combined', 'psalm', 'proverbs', 'calendar'] as TabView[]).map(tab => (
               <button
                 key={tab}
                 onClick={() => setActiveTab(tab)}
-                style={{
-                  padding: '8px 16px',
-                  backgroundColor: activeTab === tab ? '#667eea' : 'transparent',
-                  color: activeTab === tab ? 'white' : '#6b7280',
-                  border: 'none',
-                  borderRadius: '6px 6px 0 0',
-                  cursor: 'pointer',
-                  fontSize: '0.9rem',
-                  fontWeight: activeTab === tab ? '600' : '400',
-                  textTransform: 'capitalize',
-                  transition: 'all 0.2s'
-                }}
+                className={`px-4 py-2 rounded-t-md capitalize text-sm transition-all ${
+                  activeTab === tab
+                    ? 'bg-blue-600 dark:bg-blue-500 text-white font-semibold'
+                    : 'bg-transparent text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200'
+                }`}
               >
                 {tab === 'calendar' ? 'Monthly View' : tab}
               </button>
@@ -378,92 +279,60 @@ export default function ReadingPlanPage() {
           </div>
 
           {/* Tab Content */}
-          <div style={{ minHeight: '200px' }}>
+          <div className="min-h-[200px]">
             {/* Combined View */}
             {activeTab === 'combined' && (
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '24px' }}>
-                <div style={{
-                  padding: '20px',
-                  backgroundColor: 'white',
-                  borderRadius: '8px',
-                  border: progress?.psalmCompleted ? '2px solid #10b981' : '1px solid #d1d5db'
-                }}>
-                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '12px' }}>
-                    <h3 style={{ fontSize: '1.125rem', fontWeight: '600', color: '#374151' }}>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <div className={`p-5 bg-white dark:bg-gray-700 rounded-lg border-2 ${
+                  progress?.psalmCompleted ? 'border-green-500' : 'border-gray-300 dark:border-gray-600'
+                }`}>
+                  <div className="flex justify-between items-center mb-3">
+                    <h3 className="text-lg font-semibold text-gray-700 dark:text-gray-200">
                       Psalm {todayReading.psalm}
                     </h3>
                     <button
                       onClick={() => toggleReadingComplete('psalm')}
-                      style={{
-                        padding: '6px 12px',
-                        backgroundColor: progress?.psalmCompleted ? '#10b981' : 'white',
-                        color: progress?.psalmCompleted ? 'white' : '#10b981',
-                        border: `2px solid #10b981`,
-                        borderRadius: '6px',
-                        cursor: 'pointer',
-                        fontSize: '0.875rem',
-                        fontWeight: '500'
-                      }}
+                      className={`px-3 py-1.5 border-2 border-green-500 rounded-md text-sm font-medium transition-colors ${
+                        progress?.psalmCompleted
+                          ? 'bg-green-500 text-white'
+                          : 'bg-white dark:bg-gray-700 text-green-600 dark:text-green-400 hover:bg-green-50 dark:hover:bg-green-900/20'
+                      }`}
                     >
                       {progress?.psalmCompleted ? '✓ Completed' : 'Mark Complete'}
                     </button>
                   </div>
                   <Link
                     href={`/?book=Psalms&chapter=${todayReading.psalm}`}
-                    style={{
-                      display: 'inline-block',
-                      padding: '10px 16px',
-                      backgroundColor: '#667eea',
-                      color: 'white',
-                      borderRadius: '6px',
-                      textDecoration: 'none',
-                      fontSize: '0.9rem'
-                    }}
+                    className="inline-block px-4 py-2.5 bg-blue-600 dark:bg-blue-500 hover:bg-blue-700 dark:hover:bg-blue-600 text-white rounded-md no-underline text-sm transition-colors"
                   >
                     Read Psalm {todayReading.psalm} →
                   </Link>
                 </div>
 
-                <div style={{
-                  padding: '20px',
-                  backgroundColor: 'white',
-                  borderRadius: '8px',
-                  border: progress?.proverbsCompleted ? '2px solid #10b981' : '1px solid #d1d5db'
-                }}>
-                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '12px' }}>
-                    <h3 style={{ fontSize: '1.125rem', fontWeight: '600', color: '#374151' }}>
+                <div className={`p-5 bg-white dark:bg-gray-700 rounded-lg border-2 ${
+                  progress?.proverbsCompleted ? 'border-green-500' : 'border-gray-300 dark:border-gray-600'
+                }`}>
+                  <div className="flex justify-between items-center mb-3">
+                    <h3 className="text-lg font-semibold text-gray-700 dark:text-gray-200">
                       {formatProverbsList(todayReading.proverbs)}
                     </h3>
                     <button
                       onClick={() => toggleReadingComplete('proverbs')}
-                      style={{
-                        padding: '6px 12px',
-                        backgroundColor: progress?.proverbsCompleted ? '#10b981' : 'white',
-                        color: progress?.proverbsCompleted ? 'white' : '#10b981',
-                        border: `2px solid #10b981`,
-                        borderRadius: '6px',
-                        cursor: 'pointer',
-                        fontSize: '0.875rem',
-                        fontWeight: '500'
-                      }}
+                      className={`px-3 py-1.5 border-2 border-green-500 rounded-md text-sm font-medium transition-colors ${
+                        progress?.proverbsCompleted
+                          ? 'bg-green-500 text-white'
+                          : 'bg-white dark:bg-gray-700 text-green-600 dark:text-green-400 hover:bg-green-50 dark:hover:bg-green-900/20'
+                      }`}
                     >
                       {progress?.proverbsCompleted ? '✓ Completed' : 'Mark Complete'}
                     </button>
                   </div>
-                  <div style={{ display: 'flex', gap: '8px' }}>
+                  <div className="flex gap-2">
                     {todayReading.proverbs.map(chapter => (
                       <Link
                         key={chapter}
                         href={`/?book=Proverbs&chapter=${chapter}`}
-                        style={{
-                          display: 'inline-block',
-                          padding: '10px 16px',
-                          backgroundColor: '#764ba2',
-                          color: 'white',
-                          borderRadius: '6px',
-                          textDecoration: 'none',
-                          fontSize: '0.9rem'
-                        }}
+                        className="inline-block px-4 py-2.5 bg-purple-600 dark:bg-purple-500 hover:bg-purple-700 dark:hover:bg-purple-600 text-white rounded-md no-underline text-sm transition-colors"
                       >
                         Read Ch. {chapter} →
                       </Link>
@@ -475,44 +344,24 @@ export default function ReadingPlanPage() {
 
             {/* Psalm View */}
             {activeTab === 'psalm' && (
-              <div style={{
-                padding: '24px',
-                backgroundColor: 'white',
-                borderRadius: '8px',
-                textAlign: 'center'
-              }}>
-                <h3 style={{ fontSize: '3rem', fontWeight: 'bold', color: '#667eea', marginBottom: '16px' }}>
+              <div className="p-6 bg-white dark:bg-gray-700 rounded-lg text-center">
+                <h3 className="text-5xl font-bold text-blue-600 dark:text-blue-400 mb-4">
                   Psalm {todayReading.psalm}
                 </h3>
                 <button
                   onClick={() => toggleReadingComplete('psalm')}
-                  style={{
-                    padding: '12px 24px',
-                    backgroundColor: progress?.psalmCompleted ? '#10b981' : 'white',
-                    color: progress?.psalmCompleted ? 'white' : '#10b981',
-                    border: `2px solid #10b981`,
-                    borderRadius: '8px',
-                    cursor: 'pointer',
-                    fontSize: '1rem',
-                    fontWeight: '600',
-                    marginBottom: '16px'
-                  }}
+                  className={`px-6 py-3 border-2 border-green-500 rounded-lg text-base font-semibold mb-4 transition-colors ${
+                    progress?.psalmCompleted
+                      ? 'bg-green-500 text-white'
+                      : 'bg-white dark:bg-gray-700 text-green-600 dark:text-green-400 hover:bg-green-50 dark:hover:bg-green-900/20'
+                  }`}
                 >
                   {progress?.psalmCompleted ? '✓ Completed' : 'Mark as Complete'}
                 </button>
                 <br />
                 <Link
                   href={`/?book=Psalms&chapter=${todayReading.psalm}`}
-                  style={{
-                    display: 'inline-block',
-                    padding: '14px 28px',
-                    backgroundColor: '#667eea',
-                    color: 'white',
-                    borderRadius: '8px',
-                    textDecoration: 'none',
-                    fontSize: '1.1rem',
-                    fontWeight: '500'
-                  }}
+                  className="inline-block px-7 py-3.5 bg-blue-600 dark:bg-blue-500 hover:bg-blue-700 dark:hover:bg-blue-600 text-white rounded-lg no-underline text-lg font-medium transition-colors"
                 >
                   Read in Bible Reader →
                 </Link>
@@ -521,52 +370,32 @@ export default function ReadingPlanPage() {
 
             {/* Proverbs View */}
             {activeTab === 'proverbs' && (
-              <div style={{
-                padding: '24px',
-                backgroundColor: 'white',
-                borderRadius: '8px',
-                textAlign: 'center'
-              }}>
-                <h3 style={{ fontSize: '2.5rem', fontWeight: 'bold', color: '#764ba2', marginBottom: '16px' }}>
+              <div className="p-6 bg-white dark:bg-gray-700 rounded-lg text-center">
+                <h3 className="text-4xl font-bold text-purple-600 dark:text-purple-400 mb-4">
                   {formatProverbsList(todayReading.proverbs)}
                 </h3>
                 {todayReading.proverbs.length > 1 && (
-                  <p style={{ color: '#6b7280', marginBottom: '16px' }}>
+                  <p className="text-gray-500 dark:text-gray-400 mb-4">
                     Today includes multiple chapters to complete the month
                   </p>
                 )}
                 <button
                   onClick={() => toggleReadingComplete('proverbs')}
-                  style={{
-                    padding: '12px 24px',
-                    backgroundColor: progress?.proverbsCompleted ? '#10b981' : 'white',
-                    color: progress?.proverbsCompleted ? 'white' : '#10b981',
-                    border: `2px solid #10b981`,
-                    borderRadius: '8px',
-                    cursor: 'pointer',
-                    fontSize: '1rem',
-                    fontWeight: '600',
-                    marginBottom: '16px'
-                  }}
+                  className={`px-6 py-3 border-2 border-green-500 rounded-lg text-base font-semibold mb-4 transition-colors ${
+                    progress?.proverbsCompleted
+                      ? 'bg-green-500 text-white'
+                      : 'bg-white dark:bg-gray-700 text-green-600 dark:text-green-400 hover:bg-green-50 dark:hover:bg-green-900/20'
+                  }`}
                 >
                   {progress?.proverbsCompleted ? '✓ Completed' : 'Mark as Complete'}
                 </button>
                 <br />
-                <div style={{ display: 'inline-flex', gap: '12px' }}>
+                <div className="inline-flex gap-3">
                   {todayReading.proverbs.map(chapter => (
                     <Link
                       key={chapter}
                       href={`/?book=Proverbs&chapter=${chapter}`}
-                      style={{
-                        display: 'inline-block',
-                        padding: '14px 28px',
-                        backgroundColor: '#764ba2',
-                        color: 'white',
-                        borderRadius: '8px',
-                        textDecoration: 'none',
-                        fontSize: '1.1rem',
-                        fontWeight: '500'
-                      }}
+                      className="inline-block px-7 py-3.5 bg-purple-600 dark:bg-purple-500 hover:bg-purple-700 dark:hover:bg-purple-600 text-white rounded-lg no-underline text-lg font-medium transition-colors"
                     >
                       Read Chapter {chapter} →
                     </Link>
@@ -592,45 +421,25 @@ export default function ReadingPlanPage() {
 
       {/* Settings Panel */}
       {showSettings && (
-        <div style={{
-          padding: '20px',
-          backgroundColor: '#fff3cd',
-          borderRadius: '8px',
-          marginBottom: '24px',
-          border: '1px solid #ffc107'
-        }}>
-          <h3 style={{ marginBottom: '16px', color: '#111827' }}>Reading Plan Settings</h3>
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px' }}>
+        <div className="p-5 bg-yellow-50 dark:bg-yellow-900/20 rounded-lg mb-6 border border-yellow-400 dark:border-yellow-600">
+          <h3 className="mb-4 text-gray-900 dark:text-gray-100">Reading Plan Settings</h3>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <form onSubmit={handleStartingPsalmSubmit}>
-              <label style={{ display: 'block', marginBottom: '8px', fontWeight: '500' }}>
+              <label className="block mb-2 font-medium text-gray-700 dark:text-gray-300">
                 Start Psalms Reading at:
               </label>
-              <div style={{ display: 'flex', gap: '8px' }}>
+              <div className="flex gap-2">
                 <input
                   type="number"
                   min="1"
                   max="150"
                   value={tempStartingPsalm}
                   onChange={(e) => setTempStartingPsalm(e.target.value)}
-                  style={{
-                    padding: '8px 12px',
-                    border: '1px solid #d1d5db',
-                    borderRadius: '6px',
-                    fontSize: '16px',
-                    width: '100px'
-                  }}
+                  className="px-3 py-2 border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 rounded-md text-base w-24"
                 />
                 <button
                   type="submit"
-                  style={{
-                    padding: '8px 16px',
-                    backgroundColor: '#667eea',
-                    color: 'white',
-                    border: 'none',
-                    borderRadius: '6px',
-                    fontSize: '16px',
-                    cursor: 'pointer'
-                  }}
+                  className="px-4 py-2 bg-blue-600 dark:bg-blue-500 hover:bg-blue-700 dark:hover:bg-blue-600 text-white rounded-md text-base transition-colors"
                 >
                   Update
                 </button>
@@ -638,35 +447,21 @@ export default function ReadingPlanPage() {
             </form>
 
             <form onSubmit={handleStartingProverbSubmit}>
-              <label style={{ display: 'block', marginBottom: '8px', fontWeight: '500' }}>
+              <label className="block mb-2 font-medium text-gray-700 dark:text-gray-300">
                 Proverbs Offset (Advanced):
               </label>
-              <div style={{ display: 'flex', gap: '8px' }}>
+              <div className="flex gap-2">
                 <input
                   type="number"
                   min="1"
                   max="31"
                   value={tempStartingProverb}
                   onChange={(e) => setTempStartingProverb(e.target.value)}
-                  style={{
-                    padding: '8px 12px',
-                    border: '1px solid #d1d5db',
-                    borderRadius: '6px',
-                    fontSize: '16px',
-                    width: '100px'
-                  }}
+                  className="px-3 py-2 border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 rounded-md text-base w-24"
                 />
                 <button
                   type="submit"
-                  style={{
-                    padding: '8px 16px',
-                    backgroundColor: '#764ba2',
-                    color: 'white',
-                    border: 'none',
-                    borderRadius: '6px',
-                    fontSize: '16px',
-                    cursor: 'pointer'
-                  }}
+                  className="px-4 py-2 bg-purple-600 dark:bg-purple-500 hover:bg-purple-700 dark:hover:bg-purple-600 text-white rounded-md text-base transition-colors"
                 >
                   Update
                 </button>
@@ -677,59 +472,46 @@ export default function ReadingPlanPage() {
       )}
 
       {/* 30-Day Schedule */}
-      <div style={{ marginTop: '32px' }}>
-        <h3 style={{ fontSize: '1.25rem', marginBottom: '16px', color: '#374151' }}>
+      <div className="mt-8">
+        <h3 className="text-xl mb-4 text-gray-700 dark:text-gray-300">
           30-Day Reading Schedule
         </h3>
-        <div style={{ 
-          display: 'grid', 
-          gridTemplateColumns: 'repeat(auto-fill, minmax(200px, 1fr))',
-          gap: '12px'
-        }}>
+        <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 xl:grid-cols-6 gap-3">
           {schedule.map((day, index) => (
             <div
               key={index}
-              style={{
-                padding: '12px',
-                border: day.isToday ? '2px solid #667eea' : day.isCompleted ? '2px solid #10b981' : '1px solid #e5e7eb',
-                borderRadius: '6px',
-                backgroundColor: day.isToday ? '#f3f4ff' : day.isCompleted ? '#f0fdf4' : 'white',
-                position: 'relative'
-              }}
+              className={`p-3 rounded-md relative border ${
+                day.isToday 
+                  ? 'border-2 border-blue-600 dark:border-blue-400 bg-blue-50 dark:bg-blue-900/20' 
+                  : day.isCompleted 
+                  ? 'border-2 border-green-500 bg-green-50 dark:bg-green-900/20' 
+                  : 'border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700'
+              }`}
             >
               {day.isCompleted && (
-                <span style={{
-                  position: 'absolute',
-                  top: '4px',
-                  right: '4px',
-                  color: '#10b981',
-                  fontSize: '1.2rem'
-                }}>
+                <span className="absolute top-1 right-1 text-green-500 text-xl">
                   ✓
                 </span>
               )}
-              <div style={{ 
-                fontSize: '0.75rem', 
-                color: '#6b7280',
-                marginBottom: '4px'
-              }}>
+              <div className="text-xs text-gray-500 dark:text-gray-400 mb-1">
                 {day.date.toLocaleDateString('en-US', { 
                   weekday: 'short', 
                   month: 'short', 
                   day: 'numeric' 
                 })}
               </div>
-              <div style={{ 
-                fontWeight: day.isToday ? 'bold' : 'normal',
-                color: day.isToday ? '#667eea' : '#111827',
-                marginBottom: '4px'
-              }}>
+              <div className={`mb-1 ${
+                day.isToday 
+                  ? 'font-bold text-blue-600 dark:text-blue-400' 
+                  : 'text-gray-900 dark:text-gray-100'
+              }`}>
                 Psalm {day.psalm}
               </div>
-              <div style={{ 
-                fontSize: '0.875rem',
-                color: day.isToday ? '#764ba2' : '#6b7280'
-              }}>
+              <div className={`text-sm ${
+                day.isToday 
+                  ? 'text-purple-600 dark:text-purple-400' 
+                  : 'text-gray-500 dark:text-gray-400'
+              }`}>
                 {day.proverbs.length === 1 
                   ? `Proverbs ${day.proverbs[0]}`
                   : `Prov ${day.proverbs.join(' & ')}`}
@@ -820,56 +602,29 @@ function MonthlyCalendar({
 
   return (
     <div>
-      <div style={{
-        display: 'flex',
-        justifyContent: 'space-between',
-        alignItems: 'center',
-        marginBottom: '16px'
-      }}>
+      <div className="flex justify-between items-center mb-4">
         <button
           onClick={() => navigateMonth('prev')}
-          style={{
-            padding: '8px',
-            backgroundColor: 'transparent',
-            border: 'none',
-            cursor: 'pointer',
-            fontSize: '1.5rem'
-          }}
+          className="p-2 bg-transparent text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-100 text-2xl transition-colors"
         >
           ←
         </button>
-        <h3 style={{ fontSize: '1.25rem', fontWeight: '600' }}>
+        <h3 className="text-xl font-semibold text-gray-900 dark:text-gray-100">
           {currentMonth.toLocaleDateString('en-US', { month: 'long', year: 'numeric' })}
         </h3>
         <button
           onClick={() => navigateMonth('next')}
-          style={{
-            padding: '8px',
-            backgroundColor: 'transparent',
-            border: 'none',
-            cursor: 'pointer',
-            fontSize: '1.5rem'
-          }}
+          className="p-2 bg-transparent text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-100 text-2xl transition-colors"
         >
           →
         </button>
       </div>
 
-      <div style={{
-        display: 'grid',
-        gridTemplateColumns: 'repeat(7, 1fr)',
-        gap: '4px'
-      }}>
+      <div className="grid grid-cols-7 gap-1">
         {['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'].map(day => (
           <div
             key={day}
-            style={{
-              padding: '8px',
-              textAlign: 'center',
-              fontWeight: '600',
-              fontSize: '0.875rem',
-              color: '#6b7280'
-            }}
+            className="p-2 text-center font-semibold text-sm text-gray-500 dark:text-gray-400"
           >
             {day}
           </div>
@@ -891,34 +646,32 @@ function MonthlyCalendar({
             <div
               key={day}
               onClick={() => onDateSelect(date)}
-              style={{
-                padding: '8px',
-                border: isToday ? '2px solid #667eea' : '1px solid #e5e7eb',
-                borderRadius: '4px',
-                backgroundColor: 
-                  progress?.psalmCompleted && progress?.proverbsCompleted ? '#f0fdf4' :
-                  progress?.psalmCompleted || progress?.proverbsCompleted ? '#fef3c7' :
-                  isToday ? '#f3f4ff' : 'white',
-                cursor: 'pointer',
-                transition: 'all 0.2s'
-              }}
+              className={`p-2 rounded cursor-pointer transition-all border ${
+                isToday
+                  ? 'border-2 border-blue-600 dark:border-blue-400 bg-blue-50 dark:bg-blue-900/20'
+                  : progress?.psalmCompleted && progress?.proverbsCompleted
+                  ? 'border-green-500 bg-green-50 dark:bg-green-900/20'
+                  : progress?.psalmCompleted || progress?.proverbsCompleted
+                  ? 'border-yellow-400 bg-yellow-50 dark:bg-yellow-900/20'
+                  : 'border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 hover:bg-gray-50 dark:hover:bg-gray-600'
+              }`}
             >
-              <div style={{ fontWeight: isToday ? 'bold' : 'normal', marginBottom: '4px' }}>
+              <div className={`mb-1 ${isToday ? 'font-bold text-gray-900 dark:text-gray-100' : 'text-gray-700 dark:text-gray-200'}`}>
                 {day}
               </div>
-              <div style={{ fontSize: '0.7rem', color: '#6b7280' }}>
+              <div className="text-[0.7rem] text-gray-500 dark:text-gray-400">
                 Ps {psalm}
               </div>
-              <div style={{ fontSize: '0.7rem', color: '#6b7280' }}>
+              <div className="text-[0.7rem] text-gray-500 dark:text-gray-400">
                 Pr {proverbs.join('&')}
               </div>
               {progress && (
-                <div style={{ display: 'flex', gap: '2px', marginTop: '4px' }}>
+                <div className="flex gap-0.5 mt-1">
                   {progress.psalmCompleted && (
-                    <span style={{ fontSize: '0.6rem', color: '#10b981' }}>P✓</span>
+                    <span className="text-[0.6rem] text-green-500">P✓</span>
                   )}
                   {progress.proverbsCompleted && (
-                    <span style={{ fontSize: '0.6rem', color: '#10b981' }}>Pr✓</span>
+                    <span className="text-[0.6rem] text-green-500">Pr✓</span>
                   )}
                 </div>
               )}

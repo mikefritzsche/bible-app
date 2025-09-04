@@ -1,5 +1,6 @@
 import type { Metadata } from 'next'
 import Navigation from '@/components/Navigation'
+import { ThemeProvider } from '@/lib/ThemeContext'
 import './globals.css'
 
 export const metadata: Metadata = {
@@ -13,21 +14,16 @@ export default function RootLayout({
   children: React.ReactNode
 }) {
   return (
-    <html lang="en">
-      <body>
-        <div style={{ 
-          backgroundColor: '#f3f4f6', 
-          minHeight: '100vh',
-          padding: '24px'
-        }}>
-          <div style={{ 
-            maxWidth: '1024px', 
-            margin: '0 auto'
-          }}>
-            <Navigation />
-            {children}
+    <html lang="en" suppressHydrationWarning>
+      <body className="bg-gray-50 dark:bg-gray-900 text-gray-900 dark:text-gray-100">
+        <ThemeProvider>
+          <div className="min-h-screen p-6">
+            <div className="max-w-5xl mx-auto">
+              <Navigation />
+              {children}
+            </div>
           </div>
-        </div>
+        </ThemeProvider>
       </body>
     </html>
   )

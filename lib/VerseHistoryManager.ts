@@ -17,7 +17,7 @@ export class VerseHistoryManager {
 
   async init(): Promise<void> {
     return new Promise((resolve, reject) => {
-      const request = indexedDB.open(this.dbName, 2)
+      const request = indexedDB.open(this.dbName, 6) // Use consistent version
       
       request.onerror = () => reject(request.error)
       
@@ -34,6 +34,27 @@ export class VerseHistoryManager {
           const store = db.createObjectStore(this.storeName, { keyPath: 'id' })
           store.createIndex('timestamp', 'timestamp', { unique: false })
           store.createIndex('reference', 'reference', { unique: false })
+          store.createIndex('book', 'book', { unique: false })
+        }
+        
+        // Ensure highlights store exists
+        if (!db.objectStoreNames.contains('highlights')) {
+          const store = db.createObjectStore('highlights', { keyPath: 'id' })
+          store.createIndex('reference', 'reference', { unique: false })
+          store.createIndex('book', 'book', { unique: false })
+          store.createIndex('color', 'color', { unique: false })
+          store.createIndex('timestamp', 'timestamp', { unique: false })
+          store.createIndex('version', 'version', { unique: false })
+        }
+        
+        // Ensure notes store exists
+        if (!db.objectStoreNames.contains('notes')) {
+          const store = db.createObjectStore('notes', { keyPath: 'id' })
+          store.createIndex('reference', 'reference', { unique: false })
+          store.createIndex('book', 'book', { unique: false })
+          store.createIndex('timestamp', 'timestamp', { unique: false })
+          store.createIndex('lastModified', 'lastModified', { unique: false })
+          store.createIndex('version', 'version', { unique: false })
         }
       }
     })

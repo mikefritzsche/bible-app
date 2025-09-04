@@ -290,68 +290,46 @@ export default function EnhancedReadingPlanPage() {
                 return (
                   <div
                     key={idx}
-                    style={{
-                      padding: '20px',
-                      backgroundColor: isComplete ? '#f0fdf4' : 'white',
-                      borderRadius: '8px',
-                      border: isComplete ? '2px solid #10b981' : '1px solid #e5e7eb',
-                      boxShadow: '0 1px 3px rgba(0, 0, 0, 0.1)'
-                    }}
+                    className={`p-5 rounded-lg shadow-sm ${
+                      isComplete 
+                        ? 'bg-green-50 dark:bg-green-900/20 border-2 border-green-500' 
+                        : 'bg-white dark:bg-gray-700 border border-gray-300 dark:border-gray-600'
+                    }`}
                   >
-                    <div style={{
-                      display: 'flex',
-                      justifyContent: 'space-between',
-                      alignItems: 'center',
-                      marginBottom: '12px'
-                    }}>
-                      <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-                        <span style={{
-                          padding: '4px 8px',
-                          backgroundColor: getReadingTypeColor(reading.type) + '20',
-                          color: getReadingTypeColor(reading.type),
-                          borderRadius: '4px',
-                          fontSize: '0.75rem',
-                          fontWeight: '600'
-                        }}>
+                    <div className="flex justify-between items-center mb-3">
+                      <div className="flex items-center gap-3">
+                        <span 
+                          className="px-2 py-1 text-xs font-semibold rounded"
+                          style={{
+                            backgroundColor: getReadingTypeColor(reading.type) + '20',
+                            color: getReadingTypeColor(reading.type)
+                          }}
+                        >
                           {getReadingTypeLabel(reading.type)}
                         </span>
-                        <h3 style={{ 
-                          fontSize: '1.25rem', 
-                          fontWeight: '600',
-                          color: '#111827'
-                        }}>
+                        <h3 className="text-xl font-semibold text-gray-900 dark:text-gray-100">
                           {formatReadingText(reading)}
                         </h3>
                       </div>
                       <button
                         onClick={() => toggleReadingComplete(reading)}
-                        style={{
-                          padding: '8px 16px',
-                          backgroundColor: isComplete ? '#10b981' : 'white',
-                          color: isComplete ? 'white' : '#10b981',
-                          border: '2px solid #10b981',
-                          borderRadius: '6px',
-                          cursor: 'pointer',
-                          fontSize: '0.875rem',
-                          fontWeight: '500'
-                        }}
+                        className={`px-4 py-2 border-2 border-green-500 rounded-md text-sm font-medium transition-colors ${
+                          isComplete
+                            ? 'bg-green-500 text-white'
+                            : 'bg-white dark:bg-gray-700 text-green-600 dark:text-green-400 hover:bg-green-50 dark:hover:bg-green-900/20'
+                        }`}
                       >
                         {isComplete ? '✓ Completed' : 'Mark Complete'}
                       </button>
                     </div>
-                    <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
+                    <div className="flex gap-2 flex-wrap">
                       {reading.chapters.map(chapter => (
                         <Link
                           key={chapter}
                           href={`/?book=${reading.book}&chapter=${chapter}`}
+                          className="inline-block px-3 py-2 text-white rounded-md no-underline text-sm transition-colors hover:opacity-90"
                           style={{
-                            display: 'inline-block',
-                            padding: '8px 12px',
-                            backgroundColor: getReadingTypeColor(reading.type),
-                            color: 'white',
-                            borderRadius: '6px',
-                            textDecoration: 'none',
-                            fontSize: '0.875rem'
+                            backgroundColor: getReadingTypeColor(reading.type)
                           }}
                         >
                           {reading.chapters.length === 1 
@@ -370,73 +348,48 @@ export default function EnhancedReadingPlanPage() {
         {/* Schedule Tab */}
         {activeTab === 'schedule' && (
           <div>
-            <h3 style={{ 
-              fontSize: '1.25rem', 
-              marginBottom: '16px', 
-              color: '#374151'
-            }}>
+            <h3 className="text-xl mb-4 text-gray-700 dark:text-gray-300">
               Upcoming Readings
             </h3>
-            <div style={{ 
-              display: 'grid', 
-              gridTemplateColumns: 'repeat(auto-fill, minmax(300px, 1fr))',
-              gap: '12px'
-            }}>
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
               {schedule.map((day, index) => (
                 <div
                   key={index}
-                  style={{
-                    padding: '16px',
-                    border: day.isToday 
-                      ? '2px solid #667eea' 
+                  className={`p-4 rounded-md relative border-2 ${
+                    day.isToday 
+                      ? 'border-blue-600 dark:border-blue-400 bg-blue-50 dark:bg-blue-900/20' 
                       : day.isCompleted 
-                        ? '2px solid #10b981' 
-                        : '1px solid #e5e7eb',
-                    borderRadius: '6px',
-                    backgroundColor: day.isToday 
-                      ? '#f3f4ff' 
-                      : day.isCompleted 
-                        ? '#f0fdf4' 
-                        : 'white',
-                    position: 'relative'
-                  }}
+                        ? 'border-green-500 bg-green-50 dark:bg-green-900/20' 
+                        : 'border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700'
+                  }`}
                 >
                   {day.isCompleted && (
-                    <span style={{
-                      position: 'absolute',
-                      top: '8px',
-                      right: '8px',
-                      color: '#10b981',
-                      fontSize: '1.2rem'
-                    }}>
+                    <span className="absolute top-2 right-2 text-green-500 text-xl">
                       ✓
                     </span>
                   )}
-                  <div style={{ 
-                    fontSize: '0.875rem', 
-                    color: '#6b7280',
-                    marginBottom: '8px',
-                    fontWeight: day.isToday ? 'bold' : 'normal'
-                  }}>
+                  <div className={`text-sm mb-2 ${
+                    day.isToday 
+                      ? 'font-bold text-gray-700 dark:text-gray-200' 
+                      : 'text-gray-500 dark:text-gray-400'
+                  }`}>
                     {day.date.toLocaleDateString('en-US', { 
                       weekday: 'short', 
                       month: 'short', 
                       day: 'numeric' 
                     })}
-                    {day.isToday && <span style={{ color: '#667eea' }}> (Today)</span>}
+                    {day.isToday && <span className="text-blue-600 dark:text-blue-400"> (Today)</span>}
                   </div>
-                  <div style={{ fontSize: '0.875rem' }}>
+                  <div className="text-sm">
                     {day.readings.map((reading, idx) => (
-                      <div key={idx} style={{ marginBottom: '4px' }}>
-                        <span style={{
-                          display: 'inline-block',
-                          width: '8px',
-                          height: '8px',
-                          borderRadius: '50%',
-                          backgroundColor: getReadingTypeColor(reading.type),
-                          marginRight: '8px'
-                        }} />
-                        <span style={{ color: '#374151' }}>
+                      <div key={idx} className="mb-1 flex items-center">
+                        <span 
+                          className="inline-block w-2 h-2 rounded-full mr-2"
+                          style={{
+                            backgroundColor: getReadingTypeColor(reading.type)
+                          }} 
+                        />
+                        <span className="text-gray-700 dark:text-gray-200">
                           {formatReadingText(reading)}
                         </span>
                       </div>
@@ -451,92 +404,45 @@ export default function EnhancedReadingPlanPage() {
         {/* Plans Tab */}
         {activeTab === 'plans' && (
           <div>
-            <h3 style={{ 
-              fontSize: '1.25rem', 
-              marginBottom: '16px', 
-              color: '#374151'
-            }}>
+            <h3 className="text-xl mb-4 text-gray-700 dark:text-gray-300">
               Available Reading Plans
             </h3>
             
             {/* Plan Categories */}
             {['devotional', 'comprehensive', 'focused'].map(category => (
-              <div key={category} style={{ marginBottom: '32px' }}>
-                <h4 style={{
-                  fontSize: '1rem',
-                  fontWeight: '600',
-                  color: '#6b7280',
-                  textTransform: 'capitalize',
-                  marginBottom: '12px',
-                  borderBottom: '1px solid #e5e7eb',
-                  paddingBottom: '8px'
-                }}>
+              <div key={category} className="mb-8">
+                <h4 className="text-base font-semibold text-gray-500 dark:text-gray-400 capitalize mb-3 border-b border-gray-300 dark:border-gray-600 pb-2">
                   {category} Plans
                 </h4>
-                <div style={{
-                  display: 'grid',
-                  gridTemplateColumns: 'repeat(auto-fill, minmax(300px, 1fr))',
-                  gap: '16px'
-                }}>
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
                   {READING_PLANS.filter(plan => plan.category === category).map(plan => (
                     <div
                       key={plan.id}
                       onClick={() => handlePlanChange(plan.id)}
-                      style={{
-                        padding: '20px',
-                        border: selectedPlan === plan.id 
-                          ? '2px solid #667eea' 
-                          : '1px solid #e5e7eb',
-                        borderRadius: '8px',
-                        backgroundColor: selectedPlan === plan.id 
-                          ? '#f3f4ff' 
-                          : 'white',
-                        cursor: 'pointer',
-                        transition: 'all 0.2s',
-                        boxShadow: selectedPlan === plan.id 
-                          ? '0 4px 6px rgba(102, 126, 234, 0.1)' 
-                          : '0 1px 3px rgba(0, 0, 0, 0.1)'
-                      }}
+                      className={`p-5 rounded-lg cursor-pointer transition-all ${
+                        selectedPlan === plan.id 
+                          ? 'border-2 border-blue-600 dark:border-blue-400 bg-blue-50 dark:bg-blue-900/20 shadow-md' 
+                          : 'border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 hover:bg-gray-50 dark:hover:bg-gray-600 shadow-sm'
+                      }`}
                     >
-                      <div style={{
-                        display: 'flex',
-                        justifyContent: 'space-between',
-                        alignItems: 'start',
-                        marginBottom: '8px'
-                      }}>
-                        <h4 style={{ 
-                          fontSize: '1.125rem', 
-                          fontWeight: '600',
-                          color: selectedPlan === plan.id ? '#667eea' : '#111827'
-                        }}>
+                      <div className="flex justify-between items-start mb-2">
+                        <h4 className={`text-lg font-semibold ${
+                          selectedPlan === plan.id 
+                            ? 'text-blue-600 dark:text-blue-400' 
+                            : 'text-gray-900 dark:text-gray-100'
+                        }`}>
                           {plan.name}
                         </h4>
                         {selectedPlan === plan.id && (
-                          <span style={{
-                            padding: '4px 8px',
-                            backgroundColor: '#667eea',
-                            color: 'white',
-                            borderRadius: '4px',
-                            fontSize: '0.75rem',
-                            fontWeight: '600'
-                          }}>
+                          <span className="px-2 py-1 bg-blue-600 dark:bg-blue-500 text-white rounded text-xs font-semibold">
                             Active
                           </span>
                         )}
                       </div>
-                      <p style={{ 
-                        color: '#6b7280', 
-                        fontSize: '0.875rem',
-                        marginBottom: '12px'
-                      }}>
+                      <p className="text-gray-500 dark:text-gray-400 text-sm mb-3">
                         {plan.description}
                       </p>
-                      <div style={{
-                        display: 'flex',
-                        justifyContent: 'space-between',
-                        fontSize: '0.875rem',
-                        color: '#6b7280'
-                      }}>
+                      <div className="flex justify-between text-sm text-gray-500 dark:text-gray-400">
                         <span>⏱ {plan.dailyTime}</span>
                         <span>📅 {plan.duration} days</span>
                       </div>
@@ -551,11 +457,7 @@ export default function EnhancedReadingPlanPage() {
         {/* Statistics Tab */}
         {activeTab === 'statistics' && statistics && (
           <div>
-            <h3 style={{ 
-              fontSize: '1.25rem', 
-              marginBottom: '24px', 
-              color: '#374151'
-            }}>
+            <h3 className="text-xl mb-6 text-gray-700 dark:text-gray-300">
               Your Progress - {READING_PLANS.find(p => p.id === selectedPlan)?.name}
             </h3>
             

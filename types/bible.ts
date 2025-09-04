@@ -41,8 +41,14 @@ export interface StrongsPopoverProps {
 
 export interface VerseWithStrongsProps {
   text: string;
-  verseNumber: number;
+  verseNumber: number | null;
   onStrongsClick: (strongsNumber: string, position: { x: number; y: number }) => void;
+  highlights?: Array<{
+    startOffset: number;
+    endOffset: number;
+    color: string;
+  }>;
+  isDarkMode?: boolean;
 }
 
 export interface ParsedTextPart {
