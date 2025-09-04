@@ -58,6 +58,15 @@ export class GoogleDriveAdapter implements CloudSyncAdapter {
   }
   
   async initialize(): Promise<void> {
+    // Skip if already initialized
+    if (this.gapiInitialized && this.gisInitialized) {
+      // If we have a stored token, set it
+      if (this.accessToken && window.gapi?.client) {
+        window.gapi.client.setToken({ access_token: this.accessToken })
+      }
+      return
+    }
+    
     // Load the Google API scripts if not already loaded
     if (!window.gapi) {
       await this.loadScript('https://apis.google.com/js/api.js')
@@ -68,31 +77,46 @@ export class GoogleDriveAdapter implements CloudSyncAdapter {
     }
     
     // Initialize GAPI
-    await new Promise<void>((resolve) => {
-      window.gapi.load('client', async () => {
-        await window.gapi.client.init({
-          apiKey: this.apiKey,
-          discoveryDocs: [this.DISCOVERY_DOC],
+    if (!this.gapiInitialized) {
+      await new Promise<void>((resolve, reject) => {
+        window.gapi.load('client', async () => {
+          try {
+            await window.gapi.client.init({
+              apiKey: this.apiKey,
+              discoveryDocs: [this.DISCOVERY_DOC],
+            })
+            this.gapiInitialized = true
+            
+            // If we have a stored token, set it now
+            if (this.accessToken) {
+              window.gapi.client.setToken({ access_token: this.accessToken })
+            }
+            
+            resolve()
+          } catch (error) {
+            console.error('Failed to initialize GAPI client:', error)
+            reject(error)
+          }
         })
-        this.gapiInitialized = true
-        resolve()
       })
-    })
+    }
     
     // Initialize Google Identity Services
-    this.tokenClient = window.google.accounts.oauth2.initTokenClient({
-      client_id: this.clientId,
-      scope: this.SCOPES,
-      callback: (response: any) => {
-        if (response.access_token) {
-          this.accessToken = response.access_token
-          this.isAuthenticated = true
-          this.saveToken(response.access_token)
-          window.gapi.client.setToken({ access_token: response.access_token })
-        }
-      },
-    })
-    this.gisInitialized = true
+    if (!this.gisInitialized) {
+      this.tokenClient = window.google.accounts.oauth2.initTokenClient({
+        client_id: this.clientId,
+        scope: this.SCOPES,
+        callback: (response: any) => {
+          if (response.access_token) {
+            this.accessToken = response.access_token
+            this.isAuthenticated = true
+            this.saveToken(response.access_token)
+            window.gapi.client.setToken({ access_token: response.access_token })
+          }
+        },
+      })
+      this.gisInitialized = true
+    }
   }
   
   private loadScript(src: string): Promise<void> {
@@ -161,44 +185,68 @@ export class GoogleDriveAdapter implements CloudSyncAdapter {
       }
     }
     
+    // Ensure GAPI is initialized
+    if (!this.gapiInitialized || !window.gapi?.client?.drive) {
+      await this.initialize()
+    }
+    
     try {
       // Check if file exists
       const fileId = await this.findDataFile()
       
-      const boundary = '-------314159265358979323846'
-      const delimiter = "\r\n--" + boundary + "\r\n"
-      const closeDelim = "\r\n--" + boundary + "--"
+      // Convert data to base64 to avoid multipart complexity
+      const fileContent = JSON.stringify(data, null, 2)
+      const base64Data = btoa(unescape(encodeURIComponent(fileContent)))
       
-      const metadata = {
-        name: this.DATA_FILENAME,
-        mimeType: 'application/json',
-        parents: fileId ? undefined : ['appDataFolder']
+      if (fileId) {
+        // Update existing file using simple media upload
+        const response = await window.gapi.client.request({
+          path: `/upload/drive/v3/files/${fileId}`,
+          method: 'PATCH',
+          params: {
+            uploadType: 'media'
+          },
+          headers: {
+            'Content-Type': 'application/json'
+          },
+          body: fileContent
+        })
+        
+        if (response.status !== 200) {
+          throw new Error('Failed to update file')
+        }
+      } else {
+        // Create new file - first create metadata, then upload content
+        // Step 1: Create the file metadata
+        const createResponse = await window.gapi.client.drive.files.create({
+          resource: {
+            name: this.DATA_FILENAME,
+            mimeType: 'application/json',
+            parents: ['appDataFolder']
+          }
+        })
+        
+        if (!createResponse.result.id) {
+          throw new Error('Failed to create file')
+        }
+        
+        // Step 2: Upload the content
+        const updateResponse = await window.gapi.client.request({
+          path: `/upload/drive/v3/files/${createResponse.result.id}`,
+          method: 'PATCH',
+          params: {
+            uploadType: 'media'
+          },
+          headers: {
+            'Content-Type': 'application/json'
+          },
+          body: fileContent
+        })
+        
+        if (updateResponse.status !== 200) {
+          throw new Error('Failed to upload file content')
+        }
       }
-      
-      const multipartRequestBody =
-        delimiter +
-        'Content-Type: application/json\r\n\r\n' +
-        JSON.stringify(metadata) +
-        delimiter +
-        'Content-Type: application/json\r\n\r\n' +
-        JSON.stringify(data, null, 2) +
-        closeDelim
-      
-      const request = window.gapi.client.request({
-        path: fileId 
-          ? `/drive/v3/files/${fileId}`
-          : '/drive/v3/files',
-        method: fileId ? 'PATCH' : 'POST',
-        params: {
-          uploadType: 'multipart'
-        },
-        headers: {
-          'Content-Type': 'multipart/related; boundary="' + boundary + '"'
-        },
-        body: multipartRequestBody
-      })
-      
-      await request
       
       return {
         success: true,
@@ -217,6 +265,11 @@ export class GoogleDriveAdapter implements CloudSyncAdapter {
   async loadData(): Promise<SyncData | null> {
     if (!this.isAuthenticated) {
       return null
+    }
+    
+    // Ensure GAPI is initialized
+    if (!this.gapiInitialized || !window.gapi?.client?.drive) {
+      await this.initialize()
     }
     
     try {
@@ -239,6 +292,11 @@ export class GoogleDriveAdapter implements CloudSyncAdapter {
   }
   
   private async findDataFile(): Promise<string | null> {
+    // Ensure GAPI is initialized
+    if (!this.gapiInitialized || !window.gapi?.client?.drive) {
+      await this.initialize()
+    }
+    
     try {
       const response = await window.gapi.client.drive.files.list({
         spaces: 'appDataFolder',
@@ -264,6 +322,11 @@ export class GoogleDriveAdapter implements CloudSyncAdapter {
   }
   
   async getLastSyncTime(): Promise<Date | null> {
+    // Only try to get sync time if authenticated
+    if (!this.isAuthenticated) {
+      return null
+    }
+    
     const data = await this.loadData()
     if (data?.lastSynced) {
       return new Date(data.lastSynced)

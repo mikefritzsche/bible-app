@@ -27,12 +27,16 @@ export default function SyncSettings({ onClose }: SyncSettingsProps) {
   }, [])
 
   const initializeAdapters = async () => {
-    // Register Google Drive adapter (you'll need to add your own client ID and API key)
-    const googleDriveAdapter = createGoogleDriveAdapter(
-      process.env.NEXT_PUBLIC_GOOGLE_CLIENT_ID || '',
-      process.env.NEXT_PUBLIC_GOOGLE_API_KEY || ''
-    )
-    cloudSyncManager.registerAdapter(googleDriveAdapter)
+    // Register Google Drive adapter using environment variables
+    const clientId = process.env.NEXT_PUBLIC_GOOGLE_CLIENT_ID || ''
+    const apiKey = process.env.NEXT_PUBLIC_GOOGLE_API_KEY || ''
+    
+    if (clientId && apiKey) {
+      const googleDriveAdapter = createGoogleDriveAdapter(clientId, apiKey)
+      cloudSyncManager.registerAdapter(googleDriveAdapter)
+    } else {
+      console.warn('Google Drive credentials not configured. Please add NEXT_PUBLIC_GOOGLE_CLIENT_ID and NEXT_PUBLIC_GOOGLE_API_KEY to .env.local')
+    }
 
     // Register File System adapter for iCloud Drive and other local folders
     const fileSystemAdapter = createFileSystemAdapter()
@@ -62,8 +66,14 @@ export default function SyncSettings({ onClose }: SyncSettingsProps) {
       setSelectedAdapter(adapterName)
       setSyncStatus('')
       
-      // Check if already authenticated (e.g., stored token)
+      // Initialize the adapter if it's Google Drive
       const adapter = cloudSyncManager.getCurrentAdapter()
+      if (adapter && adapterName === 'Google Drive') {
+        const googleAdapter = adapter as any
+        await googleAdapter.initialize()
+      }
+      
+      // Check if already authenticated (e.g., stored token)
       if (adapter?.isAuthenticated) {
         setIsAuthenticated(true)
         const lastSync = await cloudSyncManager.getLastSyncTime()
