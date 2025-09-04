@@ -77,9 +77,8 @@ export function VerseWithStrongs({ text, verseNumber, onStrongsClick }: VerseWit
           return <span key={index}>{part.content}</span>;
         } else if (part.type === 'strongs') {
           return (
-            <sup>
+            <sup key={index}>
               <a
-                key={index}
                 href="#"
                 className="strongs-link"
                 onClick={(e) => handleStrongsClick(e, part.content)}
