@@ -195,59 +195,28 @@ export default function EnhancedReadingPlanPage() {
 
   if (loading) {
     return (
-      <div style={{
-        display: 'flex',
-        justifyContent: 'center',
-        alignItems: 'center',
-        height: '100vh'
-      }}>
-        <div>Loading reading plans...</div>
+      <div className="flex justify-center items-center h-screen">
+        <div className="text-gray-600 dark:text-gray-400">Loading reading plans...</div>
       </div>
     )
   }
 
   return (
-    <div style={{ 
-      backgroundColor: 'white',
-      borderRadius: '8px',
-      padding: '32px',
-      boxShadow: '0 1px 3px rgba(0, 0, 0, 0.1)',
-      minHeight: '100vh'
-    }}>
+    <div className="bg-white dark:bg-gray-800 rounded-lg p-8 shadow-sm min-h-screen">
       {/* Header */}
-      <header style={{ marginBottom: '32px' }}>
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'start' }}>
+      <header className="mb-8">
+        <div className="flex justify-between items-start">
           <div>
-            <h1 style={{ 
-              fontSize: '2.5rem', 
-              fontWeight: 'bold',
-              background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
-              WebkitBackgroundClip: 'text',
-              WebkitTextFillColor: 'transparent',
-              marginBottom: '8px'
-            }}>
+            <h1 className="text-4xl font-bold bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent mb-2">
               Bible Reading Plans
             </h1>
-            <p style={{ color: '#6b7280' }}>
+            <p className="text-gray-500 dark:text-gray-400">
               Choose from multiple reading plans to grow in God's Word
             </p>
           </div>
           <Link
             href="/reading-plan"
-            style={{
-              padding: '10px 16px',
-              backgroundColor: 'transparent',
-              color: '#667eea',
-              border: '2px solid #667eea',
-              borderRadius: '8px',
-              textDecoration: 'none',
-              display: 'flex',
-              alignItems: 'center',
-              gap: '6px',
-              fontSize: '0.9rem',
-              fontWeight: '500',
-              height: 'fit-content'
-            }}
+            className="px-4 py-2.5 bg-transparent text-blue-600 dark:text-blue-400 border-2 border-blue-600 dark:border-blue-400 rounded-lg no-underline flex items-center gap-1.5 text-sm font-medium h-fit hover:bg-blue-50 dark:hover:bg-blue-900/20 transition-colors"
             title="Back to Psalms & Proverbs"
           >
             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
@@ -259,29 +228,16 @@ export default function EnhancedReadingPlanPage() {
       </header>
 
       {/* Tab Navigation */}
-      <div style={{
-        display: 'flex',
-        gap: '8px',
-        marginBottom: '24px',
-        borderBottom: '2px solid #e5e7eb',
-        paddingBottom: '2px'
-      }}>
+      <div className="flex gap-2 mb-6 border-b-2 border-gray-200 dark:border-gray-700 pb-0.5">
         {(['today', 'schedule', 'plans', 'statistics'] as TabView[]).map(tab => (
           <button
             key={tab}
             onClick={() => setActiveTab(tab)}
-            style={{
-              padding: '10px 20px',
-              backgroundColor: activeTab === tab ? '#667eea' : 'transparent',
-              color: activeTab === tab ? 'white' : '#6b7280',
-              border: 'none',
-              borderRadius: '8px 8px 0 0',
-              cursor: 'pointer',
-              fontSize: '0.95rem',
-              fontWeight: activeTab === tab ? '600' : '400',
-              textTransform: 'capitalize',
-              transition: 'all 0.2s'
-            }}
+            className={`px-5 py-2.5 rounded-t-lg capitalize transition-all ${
+              activeTab === tab
+                ? 'bg-blue-600 dark:bg-blue-500 text-white font-semibold'
+                : 'bg-transparent text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200'
+            }`}
           >
             {tab === 'today' ? "Today's Reading" : tab}
           </button>
@@ -294,39 +250,27 @@ export default function EnhancedReadingPlanPage() {
         {activeTab === 'today' && todayReading && (
           <div>
             {/* Current Plan Info */}
-            <div style={{
-              padding: '16px',
-              backgroundColor: '#f3f4f6',
-              borderRadius: '8px',
-              marginBottom: '24px',
-              display: 'flex',
-              justifyContent: 'space-between',
-              alignItems: 'center'
-            }}>
+            <div className="p-4 bg-gray-100 dark:bg-gray-700 rounded-lg mb-6 flex justify-between items-center">
               <div>
-                <h3 style={{ fontSize: '1.125rem', fontWeight: '600', color: '#111827' }}>
+                <h3 className="text-lg font-semibold text-gray-900 dark:text-gray-100">
                   {READING_PLANS.find(p => p.id === selectedPlan)?.name}
                 </h3>
-                <p style={{ color: '#6b7280', fontSize: '0.875rem' }}>
+                <p className="text-gray-500 dark:text-gray-400 text-sm">
                   {READING_PLANS.find(p => p.id === selectedPlan)?.description}
                 </p>
               </div>
-              <div style={{ textAlign: 'right' }}>
-                <div style={{ fontSize: '0.875rem', color: '#6b7280' }}>
+              <div className="text-right">
+                <div className="text-sm text-gray-500 dark:text-gray-400">
                   Daily Time: {READING_PLANS.find(p => p.id === selectedPlan)?.dailyTime}
                 </div>
-                <div style={{ fontSize: '0.875rem', color: '#6b7280' }}>
+                <div className="text-sm text-gray-500 dark:text-gray-400">
                   Duration: {READING_PLANS.find(p => p.id === selectedPlan)?.duration} days
                 </div>
               </div>
             </div>
 
             {/* Today's Date */}
-            <div style={{
-              textAlign: 'center',
-              marginBottom: '24px',
-              color: '#6b7280'
-            }}>
+            <div className="text-center mb-6 text-gray-500 dark:text-gray-400">
               {todayReading.date.toLocaleDateString('en-US', {
                 weekday: 'long',
                 month: 'long',
@@ -336,10 +280,7 @@ export default function EnhancedReadingPlanPage() {
             </div>
 
             {/* Today's Readings */}
-            <div style={{
-              display: 'grid',
-              gap: '16px'
-            }}>
+            <div className="grid gap-4">
               {todayReading.readings.map((reading, idx) => {
                 const readingKeys = reading.chapters.map(ch => `${reading.book} ${ch}`)
                 const isComplete = readingKeys.every(key => 
@@ -619,114 +560,65 @@ export default function EnhancedReadingPlanPage() {
             </h3>
             
             {/* Statistics Grid */}
-            <div style={{
-              display: 'grid',
-              gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))',
-              gap: '20px',
-              marginBottom: '32px'
-            }}>
-              <div style={{
-                padding: '24px',
-                background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
-                borderRadius: '12px',
-                color: 'white',
-                textAlign: 'center'
-              }}>
-                <div style={{ fontSize: '3rem', fontWeight: 'bold' }}>
+            <div className="grid grid-cols-[repeat(auto-fit,minmax(200px,1fr))] gap-5 mb-8">
+              <div className="p-6 bg-gradient-to-br from-indigo-500 to-purple-600 dark:from-indigo-600 dark:to-purple-700 rounded-xl text-white text-center">
+                <div className="text-5xl font-bold">
                   {statistics.currentStreak}
                 </div>
-                <div style={{ fontSize: '1rem', opacity: 0.9 }}>
+                <div className="text-base opacity-90">
                   Current Streak
                 </div>
               </div>
               
-              <div style={{
-                padding: '24px',
-                background: 'linear-gradient(135deg, #764ba2 0%, #f093fb 100%)',
-                borderRadius: '12px',
-                color: 'white',
-                textAlign: 'center'
-              }}>
-                <div style={{ fontSize: '3rem', fontWeight: 'bold' }}>
+              <div className="p-6 bg-gradient-to-br from-purple-600 to-pink-400 dark:from-purple-700 dark:to-pink-500 rounded-xl text-white text-center">
+                <div className="text-5xl font-bold">
                   {statistics.totalDaysRead}
                 </div>
-                <div style={{ fontSize: '1rem', opacity: 0.9 }}>
+                <div className="text-base opacity-90">
                   Total Days Read
                 </div>
               </div>
               
-              <div style={{
-                padding: '24px',
-                background: 'linear-gradient(135deg, #fa709a 0%, #fee140 100%)',
-                borderRadius: '12px',
-                color: 'white',
-                textAlign: 'center'
-              }}>
-                <div style={{ fontSize: '3rem', fontWeight: 'bold' }}>
+              <div className="p-6 bg-gradient-to-br from-pink-500 to-yellow-400 dark:from-pink-600 dark:to-yellow-500 rounded-xl text-white text-center">
+                <div className="text-5xl font-bold">
                   {statistics.completionRate}%
                 </div>
-                <div style={{ fontSize: '1rem', opacity: 0.9 }}>
+                <div className="text-base opacity-90">
                   30-Day Completion
                 </div>
               </div>
               
-              <div style={{
-                padding: '24px',
-                background: 'linear-gradient(135deg, #30cfd0 0%, #330867 100%)',
-                borderRadius: '12px',
-                color: 'white',
-                textAlign: 'center'
-              }}>
-                <div style={{ fontSize: '3rem', fontWeight: 'bold' }}>
+              <div className="p-6 bg-gradient-to-br from-cyan-400 to-purple-900 dark:from-cyan-300 dark:to-purple-800 rounded-xl text-white text-center">
+                <div className="text-5xl font-bold">
                   {statistics.longestStreak}
                 </div>
-                <div style={{ fontSize: '1rem', opacity: 0.9 }}>
+                <div className="text-base opacity-90">
                   Longest Streak
                 </div>
               </div>
               
-              <div style={{
-                padding: '24px',
-                background: 'linear-gradient(135deg, #a8edea 0%, #fed6e3 100%)',
-                borderRadius: '12px',
-                color: '#374151',
-                textAlign: 'center'
-              }}>
-                <div style={{ fontSize: '3rem', fontWeight: 'bold' }}>
+              <div className="p-6 bg-gradient-to-br from-teal-200 to-pink-200 dark:from-teal-300 dark:to-pink-300 rounded-xl text-gray-700 dark:text-gray-800 text-center">
+                <div className="text-5xl font-bold">
                   {statistics.percentComplete}%
                 </div>
-                <div style={{ fontSize: '1rem', opacity: 0.9 }}>
+                <div className="text-base opacity-90">
                   Plan Complete
                 </div>
               </div>
             </div>
 
             {/* Progress Bar */}
-            <div style={{ marginTop: '32px' }}>
-              <h4 style={{ marginBottom: '12px', color: '#374151' }}>
+            <div className="mt-8">
+              <h4 className="mb-3 text-gray-700 dark:text-gray-300">
                 Overall Progress
               </h4>
-              <div style={{
-                width: '100%',
-                height: '24px',
-                backgroundColor: '#e5e7eb',
-                borderRadius: '12px',
-                overflow: 'hidden'
-              }}>
-                <div style={{
-                  width: `${statistics.percentComplete}%`,
-                  height: '100%',
-                  background: 'linear-gradient(90deg, #667eea 0%, #764ba2 100%)',
-                  transition: 'width 0.3s ease'
-                }} />
+              <div className="w-full h-6 bg-gray-200 dark:bg-gray-600 rounded-xl overflow-hidden">
+                <div 
+                  className="h-full bg-gradient-to-r from-indigo-500 to-purple-600 dark:from-indigo-400 dark:to-purple-500 transition-all duration-300 ease-out"
+                  style={{ width: `${statistics.percentComplete}%` }}
+                />
               </div>
-              <div style={{
-                display: 'flex',
-                justifyContent: 'space-between',
-                marginTop: '8px',
-                fontSize: '0.875rem',
-                color: '#6b7280'
-              }}>
+              <div className="flex justify-between mt-2 text-sm text-gray-500 dark:text-gray-400">
                 <span>0 days</span>
                 <span>{statistics.totalDaysRead} / {READING_PLANS.find(p => p.id === selectedPlan)?.duration} days</span>
               </div>
