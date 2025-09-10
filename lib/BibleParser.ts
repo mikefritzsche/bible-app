@@ -1,6 +1,6 @@
 import type { BibleData, Book, Chapter, Verse } from '@/types/bible';
 
-export class KJVBibleParser {
+export class BibleParser {
   private bibleData: BibleData | null = null;
   private currentBook: string | null = null;
   private currentChapter: number = 1;

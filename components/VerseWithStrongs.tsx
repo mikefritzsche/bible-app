@@ -4,7 +4,7 @@ import React from 'react';
 import type { VerseWithStrongsProps, ParsedTextPart } from '@/types/bible';
 import { HIGHLIGHT_COLORS_LIGHT, HIGHLIGHT_COLORS_DARK } from '@/lib/HighlightManager';
 
-export function VerseWithStrongs({ text, verseNumber, onStrongsClick, highlights, isDarkMode = false }: VerseWithStrongsProps) {
+export function VerseWithStrongs({ text, verseNumber, onStrongsClick, highlights, isDarkMode = false, fontSize, lineHeight }: VerseWithStrongsProps) {
   // Debug: log the original text and highlights
   if (highlights && highlights.length > 0) {
     console.log('VerseWithStrongs - Original text:', text);
@@ -14,24 +14,20 @@ export function VerseWithStrongs({ text, verseNumber, onStrongsClick, highlights
     });
   }
   
-  // Parse the text to separate words from Strong's numbers
+  // Parse the text to separate words from Strong's numbers and handle punctuation correctly
   const parseVerseText = (text: string): ParsedTextPart[] => {
     const parts: ParsedTextPart[] = [];
     
-    // More comprehensive pattern to match:
-    // - Regular text (words, punctuation, spaces)
-    // - Strong's numbers in various formats: {H1234}, {(H8804)}, {H853}, etc.
-    const pattern = /(\{[^}]+\})|([^{]+)/g;
-    let match;
+    // Split by Strong's numbers first to get segments
+    const segments = text.split(/(\{[^}]+\})/);
+    let pendingTrailingSpace = '';
     
-    while ((match = pattern.exec(text)) !== null) {
-      if (match[1]) {
+    for (let i = 0; i < segments.length; i++) {
+      const segment = segments[i];
+      
+      if (segment.startsWith('{') && segment.endsWith('}')) {
         // This is a Strong's number
-        const strongsText = match[1];
-        
-        // Extract the actual Strong's number from various formats
-        // Handles: {H1234}, {(H8804)}, {G5547}, etc.
-        const strongsMatch = strongsText.match(/[HG]\d{1,5}/);
+        const strongsMatch = segment.match(/[HG]\d{1,5}/);
         
         if (strongsMatch) {
           const cleanStrongsNumber = strongsMatch[0];
@@ -44,17 +40,105 @@ export function VerseWithStrongs({ text, verseNumber, onStrongsClick, highlights
             display: cleanStrongsNumber,
             isGrammar: isGrammarCode
           });
+          
+          // Add any pending trailing space after Strong's number
+          if (pendingTrailingSpace) {
+            parts.push({
+              type: 'text',
+              content: pendingTrailingSpace
+            });
+            pendingTrailingSpace = '';
+          }
         }
-      } else if (match[2]) {
-        // This is regular text
-        const textContent = match[2];
-        if (textContent.trim()) {
-          parts.push({
-            type: 'text',
-            content: textContent
-          });
+      } else if (segment) {
+        // This is regular text - split words from trailing punctuation
+        // Look ahead to see if next segment is Strong's
+        const hasFollowingStrongs = (i + 1 < segments.length && 
+                                   segments[i + 1].startsWith('{') && 
+                                   segments[i + 1].endsWith('}'));
+        
+        if (hasFollowingStrongs) {
+          // When followed by Strong's, we need to separate word from punctuation
+          // Pattern: word + punctuation, then Strong's should come after punctuation
+          const wordPuncMatch = segment.match(/^(\s*)(.+?)([.,;:!?'"]+)(\s*)$/);
+          
+          if (wordPuncMatch) {
+            const leadingSpace = wordPuncMatch[1];
+            const word = wordPuncMatch[2];
+            const punctuation = wordPuncMatch[3];
+            const trailingSpace = wordPuncMatch[4];
+            
+            // Add leading space
+            if (leadingSpace) {
+              parts.push({
+                type: 'text',
+                content: leadingSpace
+              });
+            }
+            
+            // Add the word
+            if (word) {
+              parts.push({
+                type: 'text',
+                content: word
+              });
+            }
+            
+            // Add punctuation before Strong's number
+            if (punctuation) {
+              parts.push({
+                type: 'text',
+                content: punctuation
+              });
+            }
+            
+            // Save trailing space for after Strong's number
+            if (trailingSpace) {
+              pendingTrailingSpace = trailingSpace;
+            }
+          } else {
+            // No punctuation found, or different pattern - add as word only
+            const trimmedSegment = segment.trim();
+            if (trimmedSegment) {
+              const leadingSpace = segment.match(/^(\s*)/)?.[1] || '';
+              const trailingSpace = segment.match(/(\s*)$/)?.[1] || '';
+              
+              if (leadingSpace) {
+                parts.push({
+                  type: 'text',
+                  content: leadingSpace
+                });
+              }
+              
+              parts.push({
+                type: 'text',
+                content: trimmedSegment
+              });
+              
+              // Save trailing space for after Strong's
+              if (trailingSpace) {
+                pendingTrailingSpace = trailingSpace;
+              }
+            }
+          }
+        } else {
+          // No following Strong's, keep text as is
+          if (segment.trim()) {
+            parts.push({
+              type: 'text',
+              content: segment
+            });
+          }
         }
       }
+    }
+    
+    // Add any remaining trailing space at the end
+    if (pendingTrailingSpace) {
+      parts.push({
+        type: 'text',
+        content: pendingTrailingSpace
+      });
     }
     
     return parts;
@@ -167,7 +251,7 @@ export function VerseWithStrongs({ text, verseNumber, onStrongsClick, highlights
             <sup key={index}>
               <a
                 href="#"
-                className={`strongs-link text-xs ml-px mr-1 px-0.5 rounded transition-all opacity-70 hover:opacity-100 ${
+                className={`strongs-link ml-0.5 mr-0.5 px-1 py-0.5 rounded transition-all opacity-85 hover:opacity-100 ${
                   part.isGrammar 
                     ? 'text-purple-600 dark:text-purple-400 hover:bg-purple-100 dark:hover:bg-purple-900/30' 
                     : 'text-blue-600 dark:text-blue-400 hover:bg-blue-100 dark:hover:bg-blue-900/30'
@@ -175,8 +259,9 @@ export function VerseWithStrongs({ text, verseNumber, onStrongsClick, highlights
                 onClick={(e) => handleStrongsClick(e, part.content)}
                 style={{
                   textDecoration: 'none',
-                  fontSize: '0.7em',
+                  fontSize: '0.85em',
                   cursor: 'pointer',
+                  fontWeight: '600',
                 }}
                 title={`Click to see Strong's ${part.content}${part.isGrammar ? ' (Grammar)' : ''}`}
               >

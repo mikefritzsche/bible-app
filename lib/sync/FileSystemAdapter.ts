@@ -10,6 +10,11 @@ export class FileSystemAdapter implements CloudSyncAdapter {
   
   async authenticate(): Promise<boolean> {
     try {
+      // Check if the File System Access API is available
+      if (!('showDirectoryPicker' in window)) {
+        throw new Error('File System Access API is not supported in this browser')
+      }
+      
       // Show folder picker - user can choose iCloud Drive, Dropbox, Google Drive local folder, etc.
       this.directoryHandle = await window.showDirectoryPicker({
         mode: 'readwrite',

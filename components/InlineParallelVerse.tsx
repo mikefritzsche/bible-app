@@ -1,7 +1,7 @@
 'use client'
 
 import { useState, useEffect } from 'react'
-import { KJVBibleParser } from '@/lib/KJVBibleParser'
+import { BibleParser } from '@/lib/BibleParser'
 
 interface InlineParallelVerseProps {
   primaryVersion: string
@@ -37,7 +37,7 @@ export function InlineParallelVerse({
     
     setLoading(true)
     try {
-      const parser = new KJVBibleParser()
+      const parser = new BibleParser()
       await parser.loadBible(secondaryVersion)
       const chapterData = parser.getChapter(book, chapter)
       if (chapterData?.verses[verse]) {

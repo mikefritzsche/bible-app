@@ -1,12 +1,13 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, Suspense } from 'react'
 import { useSearchParams } from 'next/navigation'
-import { KJVBibleParser } from '@/lib/KJVBibleParser'
+import { BibleParser } from '@/lib/BibleParser'
 import { StrongsManager } from '@/lib/StrongsManager'
 import { VerseHistoryManager } from '@/lib/VerseHistoryManager'
 import { HighlightManager, HIGHLIGHT_COLORS } from '@/lib/HighlightManager'
 import { NotesManager } from '@/lib/NotesManager'
+import { useSettings } from '@/lib/SettingsContext'
 import { VerseWithStrongs } from '@/components/VerseWithStrongs'
 import { StrongsPopover } from '@/components/StrongsPopover'
 import { VerseHistory } from '@/components/VerseHistory'
@@ -14,6 +15,8 @@ import { HighlightControls } from '@/components/HighlightControls'
 import { ParallelVerseView } from '@/components/ParallelVerseView'
 import { ParallelScrollView } from '@/components/ParallelScrollView'
 import { InlineParallelVerse } from '@/components/InlineParallelVerse'
+import { FixedParallelComparison } from '@/components/FixedParallelComparison'
+import { BibleSettingsModal } from '@/components/BibleSettingsModal'
 import { NotesPanel } from '@/components/NotesPanel'
 import { VerseDisplay } from '@/components/VerseDisplay'
 import type { BibleData, Chapter, StrongsDefinition } from '@/types/bible'
@@ -32,10 +35,11 @@ interface StrongsHistoryEntry {
   definition: StrongsDefinition;
 }
 
-export default function Home() {
+function BibleApp() {
   const searchParams = useSearchParams()
+  const { settings } = useSettings()
   const [mounted, setMounted] = useState(false)
-  const [parser] = useState(() => new KJVBibleParser())
+  const [parser] = useState(() => new BibleParser())
   const [strongsManager] = useState(() => new StrongsManager())
   const [historyManager] = useState(() => new VerseHistoryManager())
   const [highlightManager] = useState(() => new HighlightManager())
@@ -62,6 +66,14 @@ export default function Home() {
   const [showNotesPanel, setShowNotesPanel] = useState(false)
   const [allNotes, setAllNotes] = useState<VerseNote[]>([])
   const [showHistoryPanel, setShowHistoryPanel] = useState(false)
+  const [showSettingsModal, setShowSettingsModal] = useState(false)
+  const [parallelComparisonEnabled, setParallelComparisonEnabled] = useState(() => {
+    if (typeof window !== 'undefined') {
+      const saved = localStorage.getItem('parallelComparisonEnabled')
+      return saved === 'true'
+    }
+    return false
+  })
   const [startingPsalm] = useState(() => {
     if (typeof window !== 'undefined') {
       const saved = localStorage.getItem('startingPsalm')
@@ -82,10 +94,10 @@ export default function Home() {
     setMounted(true)
     
     // Handle URL parameters
-    const version = searchParams.get('version')
-    const book = searchParams.get('book')
-    const chapter = searchParams.get('chapter')
-    const verse = searchParams.get('verse')
+    const version = searchParams?.get('version')
+    const book = searchParams?.get('book') 
+    const chapter = searchParams?.get('chapter')
+    const verse = searchParams?.get('verse')
     
     // Set initial values from URL params if they exist
     if (version) {
@@ -447,6 +459,30 @@ export default function Home() {
     }
   }, [selectedVerse])
 
+  // Save parallel comparison preference
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      localStorage.setItem('parallelComparisonEnabled', parallelComparisonEnabled.toString())
+    }
+  }, [parallelComparisonEnabled])
+
+  // Save parallel version preference
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      localStorage.setItem('parallelVersion', parallelVersion)
+    }
+  }, [parallelVersion])
+
+  // Load parallel version preference
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      const saved = localStorage.getItem('parallelVersion')
+      if (saved) {
+        setParallelVersion(saved)
+      }
+    }
+  }, [])
+
   return (
     <div className="bg-white dark:bg-gray-800 rounded-lg p-8 shadow-sm">
       <div className="flex justify-between items-center mb-6">
@@ -463,6 +499,25 @@ export default function Home() {
 
         {/* Quick Actions Toolbar */}
         <div className="flex gap-2">
+          {/* Settings Button */}
+          <button
+            onClick={() => setShowSettingsModal(true)}
+            className="px-3 py-2 bg-gray-600 hover:bg-gray-700 text-white rounded-md transition-colors flex items-center gap-2 text-sm font-medium"
+            title="Bible display settings"
+          >
+            <svg
+              className="w-4 h-4"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="2"
+            >
+              <circle cx="12" cy="12" r="3" />
+              <path d="M12 1v6m0 6v6m9-9h-6m-6 0H3m16.24-6.36l-4.24 4.24M7.76 7.76L3.52 3.52m16.72 16.72l-4.24-4.24M7.76 16.24L3.52 20.48" />
+            </svg>
+            Settings
+          </button>
+
           {/* Today's Reading Button */}
           <button
             onClick={() => {
@@ -556,50 +611,26 @@ export default function Home() {
           <div className="mb-6 p-5 bg-gradient-to-br from-gray-50 to-gray-100 dark:from-gray-700 dark:to-gray-600 rounded-lg border border-gray-200 dark:border-gray-600">
             {/* Bible Version Selector */}
             <div className="mb-4 pb-4 border-b border-gray-300 dark:border-gray-500">
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div>
-                  <label className="block mb-2 font-medium text-gray-700 dark:text-gray-300 text-sm">
-                    Primary Bible Version
-                  </label>
-                  <select
-                    value={selectedVersion}
-                    onChange={(e) => setSelectedVersion(e.target.value)}
-                    className="w-full px-3 py-2 rounded-md border-2 border-gray-300 dark:border-gray-500 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 focus:border-blue-500 focus:outline-none transition-colors [&>option]:bg-white dark:[&>option]:bg-gray-700 [&>option]:text-gray-900 dark:[&>option]:text-gray-100"
-                  >
-                    <option value="kjv_strongs">KJV with Strong's</option>
-                    <option value="kjv">KJV (King James Version)</option>
-                    <option value="asvs">ASV with Strong's</option>
-                    <option value="asv">ASV (American Standard Version)</option>
-                    <option value="web">WEB (World English Bible)</option>
-                    <option value="net">NET (New English Translation)</option>
-                    <option value="geneva">Geneva Bible</option>
-                    <option value="bishops">Bishops' Bible</option>
-                    <option value="coverdale">Coverdale Bible</option>
-                    <option value="tyndale">Tyndale Bible</option>
-                  </select>
-                </div>
-                
-                <div>
-                  <label className="block mb-2 font-medium text-gray-700 dark:text-gray-300 text-sm">
-                    Parallel Comparison Version
-                  </label>
-                  <select
-                    value={parallelVersion}
-                    onChange={(e) => setParallelVersion(e.target.value)}
-                    className="w-full px-3 py-2 rounded-md border-2 border-gray-300 dark:border-gray-500 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 focus:border-purple-500 focus:outline-none transition-colors [&>option]:bg-white dark:[&>option]:bg-gray-700 [&>option]:text-gray-900 dark:[&>option]:text-gray-100"
-                  >
-                    <option value="kjv_strongs">KJV with Strong's</option>
-                    <option value="kjv">KJV (King James Version)</option>
-                    <option value="asvs">ASV with Strong's</option>
-                    <option value="asv">ASV (American Standard Version)</option>
-                    <option value="web">WEB (World English Bible)</option>
-                    <option value="net">NET (New English Translation)</option>
-                    <option value="geneva">Geneva Bible</option>
-                    <option value="bishops">Bishops' Bible</option>
-                    <option value="coverdale">Coverdale Bible</option>
-                    <option value="tyndale">Tyndale Bible</option>
-                  </select>
-                </div>
+              <div>
+                <label className="block mb-2 font-medium text-gray-700 dark:text-gray-300 text-sm">
+                  Bible Version
+                </label>
+                <select
+                  value={selectedVersion}
+                  onChange={(e) => setSelectedVersion(e.target.value)}
+                  className="w-full px-3 py-2 rounded-md border-2 border-gray-300 dark:border-gray-500 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 focus:border-blue-500 focus:outline-none transition-colors [&>option]:bg-white dark:[&>option]:bg-gray-700 [&>option]:text-gray-900 dark:[&>option]:text-gray-100"
+                >
+                  <option value="kjv_strongs">KJV with Strong's</option>
+                  <option value="kjv">KJV (King James Version)</option>
+                  <option value="asvs">ASV with Strong's</option>
+                  <option value="asv">ASV (American Standard Version)</option>
+                  <option value="web">WEB (World English Bible)</option>
+                  <option value="net">NET (New English Translation)</option>
+                  <option value="geneva">Geneva Bible</option>
+                  <option value="bishops">Bishops' Bible</option>
+                  <option value="coverdale">Coverdale Bible</option>
+                  <option value="tyndale">Tyndale Bible</option>
+                </select>
               </div>
             </div>
             
@@ -692,7 +723,9 @@ export default function Home() {
 
           {/* Chapter Content */}
           {mounted && chapterContent && (
-            <div className="p-6 bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 mb-6">
+            <div 
+              className="p-6 bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700"
+              style={{ marginBottom: parallelComparisonEnabled && selectedVerse ? '200px' : '24px' }}>
               <div className="mb-5 pb-4 border-b-2 border-gray-200 dark:border-gray-600">
                 <h2 className="text-2xl font-bold text-gray-900 dark:text-gray-100 mb-2">
                   {selectedBook} Chapter {selectedChapter}
@@ -721,6 +754,10 @@ export default function Home() {
                     highlights={chapterHighlights.get(verse.verse)}
                     note={chapterNotes.get(verse.verse)}
                     hasStrongs={selectedVersion === 'kjv_strongs' || selectedVersion === 'asvs'}
+                    fontSize={settings.fontSize}
+                    lineSpacing={settings.lineSpacing}
+                    verseSpacing={settings.verseSpacing}
+                    showVerseNumbers={settings.showVerseNumbers}
                     onVerseClick={handleVerseClick}
                     onHighlight={handleHighlightVerse}
                     onRemoveHighlight={handleRemoveHighlight}
@@ -735,17 +772,20 @@ export default function Home() {
             </div>
           )}
 
-          {/* Inline Parallel Verse View */}
-          {selectedVerse && chapterContent?.verses[selectedVerse] && (
-            <InlineParallelVerse
-              primaryVersion={selectedVersion}
-              secondaryVersion={parallelVersion}
-              book={selectedBook}
-              chapter={selectedChapter}
-              verse={selectedVerse}
-              primaryText={chapterContent.verses[selectedVerse].text}
-            />
-          )}
+          {/* Fixed Parallel Comparison */}
+          <FixedParallelComparison
+            primaryVersion={selectedVersion}
+            secondaryVersion={parallelVersion}
+            book={selectedBook}
+            chapter={selectedChapter}
+            verse={selectedVerse || 0}
+            primaryText={selectedVerse && chapterContent?.verses[selectedVerse] ? chapterContent.verses[selectedVerse].text : undefined}
+            isVisible={parallelComparisonEnabled && selectedVerse !== null}
+            fontSize={settings.fontSize}
+            lineSpacing={settings.lineSpacing}
+            verseSpacing={settings.verseSpacing}
+            onStrongsClick={handleStrongsClick}
+          />
         </div>
       )}
 
@@ -795,6 +835,17 @@ export default function Home() {
         onClose={() => setShowNotesPanel(false)}
       />
 
+      {/* Settings Modal */}
+      <BibleSettingsModal
+        isOpen={showSettingsModal}
+        onClose={() => setShowSettingsModal(false)}
+        parallelComparisonEnabled={parallelComparisonEnabled}
+        onParallelComparisonChange={setParallelComparisonEnabled}
+        parallelVersion={parallelVersion}
+        onParallelVersionChange={setParallelVersion}
+        primaryVersion={selectedVersion}
+      />
+
       {/* History Panel */}
       {showHistoryPanel && (
         <div className={`fixed left-0 top-0 bottom-0 w-96 bg-white dark:bg-gray-800 shadow-xl z-50 flex flex-col transform transition-transform duration-300 ${
@@ -820,10 +871,19 @@ export default function Home() {
               }}
               onClearHistory={handleClearHistory}
               onRemoveEntry={handleRemoveHistoryEntry}
+              onStrongsClick={handleStrongsClick}
             />
           </div>
         </div>
       )}
     </div>
+  )
+}
+
+export default function Home() {
+  return (
+    <Suspense fallback={<div>Loading...</div>}>
+      <BibleApp />
+    </Suspense>
   )
 }

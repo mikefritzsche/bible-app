@@ -49,10 +49,12 @@ export interface VerseWithStrongsProps {
     color: string;
   }>;
   isDarkMode?: boolean;
+  fontSize?: string;
+  lineHeight?: string;
 }
 
 export interface ParsedTextPart {
-  type: 'text' | 'strongs';
+  type: 'text' | 'strongs' | 'punctuation';
   content: string;
   display?: string;
   isGrammar?: boolean;

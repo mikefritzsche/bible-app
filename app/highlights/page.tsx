@@ -3,7 +3,7 @@
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { HighlightManager, VerseHighlight, HIGHLIGHT_COLORS, HIGHLIGHT_COLORS_LIGHT, HIGHLIGHT_COLORS_DARK } from '@/lib/HighlightManager';
-import { KJVBibleParser } from '@/lib/KJVBibleParser';
+import { BibleParser } from '@/lib/BibleParser';
 import { useTheme } from '@/lib/ThemeContext';
 import { VerseWithStrongs } from '@/components/VerseWithStrongs';
 
@@ -87,7 +87,7 @@ function HighlightedVerse({ text, highlight, theme, verseNumber }: {
 
 export default function HighlightsPage() {
   const [highlightManager] = useState(() => new HighlightManager());
-  const [parser] = useState(() => new KJVBibleParser());
+  const [parser] = useState(() => new BibleParser());
   const [highlights, setHighlights] = useState<VerseHighlight[]>([]);
   const [filteredHighlights, setFilteredHighlights] = useState<VerseHighlight[]>([]);
   const [verseTexts, setVerseTexts] = useState<Record<string, string>>({});
@@ -391,7 +391,7 @@ export default function HighlightsPage() {
           filteredHighlights.map((highlight) => (
             <div
               key={highlight.id}
-              className="bg-white dark:bg-gray-900 rounded-lg shadow-md p-3 hover:shadow-lg transition-shadow">
+              className="bg-white dark:bg-gray-900 rounded-lg shadow-md p-3 hover:shadow-lg transition-shadow"
             >
               <div className="flex items-start justify-between">
                 <div className="flex-1">
@@ -420,7 +420,7 @@ export default function HighlightsPage() {
                         <HighlightedVerse 
                           text={verseTexts[highlight.id]} 
                           highlight={highlight}
-                          theme={theme}
+                          theme={theme === 'system' ? 'light' : theme}
                           verseNumber={highlight.verse}
                         />
                       </>

@@ -1,13 +1,19 @@
 {
   "name": "bible-app",
   "version": "1.0.0",
-  "main": "index.js",
+  "main": "electron/main.js",
   "scripts": {
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
     "lint": "next lint",
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "test": "jest",
+    "test:watch": "jest --watch",
+    "test:coverage": "jest --coverage",
+    "electron-dev": "concurrently \"npm run dev\" \"wait-on http://localhost:3000 && electron .\"",
+    "electron-build": "next build",
+    "electron-pack": "npm run electron-build && electron-builder",
+    "dist": "npm run electron-build && electron-builder --publish=never"
   },
   "keywords": [],
   "author": "",
@@ -19,12 +25,48 @@
     "react-dom": "^18.3.1"
   },
   "devDependencies": {
+    "@testing-library/jest-dom": "^6.8.0",
+    "@testing-library/react": "^16.3.0",
+    "@types/jest": "^30.0.0",
     "@types/node": "24.3.0",
     "@types/react": "19.1.12",
     "@types/react-dom": "^19.1.9",
     "autoprefixer": "^10.4.21",
+    "concurrently": "^9.2.1",
+    "electron": "^38.0.0",
+    "electron-builder": "^26.0.12",
+    "jest": "^30.1.3",
+    "jest-environment-jsdom": "^30.1.2",
     "postcss": "^8.5.6",
     "tailwindcss": "^3.4.17",
-    "typescript": "5.9.2"
+    "typescript": "5.9.2",
+    "wait-on": "^8.0.4"
+  },
+  "build": {
+    "appId": "com.yourcompany.bibleapp",
+    "productName": "Bible App",
+    "directories": {
+      "output": "dist"
+    },
+    "files": [
+      "electron/**/*",
+      "out/**/*"
+    ],
+    "mac": {
+      "category": "public.app-category.education",
+      "icon": "public/icon.icns",
+      "target": [
+        "zip",
+        "dir"
+      ]
+    },
+    "win": {
+      "icon": "public/icon.ico",
+      "target": "nsis"
+    },
+    "linux": {
+      "icon": "public/icon.png",
+      "target": "AppImage"
+    }
   }
 }

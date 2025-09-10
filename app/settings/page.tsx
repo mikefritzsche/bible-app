@@ -1,48 +1,11 @@
 'use client'
 
-import { useState, useEffect } from 'react'
 import { useTheme } from '@/lib/ThemeContext'
+import { useSettings } from '@/lib/SettingsContext'
 
 export default function SettingsPage() {
   const { theme, setTheme } = useTheme()
-  const [fontSize, setFontSize] = useState('16')
-  const [showVerseNumbers, setShowVerseNumbers] = useState(true)
-  const [showStrongsNumbers, setShowStrongsNumbers] = useState(true)
-  const [enableReminders, setEnableReminders] = useState(true)
-  const [bibleVersion, setBibleVersion] = useState('kjv_strongs')
-
-  // Load saved preferences
-  useEffect(() => {
-    const savedPrefs = localStorage.getItem('bible-app-preferences')
-    if (savedPrefs) {
-      try {
-        const prefs = JSON.parse(savedPrefs)
-        setFontSize(prefs.fontSize || '16')
-        setShowVerseNumbers(prefs.showVerseNumbers ?? true)
-        setShowStrongsNumbers(prefs.showStrongsNumbers ?? true)
-        setEnableReminders(prefs.enableReminders ?? true)
-        setBibleVersion(prefs.bibleVersion || 'kjv_strongs')
-      } catch (e) {
-        console.error('Failed to load preferences:', e)
-      }
-    }
-  }, [])
-
-  // Save preferences when they change
-  const savePreferences = () => {
-    const prefs = {
-      fontSize,
-      showVerseNumbers,
-      showStrongsNumbers,
-      enableReminders,
-      bibleVersion
-    }
-    localStorage.setItem('bible-app-preferences', JSON.stringify(prefs))
-  }
-
-  useEffect(() => {
-    savePreferences()
-  }, [fontSize, showVerseNumbers, showStrongsNumbers, enableReminders, bibleVersion])
+  const { settings, updateSettings } = useSettings()
 
   return (
     <div className="bg-white dark:bg-gray-800 rounded-lg p-8 shadow-sm">
@@ -97,20 +60,121 @@ export default function SettingsPage() {
             
             <div>
               <label className="block mb-2 text-gray-700 dark:text-gray-300 font-medium">
-                Font Size: <span className="font-normal">{fontSize}px</span>
+                Font Size: <span className="font-normal">{settings.fontSize}px</span>
               </label>
               <input 
                 type="range" 
                 min="12" 
                 max="24" 
-                value={fontSize}
-                onChange={(e) => setFontSize(e.target.value)}
+                value={settings.fontSize}
+                onChange={(e) => updateSettings({ fontSize: e.target.value })}
                 className="w-full accent-blue-600"
               />
               <div className="flex justify-between text-xs text-gray-500 dark:text-gray-400 mt-1">
-                <span>Small</span>
-                <span>Large</span>
+                <span>12px</span>
+                <span>18px</span>
+                <span>24px</span>
               </div>
+            </div>
+            
+            <div>
+              <label className="block mb-2 text-gray-700 dark:text-gray-300 font-medium">
+                Line Spacing: <span className="font-normal">{settings.lineSpacing}</span>
+              </label>
+              <input 
+                type="range" 
+                min="1.2" 
+                max="2.5" 
+                step="0.1"
+                value={settings.lineSpacing}
+                onChange={(e) => updateSettings({ lineSpacing: e.target.value })}
+                className="w-full accent-blue-600"
+              />
+              <div className="flex justify-between text-xs text-gray-500 dark:text-gray-400 mt-1">
+                <span>Compact</span>
+                <span>Normal</span>
+                <span>Relaxed</span>
+              </div>
+            </div>
+            
+            <div>
+              <label className="block mb-2 text-gray-700 dark:text-gray-300 font-medium">
+                Verse Spacing: <span className="font-normal">{settings.verseSpacing}px</span>
+              </label>
+              <input 
+                type="range" 
+                min="0" 
+                max="48" 
+                step="4"
+                value={settings.verseSpacing}
+                onChange={(e) => updateSettings({ verseSpacing: e.target.value })}
+                className="w-full accent-blue-600"
+              />
+              <div className="flex justify-between text-xs text-gray-500 dark:text-gray-400 mt-1">
+                <span>Compact</span>
+                <span>Normal</span>
+                <span>Spacious</span>
+              </div>
+            </div>
+            
+            {/* Live Preview */}
+            <div className="mt-6">
+              <label className="block mb-3 text-gray-700 dark:text-gray-300 font-medium">
+                Preview
+              </label>
+              <div className="p-4 bg-gray-50 dark:bg-gray-900 rounded-lg border border-gray-200 dark:border-gray-700">
+                <div style={{ 
+                  fontSize: `${settings.fontSize}px`, 
+                  lineHeight: settings.lineSpacing,
+                  padding: `${Math.max(0, parseInt(settings.verseSpacing) / 2)}px 12px`,
+                  backgroundColor: 'rgba(59, 130, 246, 0.05)',
+                  borderRadius: '4px'
+                }}>
+                  {settings.showVerseNumbers && (
+                    <span className="font-bold text-blue-600 dark:text-blue-400 mr-2">1</span>
+                  )}
+                  <span className="text-gray-800 dark:text-gray-200">
+                    In the beginning God created the heaven and the earth.
+                  </span>
+                </div>
+                <div style={{ 
+                  fontSize: `${settings.fontSize}px`, 
+                  lineHeight: settings.lineSpacing,
+                  padding: `${Math.max(0, parseInt(settings.verseSpacing) / 2)}px 12px`,
+                  backgroundColor: 'rgba(59, 130, 246, 0.05)',
+                  borderRadius: '4px'
+                }}>
+                  {settings.showVerseNumbers && (
+                    <span className="font-bold text-blue-600 dark:text-blue-400 mr-2">2</span>
+                  )}
+                  <span className="text-gray-800 dark:text-gray-200">
+                    And the earth was without form, and void; and darkness was upon the face of the deep.
+                    {settings.showStrongsNumbers && (
+                      <span className="text-xs align-super text-blue-500 ml-1 cursor-pointer hover:underline">
+                        H776
+                      </span>
+                    )}
+                    {' '}And the Spirit of God moved upon the face of the waters.
+                  </span>
+                </div>
+                <div style={{ 
+                  fontSize: `${settings.fontSize}px`, 
+                  lineHeight: settings.lineSpacing,
+                  padding: `${Math.max(0, parseInt(settings.verseSpacing) / 2)}px 12px`,
+                  backgroundColor: 'rgba(59, 130, 246, 0.05)',
+                  borderRadius: '4px'
+                }}>
+                  {settings.showVerseNumbers && (
+                    <span className="font-bold text-blue-600 dark:text-blue-400 mr-2">3</span>
+                  )}
+                  <span className="text-gray-800 dark:text-gray-200">
+                    And God said, Let there be light: and there was light.
+                  </span>
+                </div>
+              </div>
+              <p className="text-sm text-gray-500 dark:text-gray-400 mt-2">
+                Adjust the sliders above to see changes in real-time
+              </p>
             </div>
           </div>
         </div>
@@ -124,8 +188,8 @@ export default function SettingsPage() {
             <label className="flex items-center gap-3 cursor-pointer group">
               <input 
                 type="checkbox" 
-                checked={showVerseNumbers}
-                onChange={(e) => setShowVerseNumbers(e.target.checked)}
+                checked={settings.showVerseNumbers}
+                onChange={(e) => updateSettings({ showVerseNumbers: e.target.checked })}
                 className="w-5 h-5 text-blue-600 rounded border-gray-300 dark:border-gray-600 focus:ring-blue-500"
               />
               <span className="text-gray-700 dark:text-gray-300 group-hover:text-gray-900 dark:group-hover:text-gray-100">
@@ -136,8 +200,8 @@ export default function SettingsPage() {
             <label className="flex items-center gap-3 cursor-pointer group">
               <input 
                 type="checkbox"
-                checked={showStrongsNumbers}
-                onChange={(e) => setShowStrongsNumbers(e.target.checked)}
+                checked={settings.showStrongsNumbers}
+                onChange={(e) => updateSettings({ showStrongsNumbers: e.target.checked })}
                 className="w-5 h-5 text-blue-600 rounded border-gray-300 dark:border-gray-600 focus:ring-blue-500"
               />
               <span className="text-gray-700 dark:text-gray-300 group-hover:text-gray-900 dark:group-hover:text-gray-100">
@@ -148,8 +212,8 @@ export default function SettingsPage() {
             <label className="flex items-center gap-3 cursor-pointer group">
               <input 
                 type="checkbox"
-                checked={enableReminders}
-                onChange={(e) => setEnableReminders(e.target.checked)}
+                checked={settings.enableReminders}
+                onChange={(e) => updateSettings({ enableReminders: e.target.checked })}
                 className="w-5 h-5 text-blue-600 rounded border-gray-300 dark:border-gray-600 focus:ring-blue-500"
               />
               <span className="text-gray-700 dark:text-gray-300 group-hover:text-gray-900 dark:group-hover:text-gray-100">
@@ -165,8 +229,8 @@ export default function SettingsPage() {
             Bible Version
           </h2>
           <select 
-            value={bibleVersion}
-            onChange={(e) => setBibleVersion(e.target.value)}
+            value={settings.bibleVersion}
+            onChange={(e) => updateSettings({ bibleVersion: e.target.value })}
             className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-blue-500"
           >
             <option value="kjv_strongs">KJV with Strong's</option>

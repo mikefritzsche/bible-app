@@ -1,7 +1,7 @@
 'use client'
 
 import { useState, useEffect } from 'react'
-import { KJVBibleParser } from '@/lib/KJVBibleParser'
+import { BibleParser } from '@/lib/BibleParser'
 
 interface ParallelVerseViewProps {
   primaryVersion: string
@@ -31,7 +31,7 @@ export function ParallelVerseView({
   const loadVerses = async () => {
     setLoading(true)
     try {
-      const parser = new KJVBibleParser()
+      const parser = new BibleParser()
       
       // Load primary version
       await parser.loadBible(primaryVersion)

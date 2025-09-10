@@ -1,7 +1,7 @@
 'use client'
 
 import { useState, useEffect } from 'react'
-import { KJVBibleParser } from '@/lib/KJVBibleParser'
+import { BibleParser } from '@/lib/BibleParser'
 import { StrongsManager } from '@/lib/StrongsManager'
 import { VerseHistoryManager } from '@/lib/VerseHistoryManager'
 import { HighlightManager, HIGHLIGHT_COLORS } from '@/lib/HighlightManager'
@@ -32,7 +32,7 @@ interface StrongsHistoryEntry {
 }
 
 export default function Home() {
-  const [parser] = useState(() => new KJVBibleParser())
+  const [parser] = useState(() => new BibleParser())
   const [strongsManager] = useState(() => new StrongsManager())
   const [historyManager] = useState(() => new VerseHistoryManager())
   const [highlightManager] = useState(() => new HighlightManager())
@@ -47,7 +47,7 @@ export default function Home() {
   const [strongsPopover, setStrongsPopover] = useState<StrongsPopoverState | null>(null)
   const [strongsHistory, setStrongsHistory] = useState<StrongsHistoryEntry[]>([])
   const [verseHistory, setVerseHistory] = useState<VerseHistoryEntry[]>([])
-  const [chapterHighlights, setChapterHighlights] = useState<Map<number, VerseHighlight>>(new Map())
+  const [chapterHighlights, setChapterHighlights] = useState<Map<number, VerseHighlight[]>>(new Map())
   const [chapterNotes, setChapterNotes] = useState<Map<number, VerseNote>>(new Map())
   const [bookNames, setBookNames] = useState<string[]>([])
   const [chapterCount, setChapterCount] = useState(50)
@@ -772,13 +772,16 @@ export default function Home() {
               }}>
                 {/* Show all verses */}
                 {Object.values(chapterContent.verses).map(verse => {
-                  const highlight = chapterHighlights.get(verse.verse)
+                  const highlights = chapterHighlights.get(verse.verse) || []
+                  const highlight = highlights.length > 0 ? highlights[0] : undefined
                   const note = chapterNotes.get(verse.verse)
                   
                   return (
                     <VerseDisplay
                       key={verse.verse}
                       verse={verse}
+                      bookName={selectedBook}
+                      chapterNumber={selectedChapter}
                       isSelected={selectedVerse === verse.verse}
                       highlight={highlight}
                       note={note}
@@ -793,217 +796,9 @@ export default function Home() {
                       onStrongsClick={handleStrongsClick}
                     />
                   )
-                })
-                          display: 'flex',
-                          flexDirection: 'column',
-                          gap: '4px',
-                          padding: '4px',
-                          backgroundColor: 'white',
-                          borderRadius: '6px',
-                          border: '1px solid #e5e7eb',
-                          boxShadow: '0 2px 4px rgba(0,0,0,0.1)',
-                          zIndex: 10
-                        }}>
-                          {/* Highlight colors */}
-                          <div style={{ display: 'flex', gap: '2px', flexWrap: 'wrap', width: '100px' }}>
-                            {Object.entries(HIGHLIGHT_COLORS).slice(0, 4).map(([name, color]) => (
-                              <button
-                                key={name}
-                                onClick={async (e) => {
-                                  e.stopPropagation()
-                                  await handleHighlightVerse(verse.verse, name)
-                                }}
-                                style={{
-                                  width: '20px',
-                                  height: '20px',
-                                  borderRadius: '3px',
-                                  backgroundColor: color,
-                                  border: highlight?.color === name ? '2px solid #667eea' : '1px solid #d1d5db',
-                                  cursor: 'pointer'
-                                }}
-                                title={`Highlight ${name}`}
-                              />
-                            ))}
-                          </div>
-                          <div style={{ display: 'flex', gap: '4px' }}>
-                            {highlight && (
-                              <button
-                                onClick={async (e) => {
-                                  e.stopPropagation()
-                                  await handleRemoveHighlight(verse.verse)
-                                }}
-                                style={{
-                                  padding: '2px 6px',
-                                  fontSize: '0.75rem',
-                                  backgroundColor: '#fee2e2',
-                                  color: '#dc2626',
-                                  border: 'none',
-                                  borderRadius: '3px',
-                                  cursor: 'pointer'
-                                }}
-                                title="Remove highlight"
-                              >
-                                Clear
-                              </button>
-                            )}
-                            <button
-                              onClick={async (e) => {
-                                e.stopPropagation()
-                                setSelectedVerse(verse.verse)
-                              }}
-                              style={{
-                                padding: '2px 6px',
-                                fontSize: '0.75rem',
-                                backgroundColor: '#dbeafe',
-                                color: '#1e40af',
-                                border: 'none',
-                                borderRadius: '3px',
-                                cursor: 'pointer'
-                              }}
-                              title="Add note"
-                            >
-                              Note
-                            </button>
-                          </div>
-                        </div>
-                      )}
-                      
-                      <div
-                        onClick={async (e) => {
-                          // Only select verse if click wasn't on a Strong's number or controls
-                          const target = e.target as HTMLElement
-                          if (!target.classList.contains('strongs-link') && 
-                              !target.closest('.verse-controls')) {
-                            handleVerseClick(verse)
-                          }
-                        }}
-                        style={{ 
-                          padding: '8px',
-                          borderRadius: '4px',
-                          color: '#1f2937',
-                          transition: 'background-color 0.3s',
-                          backgroundColor: highlightColor || (selectedVerse === verse.verse ? '#dbeafe' : 'transparent'),
-                          cursor: 'pointer',
-                          position: 'relative'
-                        }}
-                        onMouseEnter={(e) => {
-                          if (selectedVerse !== verse.verse && !highlightColor) {
-                            e.currentTarget.style.backgroundColor = '#f9fafb'
-                          }
-                        }}
-                        onMouseLeave={(e) => {
-                          if (selectedVerse !== verse.verse && !highlightColor) {
-                            e.currentTarget.style.backgroundColor = 'transparent'
-                          }
-                      >
-                        <div style={{ display: 'flex', alignItems: 'flex-start', gap: '8px' }}>
-                          <div style={{ flex: 1 }}>
-                            {(selectedVersion === 'kjv_strongs' || selectedVersion === 'asvs') ? (
-                              <VerseWithStrongs
-                                text={verse.text}
-                                verseNumber={verse.verse}
-                                onStrongsClick={handleStrongsClick}
-                              />
-                            ) : (
-                              <span>
-                                <strong style={{ color: '#667eea', marginRight: '8px' }}>{verse.verse}</strong>
-                                {verse.text}
-                              </span>
-                            )}
-                          </div>
-                          {note && (
-                            <div
-                              style={{
-                                padding: '2px 6px',
-                                backgroundColor: '#dbeafe',
-                                borderRadius: '4px',
-                                fontSize: '0.75rem',
-                                color: '#1e40af',
-                                cursor: 'help',
-                                flexShrink: 0
-                              }}
-                              title={note.note}
-                            >
-                              Note
-                            </div>
-                          )}
-                        </div>
-                        
-                        {/* Highlight controls for selected verse */}
-                        {selectedVerse === verse.verse && (
-                          <div 
-                            className="highlight-controls"
-                            style={{ 
-                              marginTop: '8px',
-                              paddingTop: '8px',
-                              borderTop: '1px solid #e5e7eb'
-                            }}
-                          >
-                            <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
-                              <HighlightControls
-                                isHighlighted={!!highlight}
-                                currentColor={highlight?.color}
-                                onHighlight={(color) => handleHighlightVerse(verse.verse, color)}
-                                onRemoveHighlight={() => handleRemoveHighlight(verse.verse)}
-                                onAddNote={(noteText) => handleAddNote(verse.verse, noteText)}
-                                currentNote={note?.note}
-                              />
-                              <button
-                                onClick={() => {
-                                  setParallelVerseData({
-                                    book: selectedBook,
-                                    chapter: selectedChapter,
-                                    verse: verse.verse
-                                  })
-                                  setShowParallelVerse(true)
-                                }}
-                                style={{
-                                  padding: '4px 8px',
-                                  borderRadius: '4px',
-                                  border: '1px solid #d1d5db',
-                                  backgroundColor: 'white',
-                                  cursor: 'pointer',
-                                  fontSize: '0.875rem',
-                                  display: 'flex',
-                                  alignItems: 'center',
-                                  gap: '4px'
-                                }}
-                                title="Compare with parallel version"
-                              >
-                                <svg
-                                  width="16"
-                                  height="16"
-                                  viewBox="0 0 24 24"
-                                  fill="none"
-                                  stroke="currentColor"
-                                  strokeWidth="2"
-                                >
-                                  <rect x="3" y="3" width="18" height="18" rx="2" ry="2" />
-                                  <line x1="12" y1="3" x2="12" y2="21" />
-                                </svg>
-                                Compare
-                              </button>
-                            </div>
-                          </div>
-                        )}
-                      </div>
-                    </div>
-                  )
                 })}
               </div>
             </div>
-          )}
-
-          {/* Inline Parallel Verse View */}
-          {selectedVerse && chapterContent?.verses[selectedVerse] && (
-            <InlineParallelVerse
-              primaryVersion={selectedVersion}
-              secondaryVersion={parallelVersion}
-              book={selectedBook}
-              chapter={selectedChapter}
-              verse={selectedVerse}
-              primaryText={chapterContent.verses[selectedVerse].text}
-            />
           )}
         </div>
       )}

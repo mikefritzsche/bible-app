@@ -1,6 +1,7 @@
 'use client'
 
 import { useState, useEffect } from 'react'
+import { VerseWithStrongs } from '@/components/VerseWithStrongs'
 import type { VerseHistoryEntry } from '@/lib/VerseHistoryManager'
 
 interface VerseHistoryProps {
@@ -8,17 +9,20 @@ interface VerseHistoryProps {
   onVerseSelect: (book: string, chapter: number, verse: number) => void
   onClearHistory: () => void
   onRemoveEntry: (id: string) => void
+  onStrongsClick?: (strongsNumber: string, position: { x: number; y: number }) => void
 }
 
 export function VerseHistory({ 
   history, 
   onVerseSelect, 
   onClearHistory,
-  onRemoveEntry 
+  onRemoveEntry,
+  onStrongsClick 
 }: VerseHistoryProps) {
   const [searchQuery, setSearchQuery] = useState('')
   const [filteredHistory, setFilteredHistory] = useState(history)
   const [isExpanded, setIsExpanded] = useState(false)
+  const [isDarkMode, setIsDarkMode] = useState(false)
 
   useEffect(() => {
     if (searchQuery) {
@@ -31,6 +35,24 @@ export function VerseHistory({
       setFilteredHistory(history)
     }
   }, [searchQuery, history])
+
+  // Check dark mode
+  useEffect(() => {
+    const checkDarkMode = () => {
+      setIsDarkMode(document.documentElement.classList.contains('dark'))
+    }
+    checkDarkMode()
+    
+    // Set up observer for class changes
+    const observer = new MutationObserver(checkDarkMode)
+    observer.observe(document.documentElement, { attributes: true, attributeFilter: ['class'] })
+    
+    return () => observer.disconnect()
+  }, [])
+
+  const hasStrongsNumbers = (text: string) => {
+    return /\{[HG]\d+\}/.test(text)
+  }
 
   const formatTimestamp = (date: Date) => {
     const now = new Date()
@@ -61,10 +83,7 @@ export function VerseHistory({
 
   return (
     <div className="bg-white dark:bg-gray-800 rounded-lg p-4 mb-6 border border-gray-200 dark:border-gray-700 shadow-sm">
-      <div className="flex justify-between items-center mb-4">
-        <h3 className="text-xl font-bold text-gray-900 dark:text-gray-100">
-          Verse History
-        </h3>
+      <div className="flex justify-end items-center mb-4">
         <button
           onClick={onClearHistory}
           className="px-3 py-1.5 text-sm text-red-600 dark:text-red-400 bg-red-50 dark:bg-red-900/20 rounded hover:bg-red-100 dark:hover:bg-red-900/30 transition-colors"
@@ -101,9 +120,18 @@ export function VerseHistory({
                   {entry.version.toUpperCase()}
                 </span>
               </div>
-              <p className="text-sm text-gray-600 dark:text-gray-300 leading-relaxed line-clamp-2">
-                {entry.verseText}
-              </p>
+              <div className="text-sm text-gray-600 dark:text-gray-300 leading-relaxed line-clamp-2">
+                {hasStrongsNumbers(entry.verseText) && onStrongsClick ? (
+                  <VerseWithStrongs
+                    text={entry.verseText}
+                    verseNumber={null}
+                    onStrongsClick={onStrongsClick}
+                    isDarkMode={isDarkMode}
+                  />
+                ) : (
+                  entry.verseText
+                )}
+              </div>
               <span className="text-xs text-gray-400 dark:text-gray-500 mt-1 inline-block">
                 {formatTimestamp(entry.timestamp)}
               </span>

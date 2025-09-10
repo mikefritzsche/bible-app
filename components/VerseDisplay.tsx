@@ -15,6 +15,10 @@ interface VerseDisplayProps {
   highlights?: VerseHighlight[]  // Support multiple highlights per verse
   note?: VerseNote
   hasStrongs: boolean
+  fontSize?: string
+  lineSpacing?: string
+  verseSpacing?: string
+  showVerseNumbers?: boolean
   onVerseClick: (verse: any) => void
   onHighlight: (verseNum: number, color: string, selectedText?: string, startOffset?: number, endOffset?: number) => Promise<void>
   onRemoveHighlight: (verseNum: number, startOffset?: number, endOffset?: number) => Promise<void>
@@ -104,6 +108,10 @@ export function VerseDisplay({
   highlights,
   note,
   hasStrongs,
+  fontSize = '16',
+  lineSpacing = '1.8',
+  verseSpacing = '16',
+  showVerseNumbers = true,
   onVerseClick,
   onHighlight,
   onRemoveHighlight,
@@ -454,7 +462,6 @@ export function VerseDisplay({
     <div
       id={`verse-${verse.verse}`}
       style={{ 
-        marginBottom: '16px',
         position: 'relative'
       }}
     >
@@ -942,31 +949,37 @@ export function VerseDisplay({
       <div
         className={`verse-display text-gray-900 dark:text-gray-100`}
         style={{ 
-          padding: '8px 12px',
+          padding: '0 12px',
+          paddingTop: `${Math.max(0, parseInt(verseSpacing) / 2)}px`,
+          paddingBottom: `${Math.max(0, parseInt(verseSpacing) / 2)}px`,
           borderRadius: '4px',
-          position: 'relative'
+          position: 'relative',
+          fontSize: `${fontSize}px`,
+          lineHeight: lineSpacing
         }}
       >
         <div style={{ display: 'flex', alignItems: 'flex-start', gap: '8px' }}>
           <div style={{ flex: 1, display: 'inline' }}>
             {/* Verse reference button - NOT highlighted, stays inline */}
-            <button
-              onClick={(e) => {
-                e.stopPropagation()
-                onVerseClick(verse)
-              }}
-              onContextMenu={handleReferenceContextMenu}
-              className="text-blue-600 dark:text-blue-400 font-bold mr-2 hover:text-blue-700 dark:hover:text-blue-300 cursor-pointer transition-colors"
-              style={{ 
-                background: 'none', 
-                border: 'none', 
-                padding: 0,
-                display: 'inline',
-                verticalAlign: 'baseline'
-              }}
-            >
-              {bookAbbrev} {chapterNumber}:{verse.verse}
-            </button>
+            {showVerseNumbers && (
+              <button
+                onClick={(e) => {
+                  e.stopPropagation()
+                  onVerseClick(verse)
+                }}
+                onContextMenu={handleReferenceContextMenu}
+                className="text-blue-600 dark:text-blue-400 font-bold mr-2 hover:text-blue-700 dark:hover:text-blue-300 cursor-pointer transition-colors"
+                style={{ 
+                  background: 'none', 
+                  border: 'none', 
+                  padding: 0,
+                  display: 'inline',
+                  verticalAlign: 'baseline'
+                }}
+              >
+                {bookAbbrev} {chapterNumber}:{verse.verse}
+              </button>
+            )}
             
             {/* Verse text - supports partial highlights */}
             <span 

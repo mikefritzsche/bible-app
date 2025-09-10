@@ -1,7 +1,7 @@
 'use client'
 
 import { useState, useEffect, useRef } from 'react'
-import { KJVBibleParser } from '@/lib/KJVBibleParser'
+import { BibleParser } from '@/lib/BibleParser'
 import { VerseWithStrongs } from '@/components/VerseWithStrongs'
 import type { Chapter } from '@/types/bible'
 
@@ -37,7 +37,7 @@ export function ParallelScrollView({
   const loadChapters = async () => {
     setLoading(true)
     try {
-      const parser = new KJVBibleParser()
+      const parser = new BibleParser()
       
       // Load primary version
       await parser.loadBible(primaryVersion)
