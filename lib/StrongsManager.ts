@@ -20,27 +20,14 @@ export class StrongsManager {
     }
 
     try {
-      // Try localStorage first
-      const cached = localStorage.getItem('strongs-definitions');
-      if (cached) {
-        try {
-          this.definitions = JSON.parse(cached);
-          this.loaded = true;
-          console.log('Loaded Strong\'s definitions from cache');
-          return;
-        } catch (e) {
-          console.warn('Failed to parse cached definitions:', e);
-        }
-      }
-
-      // Load from file if not cached
+      // Load from file - browser will cache this automatically via HTTP caching
       const response = await fetch('/bibles/extras/strongs_definitions.json');
       if (!response.ok) {
         throw new Error(`Failed to load Strong's definitions: ${response.status}`);
       }
 
       const rawData = await response.json() as RawStrongsEntry[];
-      
+
       // Convert array to keyed object
       if (Array.isArray(rawData)) {
         this.definitions = {};
@@ -57,13 +44,6 @@ export class StrongsManager {
         });
       } else {
         this.definitions = rawData as Record<string, StrongsDefinition>;
-      }
-
-      // Cache in localStorage
-      try {
-        localStorage.setItem('strongs-definitions', JSON.stringify(this.definitions));
-      } catch (e) {
-        console.warn('Failed to cache Strong\'s definitions:', e);
       }
 
       this.loaded = true;
@@ -157,7 +137,8 @@ export class StrongsManager {
   }
 
   clearCache(): void {
-    localStorage.removeItem('strongs-definitions');
+    // Clear in-memory cache only
+    // Browser HTTP cache will handle file caching
     this.definitions = null;
     this.loaded = false;
   }
