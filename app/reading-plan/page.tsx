@@ -478,15 +478,17 @@ export default function ReadingPlanPage() {
         </h3>
         <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 xl:grid-cols-6 gap-3">
           {schedule.map((day, index) => (
-            <div
+            <Link
               key={index}
-              className={`p-3 rounded-md relative border ${
-                day.isToday 
-                  ? 'border-2 border-blue-600 dark:border-blue-400 bg-blue-50 dark:bg-blue-900/20' 
-                  : day.isCompleted 
-                  ? 'border-2 border-green-500 bg-green-50 dark:bg-green-900/20' 
-                  : 'border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700'
+              href={`/?book=Psalms&chapter=${day.psalm}`}
+              className={`p-3 rounded-md relative border no-underline cursor-pointer transition-all hover:scale-105 ${
+                day.isToday
+                  ? 'border-2 border-blue-600 dark:border-blue-400 bg-blue-50 dark:bg-blue-900/20'
+                  : day.isCompleted
+                  ? 'border-2 border-green-500 bg-green-50 dark:bg-green-900/20'
+                  : 'border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 hover:bg-gray-50 dark:hover:bg-gray-600'
               }`}
+              title={`Go to Psalm ${day.psalm} and Proverbs ${day.proverbs.join(' & ')}`}
             >
               {day.isCompleted && (
                 <span className="absolute top-1 right-1 text-green-500 text-xl">
@@ -494,29 +496,29 @@ export default function ReadingPlanPage() {
                 </span>
               )}
               <div className="text-xs text-gray-500 dark:text-gray-400 mb-1">
-                {day.date.toLocaleDateString('en-US', { 
-                  weekday: 'short', 
-                  month: 'short', 
-                  day: 'numeric' 
+                {day.date.toLocaleDateString('en-US', {
+                  weekday: 'short',
+                  month: 'short',
+                  day: 'numeric'
                 })}
               </div>
               <div className={`mb-1 ${
-                day.isToday 
-                  ? 'font-bold text-blue-600 dark:text-blue-400' 
+                day.isToday
+                  ? 'font-bold text-blue-600 dark:text-blue-400'
                   : 'text-gray-900 dark:text-gray-100'
               }`}>
                 Psalm {day.psalm}
               </div>
               <div className={`text-sm ${
-                day.isToday 
-                  ? 'text-purple-600 dark:text-purple-400' 
+                day.isToday
+                  ? 'text-purple-600 dark:text-purple-400'
                   : 'text-gray-500 dark:text-gray-400'
               }`}>
-                {day.proverbs.length === 1 
+                {day.proverbs.length === 1
                   ? `Proverbs ${day.proverbs[0]}`
                   : `Prov ${day.proverbs.join(' & ')}`}
               </div>
-            </div>
+            </Link>
           ))}
         </div>
       </div>
@@ -643,10 +645,10 @@ function MonthlyCalendar({
           const proverbs = manager.calculateProverbs(date)
           
           return (
-            <div
+            <Link
               key={day}
-              onClick={() => onDateSelect(date)}
-              className={`p-2 rounded cursor-pointer transition-all border ${
+              href={`/?book=Psalms&chapter=${psalm}`}
+              className={`p-2 rounded cursor-pointer transition-all border no-underline hover:scale-105 ${
                 isToday
                   ? 'border-2 border-blue-600 dark:border-blue-400 bg-blue-50 dark:bg-blue-900/20'
                   : progress?.psalmCompleted && progress?.proverbsCompleted
@@ -655,6 +657,7 @@ function MonthlyCalendar({
                   ? 'border-yellow-400 bg-yellow-50 dark:bg-yellow-900/20'
                   : 'border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 hover:bg-gray-50 dark:hover:bg-gray-600'
               }`}
+              title={`Go to Psalm ${psalm} and Proverbs ${proverbs.join(' & ')}`}
             >
               <div className={`mb-1 ${isToday ? 'font-bold text-gray-900 dark:text-gray-100' : 'text-gray-700 dark:text-gray-200'}`}>
                 {day}
@@ -675,7 +678,7 @@ function MonthlyCalendar({
                   )}
                 </div>
               )}
-            </div>
+            </Link>
           )
         })}
       </div>

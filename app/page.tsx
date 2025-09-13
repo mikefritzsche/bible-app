@@ -49,7 +49,13 @@ function BibleApp() {
   const [selectedBook, setSelectedBook] = useState('Genesis')
   const [selectedChapter, setSelectedChapter] = useState(1)
   const [selectedVerse, setSelectedVerse] = useState<number | null>(null)
-  const [selectedVersion, setSelectedVersion] = useState('kjv_strongs')
+  const [selectedVersion, setSelectedVersion] = useState(() => {
+    if (typeof window !== 'undefined') {
+      const saved = localStorage.getItem('selectedBibleVersion')
+      return saved || 'kjv_strongs'
+    }
+    return 'kjv_strongs'
+  })
   const [chapterContent, setChapterContent] = useState<Chapter | null>(null)
   const [strongsPopover, setStrongsPopover] = useState<StrongsPopoverState | null>(null)
   const [strongsHistory, setStrongsHistory] = useState<StrongsHistoryEntry[]>([])
@@ -122,6 +128,10 @@ function BibleApp() {
   useEffect(() => {
     if (selectedVersion && mounted) {
       loadBible(selectedVersion)
+      // Save version to localStorage
+      if (typeof window !== 'undefined') {
+        localStorage.setItem('selectedBibleVersion', selectedVersion)
+      }
     }
   }, [selectedVersion, mounted])
 
@@ -694,11 +704,76 @@ function BibleApp() {
             
             {/* Current Selection Display and Actions */}
             <div className="flex justify-between items-center gap-3">
+              {/* Previous Chapter Button */}
+              <button
+                onClick={() => {
+                  if (selectedChapter > 1) {
+                    setSelectedChapter(selectedChapter - 1)
+                    setSelectedVerse(null)
+                  } else if (bookNames.indexOf(selectedBook) > 0) {
+                    // Go to previous book's last chapter
+                    const prevBookIndex = bookNames.indexOf(selectedBook) - 1
+                    const prevBook = bookNames[prevBookIndex]
+                    if (bibleData) {
+                      const prevBookChapters = Object.keys(bibleData.books[prevBook].chapters).length
+                      setSelectedBook(prevBook)
+                      setSelectedChapter(prevBookChapters)
+                      setSelectedVerse(null)
+                    }
+                  }
+                }}
+                disabled={selectedChapter === 1 && bookNames.indexOf(selectedBook) === 0}
+                className="px-3 py-2 bg-blue-600 hover:bg-blue-700 disabled:bg-gray-400 disabled:cursor-not-allowed text-white rounded-md transition-colors flex items-center gap-1 text-sm"
+                title="Previous Chapter"
+              >
+                <svg
+                  className="w-4 h-4"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth="2"
+                >
+                  <path d="M15 18l-6-6 6-6" />
+                </svg>
+                Previous
+              </button>
+
               <div className="flex-1 px-3 py-2 bg-white dark:bg-gray-800 rounded-md text-center text-lg font-medium text-blue-600 dark:text-blue-400">
                 {selectedBook} {selectedChapter}
                 {selectedVerse ? `:${selectedVerse}` : ''}
               </div>
-              
+
+              {/* Next Chapter Button */}
+              <button
+                onClick={() => {
+                  if (selectedChapter < chapterCount) {
+                    setSelectedChapter(selectedChapter + 1)
+                    setSelectedVerse(null)
+                  } else if (bookNames.indexOf(selectedBook) < bookNames.length - 1) {
+                    // Go to next book's first chapter
+                    const nextBookIndex = bookNames.indexOf(selectedBook) + 1
+                    const nextBook = bookNames[nextBookIndex]
+                    setSelectedBook(nextBook)
+                    setSelectedChapter(1)
+                    setSelectedVerse(null)
+                  }
+                }}
+                disabled={selectedChapter === chapterCount && bookNames.indexOf(selectedBook) === bookNames.length - 1}
+                className="px-3 py-2 bg-blue-600 hover:bg-blue-700 disabled:bg-gray-400 disabled:cursor-not-allowed text-white rounded-md transition-colors flex items-center gap-1 text-sm"
+                title="Next Chapter"
+              >
+                Next
+                <svg
+                  className="w-4 h-4"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth="2"
+                >
+                  <path d="M9 18l6-6-6-6" />
+                </svg>
+              </button>
+
               <button
                 onClick={() => setShowParallelScroll(true)}
                 className="px-4 py-2 bg-purple-600 hover:bg-purple-700 text-white rounded-md transition-colors flex items-center gap-2 text-sm"
