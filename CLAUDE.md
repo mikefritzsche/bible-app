@@ -91,6 +91,12 @@ Plugin-based sync system with `CloudSyncAdapter` interface supporting Google Dri
 - Use conditional rendering for electron-only features
 - Ensure asset paths work in both development and production builds
 
+### Git Commit Messages
+- **IMPORTANT**: Never include any reference to Claude, AI, or automated generation in commit messages
+- Focus commit messages on WHAT changed and WHY, not WHO made the changes
+- Use conventional commit format when appropriate (feat:, fix:, docs:, etc.)
+- Keep commit messages concise and descriptive of the actual changes made
+
 ## Environment Configuration
 
 ### Required for Google Drive Sync

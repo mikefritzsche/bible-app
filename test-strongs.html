@@ -1,0 +1,25 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Test Strong's Parsing</title>
+</head>
+<body>
+  <script>
+    const text = "In the beginning{H7225} God{H430} created{H1254}{(H8804)} the heaven{H8064} and the earth{H776}.";
+    console.log("Original text:", text);
+
+    const segments = text.split(/(\{[^}]+\})/);
+    console.log("Segments:", segments);
+
+    segments.forEach((segment, i) => {
+      if (segment.startsWith('{') && segment.endsWith('}')) {
+        const strongsMatch = segment.match(/[HG]\d{1,5}/);
+        console.log(`Segment ${i}: "${segment}" -> Strong's: ${strongsMatch ? strongsMatch[0] : 'no match'}`);
+      } else {
+        console.log(`Segment ${i}: "${segment}" -> Text`);
+      }
+    });
+  </script>
+  Check console for output
+</body>
+</html>
