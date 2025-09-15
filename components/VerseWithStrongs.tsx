@@ -13,34 +13,66 @@ export function VerseWithStrongs({ text, verseNumber, onStrongsClick, highlights
       console.log(`  Highlight: "${text.substring(h.startOffset, h.endOffset)}" at [${h.startOffset}, ${h.endOffset}]`);
     });
   }
-  
+
   // Parse the text to separate words from Strong's numbers and handle punctuation correctly
   const parseVerseText = (text: string): ParsedTextPart[] => {
     const parts: ParsedTextPart[] = [];
-    
-    // Split by Strong's numbers first to get segments
-    const segments = text.split(/(\{[^}]+\})/);
+
+    // Handle {{ pattern - everything from {{ to end of text should be italicized
+    let processedText = text;
+    const doubleBraceIndex = text.indexOf('{{');
+    if (doubleBraceIndex !== -1) {
+      // Debug logging
+      console.log('Found {{ pattern in verse:', text);
+
+      // Split at the {{ and wrap the rest in brackets for italics
+      const beforeBrace = text.substring(0, doubleBraceIndex);
+      const afterBrace = text.substring(doubleBraceIndex + 2); // Skip the {{
+      processedText = beforeBrace + '[' + afterBrace + ']';
+
+      console.log('Processed to:', processedText);
+    }
+
+    // Split by Strong's numbers and bracketed text
+    const segments = processedText.split(/(\{[^}]+\}|\[[^\]]+\])/);
+
     let pendingTrailingSpace = '';
-    
+
     for (let i = 0; i < segments.length; i++) {
       const segment = segments[i];
-      
-      if (segment.startsWith('{') && segment.endsWith('}')) {
+
+      if (segment.startsWith('[') && segment.endsWith(']')) {
+        // This is bracketed text (translator addition) - should be italicized
+        const content = segment.slice(1, -1); // Remove brackets
+        parts.push({
+          type: 'italic',
+          content: content
+        });
+
+        // Add any pending trailing space
+        if (pendingTrailingSpace) {
+          parts.push({
+            type: 'text',
+            content: pendingTrailingSpace
+          });
+          pendingTrailingSpace = '';
+        }
+      } else if (segment.startsWith('{') && segment.endsWith('}')) {
         // This is a Strong's number
         const strongsMatch = segment.match(/[HG]\d{1,5}/);
-        
+
         if (strongsMatch) {
           const cleanStrongsNumber = strongsMatch[0];
           const numPart = cleanStrongsNumber.slice(1);
           const isGrammarCode = numPart.length > 4 || (numPart.length === 4 && numPart[0] >= '8');
-          
+
           parts.push({
             type: 'strongs',
             content: cleanStrongsNumber,
             display: cleanStrongsNumber,
             isGrammar: isGrammarCode
           });
-          
+
           // Add any pending trailing space after Strong's number
           if (pendingTrailingSpace) {
             parts.push({
@@ -52,9 +84,9 @@ export function VerseWithStrongs({ text, verseNumber, onStrongsClick, highlights
         }
       } else if (segment) {
         // This is regular text - split words from trailing punctuation
-        // Look ahead to see if next segment is Strong's
-        const hasFollowingStrongs = (i + 1 < segments.length && 
-                                   segments[i + 1].startsWith('{') && 
+        // Look ahead to see if next segment is Strong's or bracketed text
+        const hasFollowingStrongs = (i + 1 < segments.length &&
+                                   segments[i + 1].startsWith('{') &&
                                    segments[i + 1].endsWith('}'));
         
         if (hasFollowingStrongs) {
@@ -246,14 +278,17 @@ export function VerseWithStrongs({ text, verseNumber, onStrongsClick, highlights
           }
           
           return <span key={index}>{part.content}</span>;
+        } else if (part.type === 'italic') {
+          // Render italicized text (translator additions)
+          return <em key={index} className="font-light">{part.content}</em>;
         } else if (part.type === 'strongs') {
           return (
             <sup key={index}>
               <a
                 href="#"
                 className={`strongs-link ml-0.5 mr-0.5 px-1 py-0.5 rounded transition-all opacity-85 hover:opacity-100 ${
-                  part.isGrammar 
-                    ? 'text-purple-600 dark:text-purple-400 hover:bg-purple-100 dark:hover:bg-purple-900/30' 
+                  part.isGrammar
+                    ? 'text-purple-600 dark:text-purple-400 hover:bg-purple-100 dark:hover:bg-purple-900/30'
                     : 'text-blue-600 dark:text-blue-400 hover:bg-blue-100 dark:hover:bg-blue-900/30'
                 }`}
                 onClick={(e) => handleStrongsClick(e, part.content)}

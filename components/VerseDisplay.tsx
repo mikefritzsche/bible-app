@@ -148,33 +148,64 @@ export function VerseDisplay({
   }
   const highlightColor = getHighlightColor()
   
+  // Helper function to process text for italics
+  const processTextForItalics = (text: string) => {
+    // Process {{ pattern - everything from {{ to end should be italicized
+    const doubleBraceIndex = text.indexOf('{{');
+    if (doubleBraceIndex !== -1) {
+      const beforeBrace = text.substring(0, doubleBraceIndex);
+      const afterBrace = text.substring(doubleBraceIndex + 2);
+      return beforeBrace + '[' + afterBrace + ']';
+    }
+    return text;
+  }
+
+  // Helper to render text with italic brackets
+  const renderTextWithItalics = (text: string, keyPrefix: string = '') => {
+    const processedText = processTextForItalics(text);
+    const segments = processedText.split(/(\[[^\]]+\])/);
+    if (segments.length > 1) {
+      return segments.map((segment, index) => {
+        if (segment.startsWith('[') && segment.endsWith(']')) {
+          const content = segment.slice(1, -1);
+          return <em key={`${keyPrefix}-${index}`} className="font-light">{content}</em>;
+        }
+        return segment || null;
+      }).filter(Boolean);
+    }
+    return processedText;
+  }
+
   // Render verse text with partial highlights
   const renderHighlightedText = (text: string) => {
+
     // Collect all highlights
     const allHighlights: VerseHighlight[] = []
-    
+
     // Add highlights array if present
     if (highlights && highlights.length > 0) {
       allHighlights.push(...highlights)
     }
-    
+
     // Add single highlight if present and not in highlights array
     if (highlight && (!highlights || !highlights.find(h => h.id === highlight.id))) {
       allHighlights.push(highlight)
     }
-    
+
+    // If no highlights, process text for italics
     if (allHighlights.length === 0) {
-      return text
+      return renderTextWithItalics(text, 'no-hl');
     }
     
     // Separate partial and full highlights
     const partialHighlights = allHighlights.filter(h => h.startOffset !== undefined && h.endOffset !== undefined)
     const fullHighlights = allHighlights.filter(h => h.startOffset === undefined || h.endOffset === undefined)
     
-    // If no partial highlights, just return the text (will be highlighted by parent span)
+    // If no partial highlights, process text for italics
     if (partialHighlights.length === 0) {
       // For full-verse highlights, let the parent span handle the background color
-      return text
+      // But still process text for italics
+      return renderTextWithItalics(text, 'full-hl');
     }
     
     // Sort partial highlights by start position
@@ -194,10 +225,19 @@ export function VerseDisplay({
       
       // Add unhighlighted text before this highlight
       if (start > lastEnd) {
-        segments.push(text.substring(lastEnd, start))
+        const unhighlightedText = text.substring(lastEnd, start);
+        const rendered = renderTextWithItalics(unhighlightedText, `before-${index}`);
+        if (Array.isArray(rendered)) {
+          segments.push(...rendered);
+        } else {
+          segments.push(rendered);
+        }
       }
-      
+
       // Add highlighted text
+      const highlightedText = text.substring(start, end);
+      const highlightContent = renderTextWithItalics(highlightedText, `hl-${index}`);
+
       segments.push(
         <span
           key={`highlight-${index}`}
@@ -207,7 +247,7 @@ export function VerseDisplay({
             borderRadius: '3px'
           }}
         >
-          {text.substring(start, end)}
+          {highlightContent}
         </span>
       )
       
@@ -216,7 +256,13 @@ export function VerseDisplay({
     
     // Add any remaining unhighlighted text
     if (lastEnd < text.length) {
-      segments.push(text.substring(lastEnd))
+      const remainingText = text.substring(lastEnd);
+      const rendered = renderTextWithItalics(remainingText, 'end');
+      if (Array.isArray(rendered)) {
+        segments.push(...rendered);
+      } else {
+        segments.push(rendered);
+      }
     }
     
     return segments

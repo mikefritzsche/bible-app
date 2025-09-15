@@ -49,13 +49,7 @@ function BibleApp() {
   const [selectedBook, setSelectedBook] = useState('Genesis')
   const [selectedChapter, setSelectedChapter] = useState(1)
   const [selectedVerse, setSelectedVerse] = useState<number | null>(null)
-  const [selectedVersion, setSelectedVersion] = useState(() => {
-    if (typeof window !== 'undefined') {
-      const saved = localStorage.getItem('selectedBibleVersion')
-      return saved || 'kjv_strongs'
-    }
-    return 'kjv_strongs'
-  })
+  const [selectedVersion, setSelectedVersion] = useState('kjv_strongs')
   const [chapterContent, setChapterContent] = useState<Chapter | null>(null)
   const [strongsPopover, setStrongsPopover] = useState<StrongsPopoverState | null>(null)
   const [strongsHistory, setStrongsHistory] = useState<StrongsHistoryEntry[]>([])
@@ -73,51 +67,55 @@ function BibleApp() {
   const [allNotes, setAllNotes] = useState<VerseNote[]>([])
   const [showHistoryPanel, setShowHistoryPanel] = useState(false)
   const [showSettingsModal, setShowSettingsModal] = useState(false)
-  const [parallelComparisonEnabled, setParallelComparisonEnabled] = useState(() => {
-    if (typeof window !== 'undefined') {
-      const saved = localStorage.getItem('parallelComparisonEnabled')
-      return saved === 'true'
-    }
-    return false
-  })
-  const [startingPsalm] = useState(() => {
-    if (typeof window !== 'undefined') {
-      const saved = localStorage.getItem('startingPsalm')
-      return saved ? parseInt(saved) : 1
-    }
-    return 1
-  })
-  const [planStartDate] = useState(() => {
-    if (typeof window !== 'undefined') {
-      const saved = localStorage.getItem('planStartDate')
-      return saved || new Date().toISOString().split('T')[0]
-    }
-    return new Date().toISOString().split('T')[0]
-  })
+  const [parallelComparisonEnabled, setParallelComparisonEnabled] = useState(false)
+  const [startingPsalm, setStartingPsalm] = useState(1)
+  const [planStartDate, setPlanStartDate] = useState(new Date().toISOString().split('T')[0])
 
   // Load Bible, history, highlights and notes on mount
   useEffect(() => {
     setMounted(true)
-    
-    // Handle URL parameters
+
+    // Load saved preferences from localStorage
+    const savedVersion = localStorage.getItem('selectedBibleVersion')
+    const savedParallelComparison = localStorage.getItem('parallelComparisonEnabled')
+    const savedStartingPsalm = localStorage.getItem('startingPsalm')
+    const savedPlanStartDate = localStorage.getItem('planStartDate')
+    const savedParallelVersion = localStorage.getItem('parallelVersion')
+
+    // Handle URL parameters (override localStorage if present)
     const version = searchParams?.get('version')
-    const book = searchParams?.get('book') 
+    const book = searchParams?.get('book')
     const chapter = searchParams?.get('chapter')
     const verse = searchParams?.get('verse')
-    
-    // Set initial values from URL params if they exist
+
+    // Set initial values from URL params if they exist, otherwise from localStorage
     if (version) {
       setSelectedVersion(version)
-      // Don't load Bible here - let the selectedVersion effect handle it
+    } else if (savedVersion) {
+      setSelectedVersion(savedVersion)
     } else {
-      // Only load default if no version in URL
+      // Only load default if no version in URL or localStorage
       loadBible()
     }
-    
+
+    // Load other saved preferences
+    if (savedParallelComparison) {
+      setParallelComparisonEnabled(savedParallelComparison === 'true')
+    }
+    if (savedStartingPsalm) {
+      setStartingPsalm(parseInt(savedStartingPsalm))
+    }
+    if (savedPlanStartDate) {
+      setPlanStartDate(savedPlanStartDate)
+    }
+    if (savedParallelVersion) {
+      setParallelVersion(savedParallelVersion)
+    }
+
     if (book) setSelectedBook(book)
     if (chapter) setSelectedChapter(parseInt(chapter))
     if (verse) setSelectedVerse(parseInt(verse))
-    
+
     loadVerseHistory()
     initHighlights()
     initNotes()
@@ -483,15 +481,6 @@ function BibleApp() {
     }
   }, [parallelVersion])
 
-  // Load parallel version preference
-  useEffect(() => {
-    if (typeof window !== 'undefined') {
-      const saved = localStorage.getItem('parallelVersion')
-      if (saved) {
-        setParallelVersion(saved)
-      }
-    }
-  }, [])
 
   return (
     <div className="bg-white dark:bg-gray-800 rounded-lg p-8 shadow-sm">

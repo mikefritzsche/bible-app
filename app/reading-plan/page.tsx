@@ -10,42 +10,43 @@ export default function ReadingPlanPage() {
   const [manager] = useState(() => new ReadingPlanManager())
   const [selectedDate, setSelectedDate] = useState(new Date())
   const [activeTab, setActiveTab] = useState<TabView>('combined')
-  const [startingPsalm, setStartingPsalm] = useState(() => {
-    if (typeof window !== 'undefined') {
-      const saved = localStorage.getItem('startingPsalm')
-      return saved ? parseInt(saved) : 1
-    }
-    return 1
-  })
-  const [startingProverb, setStartingProverb] = useState(() => {
-    if (typeof window !== 'undefined') {
-      const saved = localStorage.getItem('startingProverb')
-      return saved ? parseInt(saved) : 1
-    }
-    return 1
-  })
-  const [tempStartingPsalm, setTempStartingPsalm] = useState(startingPsalm.toString())
-  const [tempStartingProverb, setTempStartingProverb] = useState(startingProverb.toString())
-  const [planStartDate, setPlanStartDate] = useState(() => {
-    if (typeof window !== 'undefined') {
-      const saved = localStorage.getItem('planStartDate')
-      return saved ? new Date(saved) : new Date()
-    }
-    return new Date()
-  })
+  const [startingPsalm, setStartingPsalm] = useState(1)
+  const [startingProverb, setStartingProverb] = useState(1)
+  const [tempStartingPsalm, setTempStartingPsalm] = useState('1')
+  const [tempStartingProverb, setTempStartingProverb] = useState('1')
+  const [planStartDate, setPlanStartDate] = useState(new Date())
   const [todayReading, setTodayReading] = useState<DailyReading | null>(null)
   const [progress, setProgress] = useState<ReadingProgress | null>(null)
   const [schedule, setSchedule] = useState<DailyReading[]>([])
   const [statistics, setStatistics] = useState<any>(null)
   const [showSettings, setShowSettings] = useState(false)
-  const [showPlanOptions, setShowPlanOptions] = useState(() => {
-    if (typeof window !== 'undefined') {
-      const dismissed = localStorage.getItem('dismissedPlansBanner')
-      return !dismissed
-    }
-    return true
-  })
+  const [showPlanOptions, setShowPlanOptions] = useState(true)
   
+  // Load saved preferences from localStorage on mount
+  useEffect(() => {
+    const savedStartingPsalm = localStorage.getItem('startingPsalm')
+    const savedStartingProverb = localStorage.getItem('startingProverb')
+    const savedPlanStartDate = localStorage.getItem('planStartDate')
+    const dismissedBanner = localStorage.getItem('dismissedPlansBanner')
+
+    if (savedStartingPsalm) {
+      const psalm = parseInt(savedStartingPsalm)
+      setStartingPsalm(psalm)
+      setTempStartingPsalm(psalm.toString())
+    }
+    if (savedStartingProverb) {
+      const proverb = parseInt(savedStartingProverb)
+      setStartingProverb(proverb)
+      setTempStartingProverb(proverb.toString())
+    }
+    if (savedPlanStartDate) {
+      setPlanStartDate(new Date(savedPlanStartDate))
+    }
+    if (dismissedBanner) {
+      setShowPlanOptions(false)
+    }
+  }, [])
+
   // Initialize and load data
   useEffect(() => {
     const initializeData = async () => {

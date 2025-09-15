@@ -54,7 +54,7 @@ export interface VerseWithStrongsProps {
 }
 
 export interface ParsedTextPart {
-  type: 'text' | 'strongs' | 'punctuation';
+  type: 'text' | 'strongs' | 'punctuation' | 'italic';
   content: string;
   display?: string;
   isGrammar?: boolean;
