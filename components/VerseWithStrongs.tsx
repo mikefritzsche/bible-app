@@ -179,14 +179,21 @@ export function VerseWithStrongs({ text, verseNumber, onStrongsClick, highlights
   const handleStrongsClick = (e: React.MouseEvent<HTMLAnchorElement>, strongsNumber: string) => {
     e.preventDefault();
     e.stopPropagation();
-    
-    // Get position for popover
+
+    // Get position for popover - center it horizontally on the clicked element
     const rect = e.currentTarget.getBoundingClientRect();
+    const elementCenterX = rect.left + (rect.width / 2);
+
+    // Check if click is from bottom of viewport (likely the parallel comparison panel)
+    // If so, position popover above the element instead of below
+    const viewportHeight = window.innerHeight;
+    const isNearBottom = rect.bottom > viewportHeight - 300; // Within 300px of bottom
+
     const position = {
-      x: rect.left,
-      y: rect.bottom + 5
+      x: elementCenterX, // Center the popover on the Strong's number
+      y: isNearBottom ? rect.top : rect.bottom
     };
-    
+
     // Call parent handler with Strong's number and position
     if (onStrongsClick) {
       onStrongsClick(strongsNumber, position);

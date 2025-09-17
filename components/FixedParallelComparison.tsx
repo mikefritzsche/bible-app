@@ -47,14 +47,15 @@ export function FixedParallelComparison({
       setSecondaryText('')
       return
     }
-    
+
     setLoading(true)
     try {
       const parser = new BibleParser()
       await parser.loadBible(secondaryVersion)
       const chapterData = parser.getChapter(book, chapter)
       if (chapterData?.verses[verse]) {
-        setSecondaryText(chapterData.verses[verse].text)
+        const text = chapterData.verses[verse].text
+        setSecondaryText(text)
       }
     } catch (error) {
       console.error('Failed to load parallel verse:', error)
@@ -105,16 +106,17 @@ export function FixedParallelComparison({
     }
   }, [minimized, secondaryText, primaryText])
 
-  if (!isVisible || !verse || primaryVersion === secondaryVersion) {
+  if (!isVisible || verse <= 0 || primaryVersion === secondaryVersion) {
     return null
   }
 
   return (
-    <div 
-      className={`fixed bottom-0 left-0 right-0 bg-white dark:bg-gray-800 border-t-2 border-gray-200 dark:border-gray-700 shadow-2xl z-40 transition-all duration-300 ${
-        minimized ? 'translate-y-[calc(100%-48px)]' : 'translate-y-0'
+    <div
+      className={`fixed bottom-0 left-1/2 -translate-x-1/2 w-full max-w-5xl z-40 transition-all duration-300 ${
+        minimized ? 'translate-y-[calc(100%-48px)]' : ''
       }`}
     >
+      <div className="mx-6 bg-white dark:bg-gray-800 border-t-2 border-gray-200 dark:border-gray-700 shadow-2xl">
       {/* Header Bar */}
       <div 
         className="bg-gradient-to-r from-blue-600 to-purple-600 text-white px-4 py-3 flex items-center justify-between cursor-pointer"
@@ -170,7 +172,7 @@ export function FixedParallelComparison({
                   ) : (
                     <span>
                       <strong className="text-purple-600 dark:text-purple-400 mr-2">{verse}</strong>
-                      {secondaryText}
+                      {secondaryText || 'Loading verse text...'}
                     </span>
                   )}
                 </div>
@@ -188,6 +190,7 @@ export function FixedParallelComparison({
           )}
         </div>
       )}
+      </div>
     </div>
   )
 }

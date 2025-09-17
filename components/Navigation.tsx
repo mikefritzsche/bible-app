@@ -14,7 +14,7 @@ export default function Navigation() {
   }
   
   return (
-    <nav className="bg-white dark:bg-gray-800 rounded-lg p-4 mb-6 shadow-sm">
+    <nav className="bg-white dark:bg-gray-800 p-4">
       <div className="flex items-center gap-6">
         <Link 
           href="/reading-plan" 

@@ -19,6 +19,7 @@ import { FixedParallelComparison } from '@/components/FixedParallelComparison'
 import { BibleSettingsModal } from '@/components/BibleSettingsModal'
 import { NotesPanel } from '@/components/NotesPanel'
 import { VerseDisplay } from '@/components/VerseDisplay'
+import { CompactBibleControls } from '@/components/CompactBibleControls'
 import type { BibleData, Chapter, StrongsDefinition } from '@/types/bible'
 import type { VerseHistoryEntry } from '@/lib/VerseHistoryManager'
 import type { VerseHighlight } from '@/lib/HighlightManager'
@@ -46,9 +47,26 @@ function BibleApp() {
   const [notesManager] = useState(() => new NotesManager())
   const [bibleData, setBibleData] = useState<BibleData | null>(null)
   const [loading, setLoading] = useState(false)
-  const [selectedBook, setSelectedBook] = useState('Genesis')
-  const [selectedChapter, setSelectedChapter] = useState(1)
-  const [selectedVerse, setSelectedVerse] = useState<number | null>(null)
+  const [selectedBook, setSelectedBook] = useState(() => {
+    if (typeof window !== 'undefined') {
+      return localStorage.getItem('selectedBook') || 'Genesis'
+    }
+    return 'Genesis'
+  })
+  const [selectedChapter, setSelectedChapter] = useState(() => {
+    if (typeof window !== 'undefined') {
+      const saved = localStorage.getItem('selectedChapter')
+      return saved ? parseInt(saved) : 1
+    }
+    return 1
+  })
+  const [selectedVerse, setSelectedVerse] = useState<number | null>(() => {
+    if (typeof window !== 'undefined') {
+      const saved = localStorage.getItem('selectedVerse')
+      return saved ? parseInt(saved) : 1  // Default to verse 1
+    }
+    return 1  // Default to verse 1
+  })
   const [selectedVersion, setSelectedVersion] = useState('kjv_strongs')
   const [chapterContent, setChapterContent] = useState<Chapter | null>(null)
   const [strongsPopover, setStrongsPopover] = useState<StrongsPopoverState | null>(null)
@@ -60,14 +78,25 @@ function BibleApp() {
   const [chapterCount, setChapterCount] = useState(50)
   const [verseCount, setVerseCount] = useState(0)
   const [showParallelVerse, setShowParallelVerse] = useState(false)
-  const [parallelVersion, setParallelVersion] = useState('kjv')
+  const [parallelVersion, setParallelVersion] = useState(() => {
+    if (typeof window !== 'undefined') {
+      return localStorage.getItem('parallelVersion') || 'kjv'
+    }
+    return 'kjv'
+  })
   const [parallelVerseData, setParallelVerseData] = useState<{book: string, chapter: number, verse: number} | null>(null)
   const [showParallelScroll, setShowParallelScroll] = useState(false)
   const [showNotesPanel, setShowNotesPanel] = useState(false)
   const [allNotes, setAllNotes] = useState<VerseNote[]>([])
   const [showHistoryPanel, setShowHistoryPanel] = useState(false)
   const [showSettingsModal, setShowSettingsModal] = useState(false)
-  const [parallelComparisonEnabled, setParallelComparisonEnabled] = useState(false)
+  const [parallelComparisonEnabled, setParallelComparisonEnabled] = useState(() => {
+    if (typeof window !== 'undefined') {
+      const saved = localStorage.getItem('parallelComparisonEnabled')
+      return saved === 'true'
+    }
+    return false
+  })
   const [startingPsalm, setStartingPsalm] = useState(1)
   const [planStartDate, setPlanStartDate] = useState(new Date().toISOString().split('T')[0])
 
@@ -77,10 +106,8 @@ function BibleApp() {
 
     // Load saved preferences from localStorage
     const savedVersion = localStorage.getItem('selectedBibleVersion')
-    const savedParallelComparison = localStorage.getItem('parallelComparisonEnabled')
     const savedStartingPsalm = localStorage.getItem('startingPsalm')
     const savedPlanStartDate = localStorage.getItem('planStartDate')
-    const savedParallelVersion = localStorage.getItem('parallelVersion')
 
     // Handle URL parameters (override localStorage if present)
     const version = searchParams?.get('version')
@@ -99,17 +126,11 @@ function BibleApp() {
     }
 
     // Load other saved preferences
-    if (savedParallelComparison) {
-      setParallelComparisonEnabled(savedParallelComparison === 'true')
-    }
     if (savedStartingPsalm) {
       setStartingPsalm(parseInt(savedStartingPsalm))
     }
     if (savedPlanStartDate) {
       setPlanStartDate(savedPlanStartDate)
-    }
-    if (savedParallelVersion) {
-      setParallelVersion(savedParallelVersion)
     }
 
     if (book) setSelectedBook(book)
@@ -170,8 +191,8 @@ function BibleApp() {
       if (chapter) {
         setChapterContent(chapter)
         setVerseCount(Object.keys(chapter.verses).length)
-        // Reset verse selection when chapter changes
-        setSelectedVerse(null)
+        // Auto-select verse 1 when chapter changes
+        setSelectedVerse(1)
         // Load highlights and notes for this chapter
         loadChapterHighlights()
         loadChapterNotes()
@@ -195,7 +216,7 @@ function BibleApp() {
     if (!strongsManager.loaded) {
       await strongsManager.loadDefinitions()
     }
-    
+
     const definition = strongsManager.lookup(strongsNumber)
     if (definition) {
       if (isFromPopover && strongsPopover) {
@@ -207,10 +228,19 @@ function BibleApp() {
         setStrongsPopover({
           strongsNumber,
           definition,
-          position: strongsPopover.position
+          position: strongsPopover.position // Keep the same position for popover clicks
         })
-      } else {
-        // New popover from main text
+      } else if (strongsPopover && strongsPopover.strongsNumber !== strongsNumber) {
+        // Clicking a different Strong's number while popover is open
+        // Update the popover with new content and new position
+        setStrongsHistory([]) // Clear history for new selection
+        setStrongsPopover({
+          strongsNumber,
+          definition,
+          position // Use the new click position
+        })
+      } else if (!strongsPopover) {
+        // Opening a new popover (no popover currently open)
         setStrongsHistory([])
         setStrongsPopover({
           strongsNumber,
@@ -413,21 +443,58 @@ function BibleApp() {
     setShowNotesPanel(false)
   }
 
-  // Handle Escape key
+  // Handle keyboard shortcuts
   useEffect(() => {
-    const handleEscape = (e: KeyboardEvent) => {
+    const handleKeyPress = (e: KeyboardEvent) => {
+      // Handle Escape for Strong's popover
       if (e.key === 'Escape' && strongsPopover) {
         if (strongsHistory.length > 0) {
           goBackInHistory()
         } else {
           closeStrongsPopover()
         }
+        return
+      }
+
+      // Don't handle navigation shortcuts if user is typing in an input
+      if (e.target instanceof HTMLInputElement || e.target instanceof HTMLTextAreaElement) {
+        return
+      }
+
+      // Navigation shortcuts
+      if (e.key === 'j' || e.key === 'J') {
+        // Previous chapter
+        if (selectedChapter > 1) {
+          setSelectedChapter(selectedChapter - 1)
+          setSelectedVerse(1)  // Auto-select verse 1
+        } else if (bookNames.indexOf(selectedBook) > 0) {
+          const prevBookIndex = bookNames.indexOf(selectedBook) - 1
+          const prevBook = bookNames[prevBookIndex]
+          if (bibleData) {
+            const prevBookChapters = Object.keys(bibleData.books[prevBook].chapters).length
+            setSelectedBook(prevBook)
+            setSelectedChapter(prevBookChapters)
+            setSelectedVerse(1)  // Auto-select verse 1
+          }
+        }
+      } else if (e.key === 'k' || e.key === 'K') {
+        // Next chapter
+        if (selectedChapter < chapterCount) {
+          setSelectedChapter(selectedChapter + 1)
+          setSelectedVerse(1)  // Auto-select verse 1
+        } else if (bookNames.indexOf(selectedBook) < bookNames.length - 1) {
+          const nextBookIndex = bookNames.indexOf(selectedBook) + 1
+          const nextBook = bookNames[nextBookIndex]
+          setSelectedBook(nextBook)
+          setSelectedChapter(1)
+          setSelectedVerse(1)  // Auto-select verse 1
+        }
       }
     }
 
-    document.addEventListener('keydown', handleEscape)
-    return () => document.removeEventListener('keydown', handleEscape)
-  }, [strongsPopover, strongsHistory])
+    document.addEventListener('keydown', handleKeyPress)
+    return () => document.removeEventListener('keydown', handleKeyPress)
+  }, [strongsPopover, strongsHistory, selectedChapter, selectedBook, bookNames, bibleData, chapterCount])
 
   // Scroll to verse when selected
   useEffect(() => {
@@ -481,9 +548,35 @@ function BibleApp() {
     }
   }, [parallelVersion])
 
+  // Save selected book
+  useEffect(() => {
+    if (typeof window !== 'undefined' && mounted) {
+      localStorage.setItem('selectedBook', selectedBook)
+    }
+  }, [selectedBook, mounted])
+
+  // Save selected chapter
+  useEffect(() => {
+    if (typeof window !== 'undefined' && mounted) {
+      localStorage.setItem('selectedChapter', selectedChapter.toString())
+    }
+  }, [selectedChapter, mounted])
+
+  // Save selected verse
+  useEffect(() => {
+    if (typeof window !== 'undefined' && mounted) {
+      if (selectedVerse !== null) {
+        localStorage.setItem('selectedVerse', selectedVerse.toString())
+      } else {
+        localStorage.removeItem('selectedVerse')
+      }
+    }
+  }, [selectedVerse, mounted])
+
 
   return (
-    <div className="bg-white dark:bg-gray-800 rounded-lg p-8 shadow-sm">
+    <>
+      <div className="bg-white dark:bg-gray-800 rounded-lg p-8 shadow-sm mt-6">
       <div className="flex justify-between items-center mb-6">
         <div>
           <h1 className="text-4xl font-bold bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent mb-2">
@@ -529,7 +622,7 @@ function BibleApp() {
               // Navigate to Psalms for today's reading
               setSelectedBook('Psalms')
               setSelectedChapter(todayPsalm)
-              setSelectedVerse(null)
+              setSelectedVerse(1)  // Auto-select verse 1
             }}
             className="px-3 py-2 bg-green-600 hover:bg-green-700 text-white rounded-md transition-colors flex items-center gap-2 text-sm font-medium"
             title="Go to today's reading plan"
@@ -606,190 +699,63 @@ function BibleApp() {
 
       {!loading && bibleData && (
         <div>
-          {/* Enhanced Chapter Selector */}
-          <div className="mb-6 p-5 bg-gradient-to-br from-gray-50 to-gray-100 dark:from-gray-700 dark:to-gray-600 rounded-lg border border-gray-200 dark:border-gray-600">
-            {/* Bible Version Selector */}
-            <div className="mb-4 pb-4 border-b border-gray-300 dark:border-gray-500">
-              <div>
-                <label className="block mb-2 font-medium text-gray-700 dark:text-gray-300 text-sm">
-                  Bible Version
-                </label>
-                <select
-                  value={selectedVersion}
-                  onChange={(e) => setSelectedVersion(e.target.value)}
-                  className="w-full px-3 py-2 rounded-md border-2 border-gray-300 dark:border-gray-500 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 focus:border-blue-500 focus:outline-none transition-colors [&>option]:bg-white dark:[&>option]:bg-gray-700 [&>option]:text-gray-900 dark:[&>option]:text-gray-100"
-                >
-                  <option value="kjv_strongs">KJV with Strong's</option>
-                  <option value="kjv">KJV (King James Version)</option>
-                  <option value="asvs">ASV with Strong's</option>
-                  <option value="asv">ASV (American Standard Version)</option>
-                  <option value="web">WEB (World English Bible)</option>
-                  <option value="net">NET (New English Translation)</option>
-                  <option value="geneva">Geneva Bible</option>
-                  <option value="bishops">Bishops' Bible</option>
-                  <option value="coverdale">Coverdale Bible</option>
-                  <option value="tyndale">Tyndale Bible</option>
-                </select>
-              </div>
-            </div>
-            
-            <div className="grid grid-cols-2 md:grid-cols-3 gap-4 mb-3">
-              {/* Book Selector */}
-              <div className="col-span-2 md:col-span-1">
-                <label className="block mb-2 font-medium text-gray-700 dark:text-gray-300 text-sm">
-                  Book
-                </label>
-                <select
-                  value={selectedBook}
-                  onChange={(e) => {
-                    setSelectedBook(e.target.value)
-                    setSelectedChapter(1)
-                    setSelectedVerse(null)
-                  }}
-                  className="w-full px-3 py-2 rounded-md border-2 border-gray-300 dark:border-gray-500 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 focus:border-blue-500 focus:outline-none transition-colors [&>option]:bg-white dark:[&>option]:bg-gray-700 [&>option]:text-gray-900 dark:[&>option]:text-gray-100"
-                >
-                  {bookNames.map(book => (
-                    <option key={book} value={book}>{book}</option>
-                  ))}
-                </select>
-              </div>
-              
-              {/* Chapter Selector */}
-              <div>
-                <label className="block mb-2 font-medium text-gray-700 dark:text-gray-300 text-sm">
-                  Chapter
-                </label>
-                <select
-                  value={selectedChapter}
-                  onChange={(e) => {
-                    setSelectedChapter(parseInt(e.target.value))
-                    setSelectedVerse(null)
-                  }}
-                  className="w-full px-3 py-2 rounded-md border-2 border-gray-300 dark:border-gray-500 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 focus:border-blue-500 focus:outline-none transition-colors [&>option]:bg-white dark:[&>option]:bg-gray-700 [&>option]:text-gray-900 dark:[&>option]:text-gray-100"
-                >
-                  {Array.from({ length: chapterCount }, (_, i) => i + 1).map(num => (
-                    <option key={num} value={num}>Chapter {num}</option>
-                  ))}
-                </select>
-              </div>
-              
-              {/* Verse Selector */}
-              <div>
-                <label className="block mb-2 font-medium text-gray-700 dark:text-gray-300 text-sm">
-                  Verse (Optional)
-                </label>
-                <select
-                  value={selectedVerse || ''}
-                  onChange={(e) => setSelectedVerse(e.target.value ? parseInt(e.target.value) : null)}
-                  className="w-full px-3 py-2 rounded-md border-2 border-gray-300 dark:border-gray-500 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 focus:border-blue-500 focus:outline-none transition-colors [&>option]:bg-white dark:[&>option]:bg-gray-700 [&>option]:text-gray-900 dark:[&>option]:text-gray-100"
-                >
-                  <option value="">All Verses</option>
-                  {Array.from({ length: verseCount }, (_, i) => i + 1).map(num => (
-                    <option key={num} value={num}>Verse {num}</option>
-                  ))}
-                </select>
-              </div>
-            </div>
-            
-            {/* Current Selection Display and Actions */}
-            <div className="flex justify-between items-center gap-3">
-              {/* Previous Chapter Button */}
-              <button
-                onClick={() => {
-                  if (selectedChapter > 1) {
-                    setSelectedChapter(selectedChapter - 1)
-                    setSelectedVerse(null)
-                  } else if (bookNames.indexOf(selectedBook) > 0) {
-                    // Go to previous book's last chapter
-                    const prevBookIndex = bookNames.indexOf(selectedBook) - 1
-                    const prevBook = bookNames[prevBookIndex]
-                    if (bibleData) {
-                      const prevBookChapters = Object.keys(bibleData.books[prevBook].chapters).length
-                      setSelectedBook(prevBook)
-                      setSelectedChapter(prevBookChapters)
-                      setSelectedVerse(null)
-                    }
-                  }
-                }}
-                disabled={selectedChapter === 1 && bookNames.indexOf(selectedBook) === 0}
-                className="px-3 py-2 bg-blue-600 hover:bg-blue-700 disabled:bg-gray-400 disabled:cursor-not-allowed text-white rounded-md transition-colors flex items-center gap-1 text-sm"
-                title="Previous Chapter"
-              >
-                <svg
-                  className="w-4 h-4"
-                  viewBox="0 0 24 24"
-                  fill="none"
-                  stroke="currentColor"
-                  strokeWidth="2"
-                >
-                  <path d="M15 18l-6-6 6-6" />
-                </svg>
-                Previous
-              </button>
-
-              <div className="flex-1 px-3 py-2 bg-white dark:bg-gray-800 rounded-md text-center text-lg font-medium text-blue-600 dark:text-blue-400">
-                {selectedBook} {selectedChapter}
-                {selectedVerse ? `:${selectedVerse}` : ''}
-              </div>
-
-              {/* Next Chapter Button */}
-              <button
-                onClick={() => {
-                  if (selectedChapter < chapterCount) {
-                    setSelectedChapter(selectedChapter + 1)
-                    setSelectedVerse(null)
-                  } else if (bookNames.indexOf(selectedBook) < bookNames.length - 1) {
-                    // Go to next book's first chapter
-                    const nextBookIndex = bookNames.indexOf(selectedBook) + 1
-                    const nextBook = bookNames[nextBookIndex]
-                    setSelectedBook(nextBook)
-                    setSelectedChapter(1)
-                    setSelectedVerse(null)
-                  }
-                }}
-                disabled={selectedChapter === chapterCount && bookNames.indexOf(selectedBook) === bookNames.length - 1}
-                className="px-3 py-2 bg-blue-600 hover:bg-blue-700 disabled:bg-gray-400 disabled:cursor-not-allowed text-white rounded-md transition-colors flex items-center gap-1 text-sm"
-                title="Next Chapter"
-              >
-                Next
-                <svg
-                  className="w-4 h-4"
-                  viewBox="0 0 24 24"
-                  fill="none"
-                  stroke="currentColor"
-                  strokeWidth="2"
-                >
-                  <path d="M9 18l6-6-6-6" />
-                </svg>
-              </button>
-
-              <button
-                onClick={() => setShowParallelScroll(true)}
-                className="px-4 py-2 bg-purple-600 hover:bg-purple-700 text-white rounded-md transition-colors flex items-center gap-2 text-sm"
-                title="Open parallel reading view"
-              >
-                <svg
-                  className="w-4 h-4"
-                  viewBox="0 0 24 24"
-                  fill="none"
-                  stroke="currentColor"
-                  strokeWidth="2"
-                >
-                  <rect x="3" y="3" width="18" height="18" rx="2" ry="2" />
-                  <line x1="12" y1="3" x2="12" y2="21" />
-                  <line x1="3" y1="9" x2="21" y2="9" />
-                  <line x1="3" y1="15" x2="21" y2="15" />
-                </svg>
-                Parallel Reading
-              </button>
-            </div>
-          </div>
+          {/* Compact Bible Controls */}
+          <CompactBibleControls
+            selectedBook={selectedBook}
+            selectedChapter={selectedChapter}
+            selectedVerse={selectedVerse}
+            selectedVersion={selectedVersion}
+            bookNames={bookNames}
+            chapterCount={chapterCount}
+            verseCount={verseCount}
+            onBookChange={(book) => {
+              setSelectedBook(book)
+              setSelectedChapter(1)
+              setSelectedVerse(1)  // Auto-select verse 1 when changing books
+            }}
+            onChapterChange={(chapter) => {
+              setSelectedChapter(chapter)
+              setSelectedVerse(1)  // Auto-select verse 1 when changing chapters
+            }}
+            onVerseChange={setSelectedVerse}
+            onVersionChange={setSelectedVersion}
+            onPreviousChapter={() => {
+              if (selectedChapter > 1) {
+                setSelectedChapter(selectedChapter - 1)
+                setSelectedVerse(1)  // Auto-select verse 1
+              } else if (bookNames.indexOf(selectedBook) > 0) {
+                const prevBookIndex = bookNames.indexOf(selectedBook) - 1
+                const prevBook = bookNames[prevBookIndex]
+                if (bibleData) {
+                  const prevBookChapters = Object.keys(bibleData.books[prevBook].chapters).length
+                  setSelectedBook(prevBook)
+                  setSelectedChapter(prevBookChapters)
+                  setSelectedVerse(1)  // Auto-select verse 1
+                }
+              }
+            }}
+            onNextChapter={() => {
+              if (selectedChapter < chapterCount) {
+                setSelectedChapter(selectedChapter + 1)
+                setSelectedVerse(1)  // Auto-select verse 1
+              } else if (bookNames.indexOf(selectedBook) < bookNames.length - 1) {
+                const nextBookIndex = bookNames.indexOf(selectedBook) + 1
+                const nextBook = bookNames[nextBookIndex]
+                setSelectedBook(nextBook)
+                setSelectedChapter(1)
+                setSelectedVerse(1)  // Auto-select verse 1
+              }
+            }}
+            onParallelReading={() => setShowParallelScroll(true)}
+            isPreviousDisabled={selectedChapter === 1 && bookNames.indexOf(selectedBook) === 0}
+            isNextDisabled={selectedChapter === chapterCount && bookNames.indexOf(selectedBook) === bookNames.length - 1}
+          />
 
           {/* Chapter Content */}
           {mounted && chapterContent && (
-            <div 
-              className="p-6 bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700"
-              style={{ marginBottom: parallelComparisonEnabled && selectedVerse ? '200px' : '24px' }}>
+            <div
+              className="mt-4 p-6 bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700"
+              style={{ marginBottom: parallelComparisonEnabled ? '200px' : '24px' }}>
               <div className="mb-5 pb-4 border-b-2 border-gray-200 dark:border-gray-600">
                 <h2 className="text-2xl font-bold text-gray-900 dark:text-gray-100 mb-2">
                   {selectedBook} Chapter {selectedChapter}
@@ -835,21 +801,6 @@ function BibleApp() {
               </div>
             </div>
           )}
-
-          {/* Fixed Parallel Comparison */}
-          <FixedParallelComparison
-            primaryVersion={selectedVersion}
-            secondaryVersion={parallelVersion}
-            book={selectedBook}
-            chapter={selectedChapter}
-            verse={selectedVerse || 0}
-            primaryText={selectedVerse && chapterContent?.verses[selectedVerse] ? chapterContent.verses[selectedVerse].text : undefined}
-            isVisible={parallelComparisonEnabled && selectedVerse !== null}
-            fontSize={settings.fontSize}
-            lineSpacing={settings.lineSpacing}
-            verseSpacing={settings.verseSpacing}
-            onStrongsClick={handleStrongsClick}
-          />
         </div>
       )}
 
@@ -941,6 +892,28 @@ function BibleApp() {
         </div>
       )}
     </div>
+
+    {/* Fixed Parallel Comparison - Outside main content */}
+    {mounted && chapterContent && (
+      <FixedParallelComparison
+        primaryVersion={selectedVersion}
+        secondaryVersion={parallelVersion}
+        book={selectedBook}
+        chapter={selectedChapter}
+        verse={selectedVerse || 1}
+        primaryText={
+          selectedVerse
+            ? chapterContent.verses[selectedVerse]?.text
+            : chapterContent.verses[1]?.text
+        }
+        isVisible={parallelComparisonEnabled && chapterContent !== null}
+        fontSize={settings.fontSize}
+        lineSpacing={settings.lineSpacing}
+        verseSpacing={settings.verseSpacing}
+        onStrongsClick={handleStrongsClick}
+      />
+    )}
+    </>
   )
 }
 

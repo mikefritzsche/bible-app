@@ -9,6 +9,7 @@ type TabView = 'psalm' | 'proverbs' | 'combined' | 'calendar'
 export default function ReadingPlanPage() {
   const [manager] = useState(() => new ReadingPlanManager())
   const [selectedDate, setSelectedDate] = useState(new Date())
+  const [viewDate, setViewDate] = useState(new Date())
   const [activeTab, setActiveTab] = useState<TabView>('combined')
   const [startingPsalm, setStartingPsalm] = useState(1)
   const [startingProverb, setStartingProverb] = useState(1)
@@ -16,6 +17,7 @@ export default function ReadingPlanPage() {
   const [tempStartingProverb, setTempStartingProverb] = useState('1')
   const [planStartDate, setPlanStartDate] = useState(new Date())
   const [todayReading, setTodayReading] = useState<DailyReading | null>(null)
+  const [currentReading, setCurrentReading] = useState<DailyReading | null>(null)
   const [progress, setProgress] = useState<ReadingProgress | null>(null)
   const [schedule, setSchedule] = useState<DailyReading[]>([])
   const [statistics, setStatistics] = useState<any>(null)
@@ -56,7 +58,13 @@ export default function ReadingPlanPage() {
       await loadStatistics()
     }
     initializeData()
-  }, [selectedDate, startingPsalm, planStartDate])
+  }, [startingPsalm, planStartDate])
+
+  // Load current viewing date reading
+  useEffect(() => {
+    if (!manager) return
+    loadCurrentReading()
+  }, [viewDate, startingPsalm, planStartDate])
   
   const dismissPlansBanner = () => {
     setShowPlanOptions(false)
@@ -74,24 +82,47 @@ export default function ReadingPlanPage() {
       isToday: true
     }
     setTodayReading(reading)
-    
+
     // Load progress for today
     const dateStr = today.toISOString().split('T')[0]
     const todayProgress = await manager.getProgress(dateStr)
     setProgress(todayProgress)
   }
+
+  const loadCurrentReading = async () => {
+    const reading: DailyReading = {
+      date: viewDate,
+      psalm: manager.calculatePsalm(viewDate, startingPsalm, planStartDate),
+      proverbs: manager.calculateProverbs(viewDate),
+      isToday: isSameDay(viewDate, new Date())
+    }
+    setCurrentReading(reading)
+
+    // Load progress for current viewing date
+    const dateStr = viewDate.toISOString().split('T')[0]
+    const currentProgress = await manager.getProgress(dateStr)
+    setProgress(currentProgress)
+  }
+
+  const isSameDay = (date1: Date, date2: Date): boolean => {
+    return date1.getFullYear() === date2.getFullYear() &&
+           date1.getMonth() === date2.getMonth() &&
+           date1.getDate() === date2.getDate()
+  }
   
   const loadSchedule = async () => {
     const startDate = new Date()
+    // Show past 10 days and next 20 days
+    startDate.setDate(startDate.getDate() - 10)
     const newSchedule = manager.generateSchedule(startDate, 30, startingPsalm, planStartDate)
-    
+
     // Load progress for each day
     for (const day of newSchedule) {
       const dateStr = day.date.toISOString().split('T')[0]
       const dayProgress = await manager.getProgress(dateStr)
       day.isCompleted = dayProgress?.psalmCompleted && dayProgress?.proverbsCompleted
     }
-    
+
     setSchedule(newSchedule)
   }
   
@@ -125,12 +156,13 @@ export default function ReadingPlanPage() {
     }
   }
   
-  const toggleReadingComplete = async (type: 'psalm' | 'proverbs') => {
-    if (!todayReading) return
-    
-    const dateStr = todayReading.date.toISOString().split('T')[0]
+  const toggleReadingComplete = async (type: 'psalm' | 'proverbs', date?: Date) => {
+    const targetDate = date || viewDate
+    if (!targetDate) return
+
+    const dateStr = targetDate.toISOString().split('T')[0]
     const currentProgress = await manager.getProgress(dateStr)
-    
+
     if (type === 'psalm') {
       if (currentProgress?.psalmCompleted) {
         await manager.markAsUnread(dateStr, 'psalm')
@@ -144,10 +176,27 @@ export default function ReadingPlanPage() {
         await manager.markAsRead(dateStr, 'proverbs')
       }
     }
-    
+
+    await loadCurrentReading()
     await loadTodayReading()
     await loadSchedule()
     await loadStatistics()
+  }
+
+  const navigateDate = (direction: 'prev' | 'next' | 'today') => {
+    const newDate = new Date(viewDate)
+    if (direction === 'prev') {
+      newDate.setDate(newDate.getDate() - 1)
+    } else if (direction === 'next') {
+      newDate.setDate(newDate.getDate() + 1)
+    } else {
+      // Today
+      const today = new Date()
+      newDate.setFullYear(today.getFullYear())
+      newDate.setMonth(today.getMonth())
+      newDate.setDate(today.getDate())
+    }
+    setViewDate(newDate)
   }
   
   const formatProverbsList = (proverbs: number[]): string => {
@@ -246,20 +295,61 @@ export default function ReadingPlanPage() {
       )}
       
       {/* Today's Reading Card */}
-      {todayReading && (
+      {currentReading && (
         <div className="p-6 bg-gradient-to-br from-gray-50 to-gray-100 dark:from-gray-700 dark:to-gray-600 rounded-lg mb-6 border border-gray-300 dark:border-gray-600">
           <div className="flex justify-between items-center mb-4">
-            <h2 className="text-2xl font-bold text-gray-900 dark:text-gray-100">
-              Today's Reading
-            </h2>
-            <span className="text-gray-500 dark:text-gray-400 text-sm">
-              {todayReading.date.toLocaleDateString('en-US', {
-                weekday: 'long',
-                month: 'long',
-                day: 'numeric',
-                year: 'numeric'
-              })}
-            </span>
+            <div className="flex items-center gap-3">
+              <h2 className="text-2xl font-bold text-gray-900 dark:text-gray-100">
+                {currentReading.isToday ? "Today's Reading" : "Reading for"}
+              </h2>
+              {!currentReading.isToday && (
+                <span className="px-3 py-1 bg-yellow-100 dark:bg-yellow-900/30 text-yellow-700 dark:text-yellow-400 rounded-md text-sm font-medium">
+                  Past Day
+                </span>
+              )}
+            </div>
+            <div className="flex items-center gap-3">
+              <div className="flex items-center gap-1">
+                <button
+                  onClick={() => navigateDate('prev')}
+                  className="p-2 bg-white dark:bg-gray-700 hover:bg-gray-100 dark:hover:bg-gray-600 text-gray-600 dark:text-gray-400 rounded-lg transition-colors"
+                  title="Previous Day"
+                >
+                  <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                    <path d="M15 18l-6-6 6-6" />
+                  </svg>
+                </button>
+                <button
+                  onClick={() => navigateDate('today')}
+                  className={`px-3 py-2 rounded-lg text-sm font-medium transition-colors ${
+                    currentReading.isToday
+                      ? 'bg-blue-600 dark:bg-blue-500 text-white'
+                      : 'bg-white dark:bg-gray-700 hover:bg-gray-100 dark:hover:bg-gray-600 text-gray-600 dark:text-gray-400'
+                  }`}
+                  title="Go to Today"
+                >
+                  Today
+                </button>
+                <button
+                  onClick={() => navigateDate('next')}
+                  className="p-2 bg-white dark:bg-gray-700 hover:bg-gray-100 dark:hover:bg-gray-600 text-gray-600 dark:text-gray-400 rounded-lg transition-colors"
+                  title="Next Day"
+                  disabled={currentReading.isToday}
+                >
+                  <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className={currentReading.isToday ? 'opacity-30' : ''}>
+                    <path d="M9 18l6-6-6-6" />
+                  </svg>
+                </button>
+              </div>
+              <span className="text-gray-500 dark:text-gray-400 text-sm">
+                {currentReading.date.toLocaleDateString('en-US', {
+                  weekday: 'long',
+                  month: 'long',
+                  day: 'numeric',
+                  year: 'numeric'
+                })}
+              </span>
+            </div>
           </div>
 
           {/* Tab Navigation */}
@@ -289,7 +379,7 @@ export default function ReadingPlanPage() {
                 }`}>
                   <div className="flex justify-between items-center mb-3">
                     <h3 className="text-lg font-semibold text-gray-700 dark:text-gray-200">
-                      Psalm {todayReading.psalm}
+                      Psalm {currentReading.psalm}
                     </h3>
                     <button
                       onClick={() => toggleReadingComplete('psalm')}
@@ -303,10 +393,10 @@ export default function ReadingPlanPage() {
                     </button>
                   </div>
                   <Link
-                    href={`/?book=Psalms&chapter=${todayReading.psalm}`}
+                    href={`/?book=Psalms&chapter=${currentReading.psalm}`}
                     className="inline-block px-4 py-2.5 bg-blue-600 dark:bg-blue-500 hover:bg-blue-700 dark:hover:bg-blue-600 text-white rounded-md no-underline text-sm transition-colors"
                   >
-                    Read Psalm {todayReading.psalm} →
+                    Read Psalm {currentReading.psalm} →
                   </Link>
                 </div>
 
@@ -315,7 +405,7 @@ export default function ReadingPlanPage() {
                 }`}>
                   <div className="flex justify-between items-center mb-3">
                     <h3 className="text-lg font-semibold text-gray-700 dark:text-gray-200">
-                      {formatProverbsList(todayReading.proverbs)}
+                      {formatProverbsList(currentReading.proverbs)}
                     </h3>
                     <button
                       onClick={() => toggleReadingComplete('proverbs')}
@@ -329,7 +419,7 @@ export default function ReadingPlanPage() {
                     </button>
                   </div>
                   <div className="flex gap-2">
-                    {todayReading.proverbs.map(chapter => (
+                    {currentReading.proverbs.map(chapter => (
                       <Link
                         key={chapter}
                         href={`/?book=Proverbs&chapter=${chapter}`}
@@ -347,7 +437,7 @@ export default function ReadingPlanPage() {
             {activeTab === 'psalm' && (
               <div className="p-6 bg-white dark:bg-gray-700 rounded-lg text-center">
                 <h3 className="text-5xl font-bold text-blue-600 dark:text-blue-400 mb-4">
-                  Psalm {todayReading.psalm}
+                  Psalm {currentReading.psalm}
                 </h3>
                 <button
                   onClick={() => toggleReadingComplete('psalm')}
@@ -361,7 +451,7 @@ export default function ReadingPlanPage() {
                 </button>
                 <br />
                 <Link
-                  href={`/?book=Psalms&chapter=${todayReading.psalm}`}
+                  href={`/?book=Psalms&chapter=${currentReading.psalm}`}
                   className="inline-block px-7 py-3.5 bg-blue-600 dark:bg-blue-500 hover:bg-blue-700 dark:hover:bg-blue-600 text-white rounded-lg no-underline text-lg font-medium transition-colors"
                 >
                   Read in Bible Reader →
@@ -373,11 +463,11 @@ export default function ReadingPlanPage() {
             {activeTab === 'proverbs' && (
               <div className="p-6 bg-white dark:bg-gray-700 rounded-lg text-center">
                 <h3 className="text-4xl font-bold text-purple-600 dark:text-purple-400 mb-4">
-                  {formatProverbsList(todayReading.proverbs)}
+                  {formatProverbsList(currentReading.proverbs)}
                 </h3>
-                {todayReading.proverbs.length > 1 && (
+                {currentReading.proverbs.length > 1 && (
                   <p className="text-gray-500 dark:text-gray-400 mb-4">
-                    Today includes multiple chapters to complete the month
+                    This day includes multiple chapters to complete the month
                   </p>
                 )}
                 <button
@@ -392,7 +482,7 @@ export default function ReadingPlanPage() {
                 </button>
                 <br />
                 <div className="inline-flex gap-3">
-                  {todayReading.proverbs.map(chapter => (
+                  {currentReading.proverbs.map(chapter => (
                     <Link
                       key={chapter}
                       href={`/?book=Proverbs&chapter=${chapter}`}
@@ -475,52 +565,73 @@ export default function ReadingPlanPage() {
       {/* 30-Day Schedule */}
       <div className="mt-8">
         <h3 className="text-xl mb-4 text-gray-700 dark:text-gray-300">
-          30-Day Reading Schedule
+          Reading Schedule (Past 10 & Next 20 Days)
         </h3>
         <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 xl:grid-cols-6 gap-3">
-          {schedule.map((day, index) => (
-            <Link
-              key={index}
-              href={`/?book=Psalms&chapter=${day.psalm}`}
-              className={`p-3 rounded-md relative border no-underline cursor-pointer transition-all hover:scale-105 ${
-                day.isToday
-                  ? 'border-2 border-blue-600 dark:border-blue-400 bg-blue-50 dark:bg-blue-900/20'
-                  : day.isCompleted
-                  ? 'border-2 border-green-500 bg-green-50 dark:bg-green-900/20'
-                  : 'border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 hover:bg-gray-50 dark:hover:bg-gray-600'
-              }`}
-              title={`Go to Psalm ${day.psalm} and Proverbs ${day.proverbs.join(' & ')}`}
-            >
-              {day.isCompleted && (
-                <span className="absolute top-1 right-1 text-green-500 text-xl">
-                  ✓
-                </span>
-              )}
-              <div className="text-xs text-gray-500 dark:text-gray-400 mb-1">
-                {day.date.toLocaleDateString('en-US', {
-                  weekday: 'short',
+          {schedule.map((day, index) => {
+            const isPast = day.date < new Date() && !day.isToday
+            const isViewing = isSameDay(day.date, viewDate)
+
+            return (
+              <button
+                key={index}
+                onClick={() => setViewDate(new Date(day.date))}
+                className={`p-3 rounded-md relative border no-underline cursor-pointer transition-all hover:scale-105 ${
+                  isViewing
+                    ? 'border-2 border-purple-600 dark:border-purple-400 bg-purple-50 dark:bg-purple-900/20'
+                    : day.isToday
+                    ? 'border-2 border-blue-600 dark:border-blue-400 bg-blue-50 dark:bg-blue-900/20'
+                    : day.isCompleted
+                    ? 'border-2 border-green-500 bg-green-50 dark:bg-green-900/20'
+                    : isPast
+                    ? 'border-gray-400 dark:border-gray-500 bg-gray-50 dark:bg-gray-800 opacity-75'
+                    : 'border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 hover:bg-gray-50 dark:hover:bg-gray-600'
+                }`}
+                title={`View reading for ${day.date.toLocaleDateString('en-US', {
                   month: 'short',
                   day: 'numeric'
-                })}
-              </div>
-              <div className={`mb-1 ${
-                day.isToday
-                  ? 'font-bold text-blue-600 dark:text-blue-400'
-                  : 'text-gray-900 dark:text-gray-100'
-              }`}>
-                Psalm {day.psalm}
-              </div>
-              <div className={`text-sm ${
-                day.isToday
-                  ? 'text-purple-600 dark:text-purple-400'
-                  : 'text-gray-500 dark:text-gray-400'
-              }`}>
-                {day.proverbs.length === 1
-                  ? `Proverbs ${day.proverbs[0]}`
-                  : `Prov ${day.proverbs.join(' & ')}`}
-              </div>
-            </Link>
-          ))}
+                })}: Psalm ${day.psalm} and Proverbs ${day.proverbs.join(' & ')}`}
+              >
+                {day.isCompleted && (
+                  <span className="absolute top-1 right-1 text-green-500 text-xl">
+                    ✓
+                  </span>
+                )}
+                {isPast && !day.isCompleted && (
+                  <span className="absolute top-1 right-1 text-yellow-500 text-xs">
+                    Missed
+                  </span>
+                )}
+                <div className="text-xs text-gray-500 dark:text-gray-400 mb-1">
+                  {day.date.toLocaleDateString('en-US', {
+                    weekday: 'short',
+                    month: 'short',
+                    day: 'numeric'
+                  })}
+                </div>
+                <div className={`mb-1 ${
+                  isViewing
+                    ? 'font-bold text-purple-600 dark:text-purple-400'
+                    : day.isToday
+                    ? 'font-bold text-blue-600 dark:text-blue-400'
+                    : 'text-gray-900 dark:text-gray-100'
+                }`}>
+                  Psalm {day.psalm}
+                </div>
+                <div className={`text-sm ${
+                  isViewing
+                    ? 'text-purple-600 dark:text-purple-400'
+                    : day.isToday
+                    ? 'text-purple-600 dark:text-purple-400'
+                    : 'text-gray-500 dark:text-gray-400'
+                }`}>
+                  {day.proverbs.length === 1
+                    ? `Proverbs ${day.proverbs[0]}`
+                    : `Prov ${day.proverbs.join(' & ')}`}
+                </div>
+              </button>
+            )
+          })}
         </div>
       </div>
     </div>
