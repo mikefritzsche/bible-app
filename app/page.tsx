@@ -20,6 +20,12 @@ import { BibleSettingsModal } from '@/components/BibleSettingsModal'
 import { NotesPanel } from '@/components/NotesPanel'
 import { VerseDisplay } from '@/components/VerseDisplay'
 import { CompactBibleControls } from '@/components/CompactBibleControls'
+import {
+  Settings,
+  CalendarCheck,
+  History,
+  FileText
+} from 'lucide-react'
 import type { BibleData, Chapter, StrongsDefinition } from '@/types/bible'
 import type { VerseHistoryEntry } from '@/lib/VerseHistoryManager'
 import type { VerseHighlight } from '@/lib/HighlightManager'
@@ -576,120 +582,7 @@ function BibleApp() {
 
   return (
     <>
-      <div className="bg-white dark:bg-gray-800 rounded-lg p-8 shadow-sm mt-6">
-      <div className="flex justify-between items-center mb-6">
-        <div>
-          <h1 className="text-4xl font-bold bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent mb-2">
-            Bible Reader
-          </h1>
-          <p className="text-gray-600 dark:text-gray-400">
-            {selectedVersion === 'kjv_strongs' ? 'KJV with Strong\'s Concordance' : 
-             selectedVersion === 'asvs' ? 'ASV with Strong\'s Concordance' :
-             selectedVersion.toUpperCase()}
-          </p>
-        </div>
-
-        {/* Quick Actions Toolbar */}
-        <div className="flex gap-2">
-          {/* Settings Button */}
-          <button
-            onClick={() => setShowSettingsModal(true)}
-            className="px-3 py-2 bg-gray-600 hover:bg-gray-700 text-white rounded-md transition-colors flex items-center gap-2 text-sm font-medium"
-            title="Bible display settings"
-          >
-            <svg
-              className="w-4 h-4"
-              viewBox="0 0 24 24"
-              fill="none"
-              stroke="currentColor"
-              strokeWidth="2"
-            >
-              <circle cx="12" cy="12" r="3" />
-              <path d="M12 1v6m0 6v6m9-9h-6m-6 0H3m16.24-6.36l-4.24 4.24M7.76 7.76L3.52 3.52m16.72 16.72l-4.24-4.24M7.76 16.24L3.52 20.48" />
-            </svg>
-            Settings
-          </button>
-
-          {/* Today's Reading Button */}
-          <button
-            onClick={() => {
-              // Navigate to today's reading
-              const today = new Date()
-              const dayOfMonth = today.getDate()
-              const daysSincePlanStart = Math.floor((today.getTime() - new Date(planStartDate).getTime()) / (1000 * 60 * 60 * 24))
-              const todayPsalm = ((daysSincePlanStart + (startingPsalm || 1) - 1) % 150) + 1
-              
-              // Navigate to Psalms for today's reading
-              setSelectedBook('Psalms')
-              setSelectedChapter(todayPsalm)
-              setSelectedVerse(1)  // Auto-select verse 1
-            }}
-            className="px-3 py-2 bg-green-600 hover:bg-green-700 text-white rounded-md transition-colors flex items-center gap-2 text-sm font-medium"
-            title="Go to today's reading plan"
-          >
-            <svg
-              className="w-4 h-4"
-              viewBox="0 0 24 24"
-              fill="none"
-              stroke="currentColor"
-              strokeWidth="2"
-            >
-              <rect x="3" y="4" width="18" height="18" rx="2" ry="2" />
-              <line x1="16" y1="2" x2="16" y2="6" />
-              <line x1="8" y1="2" x2="8" y2="6" />
-              <line x1="3" y1="10" x2="21" y2="10" />
-              <path d="M9 16l2 2 4-4" />
-            </svg>
-            Today's Reading
-          </button>
-
-          {/* History Button */}
-          <button
-            onClick={() => setShowHistoryPanel(!showHistoryPanel)}
-            className={`px-3 py-2 rounded-md transition-colors flex items-center gap-2 text-sm font-medium ${
-              showHistoryPanel 
-                ? 'bg-blue-600 text-white' 
-                : 'bg-white dark:bg-gray-700 text-blue-600 dark:text-blue-400 border-2 border-blue-600 dark:border-blue-400'
-            }`}
-          >
-            <svg
-              className="w-4 h-4"
-              viewBox="0 0 24 24"
-              fill="none"
-              stroke="currentColor"
-              strokeWidth="2"
-            >
-              <polyline points="1 4 1 10 7 10" />
-              <path d="M3.51 15a9 9 0 1 0 2.13-9.36L1 10" />
-            </svg>
-            History
-          </button>
-
-          {/* Notes Button */}
-          <button
-            onClick={() => setShowNotesPanel(!showNotesPanel)}
-            className={`px-3 py-2 rounded-md transition-colors flex items-center gap-2 text-sm font-medium ${
-              showNotesPanel 
-                ? 'bg-blue-600 text-white' 
-                : 'bg-white dark:bg-gray-700 text-blue-600 dark:text-blue-400 border-2 border-blue-600 dark:border-blue-400'
-            }`}
-          >
-            <svg
-              className="w-4 h-4"
-              viewBox="0 0 24 24"
-              fill="none"
-              stroke="currentColor"
-              strokeWidth="2"
-            >
-              <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" />
-              <polyline points="14 2 14 8 20 8" />
-              <line x1="16" y1="13" x2="8" y2="13" />
-              <line x1="16" y1="17" x2="8" y2="17" />
-            </svg>
-            Notes {allNotes.length > 0 && `(${allNotes.length})`}
-          </button>
-        </div>
-      </div>
+      <div className="bg-white dark:bg-gray-800 md:rounded-lg md:shadow-sm mt-0 md:mt-6">
 
       {loading && (
         <div className="p-8 text-center text-blue-600 dark:text-blue-400">
@@ -749,27 +642,46 @@ function BibleApp() {
             onParallelReading={() => setShowParallelScroll(true)}
             isPreviousDisabled={selectedChapter === 1 && bookNames.indexOf(selectedBook) === 0}
             isNextDisabled={selectedChapter === chapterCount && bookNames.indexOf(selectedBook) === bookNames.length - 1}
+            // Quick actions
+            onSettingsClick={() => setShowSettingsModal(true)}
+            onTodayClick={() => {
+              const today = new Date()
+              const daysSincePlanStart = Math.floor((today.getTime() - new Date(planStartDate).getTime()) / (1000 * 60 * 60 * 24))
+              const todayPsalm = ((daysSincePlanStart + (startingPsalm || 1) - 1) % 150) + 1
+              setSelectedBook('Psalms')
+              setSelectedChapter(todayPsalm)
+              setSelectedVerse(1)
+            }}
+            onHistoryClick={() => setShowHistoryPanel(!showHistoryPanel)}
+            onNotesClick={() => setShowNotesPanel(!showNotesPanel)}
+            showHistoryPanel={showHistoryPanel}
+            showNotesPanel={showNotesPanel}
+            notesCount={allNotes.length}
           />
 
           {/* Chapter Content */}
           {mounted && chapterContent && (
             <div
-              className="mt-4 p-6 bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700"
+              className="mt-4 p-3 sm:p-4 md:p-6 bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700"
               style={{ marginBottom: parallelComparisonEnabled ? '200px' : '24px' }}>
-              <div className="mb-5 pb-4 border-b-2 border-gray-200 dark:border-gray-600">
-                <h2 className="text-2xl font-bold text-gray-900 dark:text-gray-100 mb-2">
+              <div className="mb-4 md:mb-5 pb-3 md:pb-4 border-b-2 border-gray-200 dark:border-gray-600">
+                <h2 className="text-xl md:text-2xl font-bold text-gray-900 dark:text-gray-100 mb-1 md:mb-2">
                   {selectedBook} Chapter {selectedChapter}
                 </h2>
                 {(selectedVersion === 'kjv_strongs' || selectedVersion === 'asvs') && (
-                  <p className="text-sm text-gray-600 dark:text-gray-400">
+                  <p className="text-xs md:text-sm text-gray-600 dark:text-gray-400">
                     Click on Strong's numbers (blue/purple links) to see definitions
                   </p>
                 )}
               </div>
               
-              <div 
+              <div
                 id="verse-content"
-                className="text-lg leading-relaxed"
+                className="text-base sm:text-lg leading-relaxed"
+                style={{
+                  WebkitOverflowScrolling: 'touch',
+                  overscrollBehavior: 'contain'
+                }}
                 suppressHydrationWarning>
                 {/* Show all verses */}
                 {Object.values(chapterContent.verses)

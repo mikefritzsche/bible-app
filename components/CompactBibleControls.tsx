@@ -1,6 +1,17 @@
 'use client'
 
 import { useState } from 'react'
+import {
+  Book,
+  ChevronLeft,
+  ChevronRight,
+  ChevronDown,
+  Columns2,
+  Settings,
+  CalendarCheck,
+  History,
+  FileText
+} from 'lucide-react'
 
 type SelectorMode = 'book' | 'chapter' | 'verse' | null
 
@@ -21,6 +32,14 @@ interface CompactBibleControlsProps {
   onParallelReading: () => void
   isPreviousDisabled: boolean
   isNextDisabled: boolean
+  // New props for quick actions
+  onSettingsClick?: () => void
+  onTodayClick?: () => void
+  onHistoryClick?: () => void
+  onNotesClick?: () => void
+  showHistoryPanel?: boolean
+  showNotesPanel?: boolean
+  notesCount?: number
 }
 
 const BIBLE_VERSIONS = [
@@ -52,7 +71,14 @@ export function CompactBibleControls({
   onNextChapter,
   onParallelReading,
   isPreviousDisabled,
-  isNextDisabled
+  isNextDisabled,
+  onSettingsClick,
+  onTodayClick,
+  onHistoryClick,
+  onNotesClick,
+  showHistoryPanel = false,
+  showNotesPanel = false,
+  notesCount = 0
 }: CompactBibleControlsProps) {
   const [selectorMode, setSelectorMode] = useState<SelectorMode>(null)
   const [showVersionDropdown, setShowVersionDropdown] = useState(false)
@@ -80,17 +106,137 @@ export function CompactBibleControls({
 
   return (
     <>
-      {/* Compact Controls Bar */}
+      {/* Compact Controls Bar - Mobile Responsive */}
       <div className="sticky top-0 z-20 bg-white dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700 shadow-sm">
-        <div className="flex items-center justify-between px-4 py-2 h-14">
+        {/* Mobile Layout */}
+        <div className="md:hidden">
+          {/* Top Row: Location + Version + Quick Actions (icons only) */}
+          <div className="flex items-center justify-between px-3 py-2 min-h-[44px]">
+            <div className="flex items-center gap-2 flex-1">
+              <Book className="w-5 h-5 text-blue-600 dark:text-blue-400 flex-shrink-0" />
+              <button
+                onClick={() => setSelectorMode('book')}
+                className="text-sm font-medium hover:text-blue-600 dark:hover:text-blue-400 transition-colors"
+              >
+                {selectedBook}
+              </button>
+              <button
+                onClick={() => setSelectorMode('chapter')}
+                className="text-sm font-medium hover:text-blue-600 dark:hover:text-blue-400 transition-colors"
+              >
+                {selectedChapter}
+              </button>
+              <span className="text-gray-400">:</span>
+              <button
+                onClick={() => setSelectorMode('verse')}
+                className="text-sm font-medium hover:text-blue-600 dark:hover:text-blue-400 transition-colors min-w-[2rem]"
+              >
+                {selectedVerse || 'All'}
+              </button>
+            </div>
+
+            {/* Quick Action Icons */}
+            <div className="flex items-center gap-1">
+              {onSettingsClick && (
+                <button
+                  onClick={onSettingsClick}
+                  className="p-2 rounded hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors"
+                  title="Settings"
+                >
+                  <Settings className="w-4 h-4" />
+                </button>
+              )}
+              {onTodayClick && (
+                <button
+                  onClick={onTodayClick}
+                  className="p-2 rounded hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors"
+                  title="Today's Reading"
+                >
+                  <CalendarCheck className="w-4 h-4 text-green-600 dark:text-green-400" />
+                </button>
+              )}
+              {onHistoryClick && (
+                <button
+                  onClick={onHistoryClick}
+                  className={`p-2 rounded transition-colors ${
+                    showHistoryPanel
+                      ? 'bg-blue-100 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400'
+                      : 'hover:bg-gray-100 dark:hover:bg-gray-700'
+                  }`}
+                  title="History"
+                >
+                  <History className="w-4 h-4" />
+                </button>
+              )}
+              {onNotesClick && (
+                <button
+                  onClick={onNotesClick}
+                  className={`p-2 rounded transition-colors relative ${
+                    showNotesPanel
+                      ? 'bg-blue-100 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400'
+                      : 'hover:bg-gray-100 dark:hover:bg-gray-700'
+                  }`}
+                  title="Notes"
+                >
+                  <FileText className="w-4 h-4" />
+                  {notesCount > 0 && (
+                    <span className="absolute -top-0.5 -right-0.5 bg-red-500 text-white text-xs rounded-full w-4 h-4 flex items-center justify-center">
+                      {notesCount}
+                    </span>
+                  )}
+                </button>
+              )}
+            </div>
+          </div>
+
+          {/* Bottom Row: Version + Navigation Controls */}
+          <div className="flex items-center justify-between px-3 py-2 border-t border-gray-100 dark:border-gray-700">
+            <button
+              onClick={onPreviousChapter}
+              disabled={isPreviousDisabled}
+              className="p-2 rounded hover:bg-gray-100 dark:hover:bg-gray-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+              title="Previous"
+            >
+              <ChevronLeft className="w-5 h-5" />
+            </button>
+
+            <div className="flex items-center gap-2">
+              <button
+                onClick={() => setShowVersionDropdown(!showVersionDropdown)}
+                className="px-2 py-1 bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300 rounded text-sm font-medium hover:bg-blue-200 dark:hover:bg-blue-900/50 transition-colors flex items-center gap-1"
+              >
+                {getCompactVersionDisplay(selectedVersion)}
+                <ChevronDown className="w-3 h-3" />
+              </button>
+
+              <button
+                onClick={onParallelReading}
+                className="p-2 rounded hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors"
+                title="Parallel"
+              >
+                <Columns2 className="w-5 h-5" />
+              </button>
+            </div>
+
+            <button
+              onClick={onNextChapter}
+              disabled={isNextDisabled}
+              className="p-2 rounded hover:bg-gray-100 dark:hover:bg-gray-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+              title="Next"
+            >
+              <ChevronRight className="w-5 h-5" />
+            </button>
+          </div>
+        </div>
+
+        {/* Desktop Layout */}
+        <div className="hidden md:flex items-center justify-between px-4 py-2 h-14">
           {/* Left: Location Display */}
           <div className="flex items-center gap-2">
-            {/* Book Icon */}
-            <span className="text-blue-600 dark:text-blue-400 text-lg">📖</span>
+            <Book className="w-5 h-5 text-blue-600 dark:text-blue-400" />
 
-            {/* Location - Independent clickable parts with visual indicators */}
+            {/* Location - Independent clickable parts */}
             <div className="flex items-center gap-1 text-lg font-medium">
-              {/* Book */}
               <button
                 onClick={() => setSelectorMode('book')}
                 className="hover:text-blue-600 dark:hover:text-blue-400 transition-colors cursor-pointer group"
@@ -101,7 +247,6 @@ export function CompactBibleControls({
                 </span>
               </button>
 
-              {/* Chapter */}
               <button
                 onClick={() => setSelectorMode('chapter')}
                 className="hover:text-blue-600 dark:hover:text-blue-400 transition-colors cursor-pointer group"
@@ -114,7 +259,6 @@ export function CompactBibleControls({
 
               <span className="text-gray-400">:</span>
 
-              {/* Verse */}
               <button
                 onClick={() => setSelectorMode('verse')}
                 className="hover:text-blue-600 dark:hover:text-blue-400 transition-colors cursor-pointer group inline-block min-w-[2.5rem] text-left"
@@ -133,80 +277,124 @@ export function CompactBibleControls({
                 className="px-2 py-1 bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300 rounded text-sm font-medium hover:bg-blue-200 dark:hover:bg-blue-900/50 transition-colors flex items-center gap-1"
               >
                 {getCompactVersionDisplay(selectedVersion)}
-                <svg className="w-3 h-3" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                  <path d="M6 9l6 6 6-6" />
-                </svg>
+                <ChevronDown className="w-3 h-3" />
               </button>
-
-              {/* Version Dropdown */}
-              {showVersionDropdown && (
-                <>
-                  <div
-                    className="fixed inset-0 z-30"
-                    onClick={() => setShowVersionDropdown(false)}
-                  />
-                  <div className="absolute top-full mt-1 left-0 w-48 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg shadow-lg z-40">
-                    {BIBLE_VERSIONS.map(version => (
-                      <button
-                        key={version.value}
-                        onClick={() => {
-                          onVersionChange(version.value)
-                          setShowVersionDropdown(false)
-                        }}
-                        className={`w-full text-left px-3 py-2 hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors ${
-                          selectedVersion === version.value ? 'bg-blue-50 dark:bg-blue-900/20 text-blue-600 dark:text-blue-400' : ''
-                        }`}
-                      >
-                        {version.label}
-                      </button>
-                    ))}
-                  </div>
-                </>
-              )}
             </div>
           </div>
 
           {/* Right: Navigation and Actions */}
           <div className="flex items-center gap-2">
-            {/* Previous Chapter */}
+            {/* Navigation */}
             <button
               onClick={onPreviousChapter}
               disabled={isPreviousDisabled}
               className="p-2 rounded hover:bg-gray-100 dark:hover:bg-gray-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
               title="Previous Chapter (J)"
             >
-              <svg className="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                <path d="M15 18l-6-6 6-6" />
-              </svg>
+              <ChevronLeft className="w-5 h-5" />
             </button>
 
-            {/* Next Chapter */}
             <button
               onClick={onNextChapter}
               disabled={isNextDisabled}
               className="p-2 rounded hover:bg-gray-100 dark:hover:bg-gray-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
               title="Next Chapter (K)"
             >
-              <svg className="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                <path d="M9 18l6-6-6-6" />
-              </svg>
+              <ChevronRight className="w-5 h-5" />
             </button>
 
             <div className="w-px h-6 bg-gray-300 dark:bg-gray-600 mx-1" />
 
-            {/* Parallel Reading */}
             <button
               onClick={onParallelReading}
               className="p-2 rounded hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors"
               title="Parallel Reading"
             >
-              <svg className="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                <rect x="3" y="3" width="18" height="18" rx="2" ry="2" />
-                <line x1="12" y1="3" x2="12" y2="21" />
-              </svg>
+              <Columns2 className="w-5 h-5" />
             </button>
+
+            {/* Quick Actions - Desktop with labels */}
+            {onSettingsClick && (
+              <button
+                onClick={onSettingsClick}
+                className="px-3 py-1.5 rounded hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors flex items-center gap-2 text-sm"
+                title="Settings"
+              >
+                <Settings className="w-4 h-4" />
+                <span className="hidden lg:inline">Settings</span>
+              </button>
+            )}
+            {onTodayClick && (
+              <button
+                onClick={onTodayClick}
+                className="px-3 py-1.5 rounded bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-300 hover:bg-green-200 dark:hover:bg-green-900/50 transition-colors flex items-center gap-2 text-sm"
+                title="Today's Reading"
+              >
+                <CalendarCheck className="w-4 h-4" />
+                <span className="hidden lg:inline">Today</span>
+              </button>
+            )}
+            {onHistoryClick && (
+              <button
+                onClick={onHistoryClick}
+                className={`px-3 py-1.5 rounded transition-colors flex items-center gap-2 text-sm ${
+                  showHistoryPanel
+                    ? 'bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300'
+                    : 'hover:bg-gray-100 dark:hover:bg-gray-700'
+                }`}
+                title="History"
+              >
+                <History className="w-4 h-4" />
+                <span className="hidden lg:inline">History</span>
+              </button>
+            )}
+            {onNotesClick && (
+              <button
+                onClick={onNotesClick}
+                className={`px-3 py-1.5 rounded transition-colors flex items-center gap-2 text-sm relative ${
+                  showNotesPanel
+                    ? 'bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300'
+                    : 'hover:bg-gray-100 dark:hover:bg-gray-700'
+                }`}
+                title="Notes"
+              >
+                <FileText className="w-4 h-4" />
+                <span className="hidden lg:inline">Notes</span>
+                {notesCount > 0 && (
+                  <span className="absolute -top-1 -right-1 bg-red-500 text-white text-xs rounded-full min-w-[18px] h-[18px] flex items-center justify-center px-1">
+                    {notesCount}
+                  </span>
+                )}
+              </button>
+            )}
           </div>
         </div>
+
+        {/* Version Dropdown - shared between mobile and desktop */}
+        {showVersionDropdown && (
+          <>
+            <div
+              className="fixed inset-0 z-30"
+              onClick={() => setShowVersionDropdown(false)}
+            />
+            <div className="absolute top-full mt-1 left-3 md:left-auto right-3 md:right-auto w-auto md:w-48 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg shadow-lg z-40 max-h-[60vh] overflow-y-auto">
+              {BIBLE_VERSIONS.map(version => (
+                <button
+                  key={version.value}
+                  onClick={() => {
+                    onVersionChange(version.value)
+                    setShowVersionDropdown(false)
+                  }}
+                  className={`w-full text-left px-3 py-2 hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors ${
+                    selectedVersion === version.value ? 'bg-blue-50 dark:bg-blue-900/20 text-blue-600 dark:text-blue-400' : ''
+                  }`}
+                >
+                  {version.label}
+                </button>
+              ))}
+            </div>
+          </>
+        )}
       </div>
 
       {/* Progressive Selector Overlay */}
@@ -260,7 +448,7 @@ export function CompactBibleControls({
               {/* Book Selection */}
               {selectorMode === 'book' && (
                 <>
-                  <div className="grid grid-cols-3 sm:grid-cols-4 gap-2">
+                  <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-2">
                     {bookNames.map(book => (
                       <button
                         key={book}

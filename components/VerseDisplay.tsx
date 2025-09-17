@@ -994,8 +994,8 @@ export function VerseDisplay({
       
       <div
         className={`verse-display text-gray-900 dark:text-gray-100`}
-        style={{ 
-          padding: '0 12px',
+        style={{
+          padding: '0 8px',
           paddingTop: `${Math.max(0, parseInt(verseSpacing) / 2)}px`,
           paddingBottom: `${Math.max(0, parseInt(verseSpacing) / 2)}px`,
           borderRadius: '4px',
@@ -1023,7 +1023,7 @@ export function VerseDisplay({
                   verticalAlign: 'baseline'
                 }}
               >
-                {bookAbbrev} {chapterNumber}:{verse.verse}
+                <span className="hidden sm:inline">{bookAbbrev} {chapterNumber}:</span>{verse.verse}
               </button>
             )}
             
@@ -1114,18 +1114,21 @@ export function VerseDisplay({
           
           {note && (
             <div
+              className="inline-flex items-center justify-center"
               style={{
-                padding: '2px 6px',
+                padding: '2px 4px',
                 backgroundColor: isDarkMode ? 'rgba(30, 64, 175, 0.3)' : '#dbeafe',
                 borderRadius: '4px',
                 fontSize: '0.75rem',
                 color: isDarkMode ? '#93c5fd' : '#1e40af',
                 cursor: 'help',
-                flexShrink: 0
+                flexShrink: 0,
+                minWidth: '20px',
+                minHeight: '20px'
               }}
               title={note.note}
             >
-              📝
+              <span className="text-xs">📝</span>
             </div>
           )}
         </div>

@@ -208,7 +208,7 @@ export default function EnhancedReadingPlanPage() {
         <div className="flex justify-between items-start">
           <div>
             <h1 className="text-4xl font-bold bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent mb-2">
-              Bible Reading Plans
+              Reading Plans
             </h1>
             <p className="text-gray-500 dark:text-gray-400">
               Choose from multiple reading plans to grow in God's Word
