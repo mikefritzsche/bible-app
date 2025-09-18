@@ -1,6 +1,7 @@
 'use client'
 
 import { useState, useEffect } from 'react'
+import { SlideOutPanel } from './SlideOutPanel'
 import type { VerseNote } from '@/lib/NotesManager'
 
 interface NotesPanelProps {
@@ -41,77 +42,85 @@ export function NotesPanel({
     })
   }
 
-  if (!isOpen) return null
+  const handleNoteSelect = (book: string, chapter: number, verse: number) => {
+    onNoteSelect(book, chapter, verse)
+    onClose()
+  }
 
   return (
-    <div className={`fixed right-0 top-0 bottom-0 w-[400px] bg-white dark:bg-gray-800 shadow-xl z-[100] flex flex-col transition-transform duration-300 ease-in-out ${isOpen ? 'translate-x-0' : 'translate-x-full'}`}>
-      {/* Header */}
-      <div className="p-5 border-b-2 border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-900">
-        <div className="flex justify-between items-center mb-4">
-          <h2 className="text-2xl font-bold text-gray-900 dark:text-gray-100">
-            My Notes ({notes.length})
-          </h2>
-          <button
-            onClick={onClose}
-            className="p-1.5 text-2xl text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200 leading-none transition-colors"
-          >
-            ×
-          </button>
+    <SlideOutPanel
+      isOpen={isOpen}
+      onClose={onClose}
+      title="My Notes"
+      subtitle={`${notes.length} note${notes.length !== 1 ? 's' : ''}`}
+      position="left"
+      width="w-96 md:w-[28rem]"
+    >
+      <div className="flex flex-col h-full">
+        {/* Search */}
+        <div className="flex-shrink-0 p-4 border-b border-gray-200 dark:border-gray-700">
+          <input
+            type="text"
+            placeholder="Search notes..."
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+            className="w-full px-3 py-2 rounded-md border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 dark:focus:ring-blue-400 placeholder-gray-400 dark:placeholder-gray-500"
+          />
         </div>
 
-        {/* Search */}
-        <input
-          type="text"
-          placeholder="Search notes..."
-          value={searchQuery}
-          onChange={(e) => setSearchQuery(e.target.value)}
-          className="w-full px-3 py-2.5 rounded-md border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 dark:focus:ring-blue-400 placeholder-gray-400 dark:placeholder-gray-500"
-        />
-      </div>
-
-      {/* Notes List */}
-      <div className="flex-1 overflow-y-auto p-4">
-        {filteredNotes.length === 0 ? (
-          <p className="text-center text-gray-400 dark:text-gray-500 py-10 px-5">
-            {searchQuery ? 'No notes found matching your search.' : 'No notes yet. Select a verse and add a note to get started.'}
-          </p>
-        ) : (
-          filteredNotes.map(note => (
-            <div
-              key={note.id}
-              className="mb-4 p-4 bg-gray-50 dark:bg-gray-700 rounded-lg border border-gray-200 dark:border-gray-600 cursor-pointer transition-all hover:bg-gray-100 dark:hover:bg-gray-600 hover:border-blue-500 dark:hover:border-blue-400"
-              onClick={() => onNoteSelect(note.book, note.chapter, note.verse)}
-            >
-              <div className="flex justify-between items-start mb-2">
-                <div>
-                  <strong className="text-blue-600 dark:text-blue-400">
-                    {note.reference}
-                  </strong>
-                  <span className="text-xs text-gray-500 dark:text-gray-400 ml-2">
-                    {note.version.toUpperCase()}
-                  </span>
-                </div>
-                <button
-                  onClick={(e) => {
-                    e.stopPropagation()
-                    onDeleteNote(note.id)
-                  }}
-                  className="px-1.5 py-0.5 text-red-600 dark:text-red-400 hover:text-red-700 dark:hover:text-red-300 text-xl leading-none transition-colors"
-                  title="Delete note"
-                >
-                  ×
-                </button>
-              </div>
-              <p className="text-sm text-gray-600 dark:text-gray-300 leading-relaxed mb-2 line-clamp-3">
-                {note.note}
-              </p>
-              <div className="text-xs text-gray-400 dark:text-gray-500">
-                {formatDate(note.lastModified)}
-              </div>
+        {/* Notes List */}
+        <div className="flex-1 overflow-y-auto p-4">
+          {filteredNotes.length === 0 ? (
+            <div className="text-center py-10 px-5 text-gray-400 dark:text-gray-500">
+              {searchQuery ? (
+                <p>No notes found matching your search.</p>
+              ) : (
+                <>
+                  <p className="mb-2">No notes yet.</p>
+                  <p className="text-sm">Select a verse and add a note to get started.</p>
+                </>
+              )}
             </div>
-          ))
-        )}
+          ) : (
+            <div className="space-y-3">
+              {filteredNotes.map(note => (
+                <div
+                  key={note.id}
+                  className="p-4 bg-gray-50 dark:bg-gray-700/50 rounded-lg cursor-pointer transition-all border border-transparent hover:bg-gray-100 dark:hover:bg-gray-700 hover:border-blue-500 dark:hover:border-blue-400 group"
+                  onClick={() => handleNoteSelect(note.book, note.chapter, note.verse)}
+                >
+                  <div className="flex justify-between items-start mb-2">
+                    <div className="flex items-center gap-2">
+                      <strong className="text-blue-600 dark:text-blue-400">
+                        {note.reference}
+                      </strong>
+                      <span className="text-xs text-gray-500 dark:text-gray-400 px-1.5 py-0.5 bg-gray-200 dark:bg-gray-600 rounded">
+                        {note.version.toUpperCase()}
+                      </span>
+                    </div>
+                    <button
+                      onClick={(e) => {
+                        e.stopPropagation()
+                        onDeleteNote(note.id)
+                      }}
+                      className="p-1 opacity-0 group-hover:opacity-100 text-red-600 dark:text-red-400 hover:text-red-700 dark:hover:text-red-300 text-xl leading-none transition-all"
+                      title="Delete note"
+                    >
+                      ×
+                    </button>
+                  </div>
+                  <p className="text-sm text-gray-600 dark:text-gray-300 leading-relaxed line-clamp-3 mb-2">
+                    {note.note}
+                  </p>
+                  <div className="text-xs text-gray-400 dark:text-gray-500">
+                    {formatDate(note.lastModified)}
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
       </div>
-    </div>
+    </SlideOutPanel>
   )
 }

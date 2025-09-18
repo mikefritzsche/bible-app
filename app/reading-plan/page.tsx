@@ -205,123 +205,127 @@ export default function ReadingPlanPage() {
   }
 
   return (
-    <div className="bg-white dark:bg-gray-800 rounded-lg p-8 shadow-sm">
-      <header className="mb-8 flex justify-between items-center">
-        <div>
-          <h1 className="text-4xl font-bold bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent mb-2">
-            Daily Bible Reading Plan
-          </h1>
-          <p className="text-gray-500 dark:text-gray-400">
-            Read through Psalms and Proverbs with a structured daily plan
-          </p>
-        </div>
-        <div className="flex gap-2">
-          <Link
-            href="/reading-plan-enhanced"
-            className="px-4 py-2.5 bg-purple-600 hover:bg-purple-700 text-white rounded-lg no-underline flex items-center gap-1.5 text-sm font-medium transition-colors"
-            title="Explore More Plans"
-          >
-            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-              <path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z" />
-            </svg>
-            More Plans
-          </Link>
-          <button
-            onClick={() => setShowSettings(!showSettings)}
-            className={`p-2.5 border-2 border-blue-600 dark:border-blue-400 rounded-lg transition-colors ${
-              showSettings 
-                ? 'bg-blue-600 dark:bg-blue-500 text-white' 
-                : 'bg-transparent text-blue-600 dark:text-blue-400 hover:bg-blue-50 dark:hover:bg-blue-900/20'
-            }`}
-            title="Settings"
-          >
-            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-              <circle cx="12" cy="12" r="3" />
-              <path d="M12 1v6m0 6v6m4.22-13.22l4.24 4.24M1.54 1.54l4.24 4.24M20.46 20.46l-4.24-4.24M1.54 20.46l4.24-4.24" />
-            </svg>
-          </button>
+    <div className="bg-white dark:bg-gray-800 rounded-lg p-4 sm:p-6 lg:p-8 shadow-sm">
+      <header className="mb-6 sm:mb-8">
+        <div className="flex flex-col sm:flex-row sm:justify-between sm:items-start gap-4">
+          <div className="flex-1">
+            <h1 className="text-2xl sm:text-3xl lg:text-4xl font-bold bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent mb-2">
+              Daily Bible Reading Plan
+            </h1>
+            <p className="text-sm sm:text-base text-gray-500 dark:text-gray-400">
+              Read through Psalms and Proverbs with a structured daily plan
+            </p>
+          </div>
+          <div className="flex gap-2">
+            <Link
+              href="/reading-plan-enhanced"
+              className="px-3 sm:px-4 py-2 sm:py-2.5 bg-purple-600 hover:bg-purple-700 text-white rounded-lg no-underline flex items-center gap-1.5 text-sm font-medium transition-colors"
+              title="Explore More Plans"
+            >
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                <path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z" />
+              </svg>
+              <span className="hidden sm:inline">More Plans</span>
+            </Link>
+            <button
+              onClick={() => setShowSettings(!showSettings)}
+              className={`p-2 sm:p-2.5 border-2 border-blue-600 dark:border-blue-400 rounded-lg transition-colors ${
+                showSettings
+                  ? 'bg-blue-600 dark:bg-blue-500 text-white'
+                  : 'bg-transparent text-blue-600 dark:text-blue-400 hover:bg-blue-50 dark:hover:bg-blue-900/20'
+              }`}
+              title="Settings"
+            >
+              <svg width="20" height="20" className="sm:w-6 sm:h-6" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                <circle cx="12" cy="12" r="3" />
+                <path d="M12 1v6m0 6v6m4.22-13.22l4.24 4.24M1.54 1.54l4.24 4.24M20.46 20.46l-4.24-4.24M1.54 20.46l4.24-4.24" />
+              </svg>
+            </button>
+          </div>
         </div>
       </header>
 
       {/* New Plans Announcement Banner */}
       {showPlanOptions && (
-        <div className="p-4 px-5 bg-yellow-50 dark:bg-yellow-900/20 rounded-lg mb-6 border border-yellow-400 dark:border-yellow-600 flex justify-between items-center">
-          <div className="flex-1">
-            <div className="flex items-center gap-2 mb-1">
-              <span className="text-xl">🎉</span>
-              <strong className="text-yellow-900 dark:text-yellow-200">New Reading Plans Available!</strong>
+        <div className="p-3 sm:p-4 bg-yellow-50 dark:bg-yellow-900/20 rounded-lg mb-4 sm:mb-6 border border-yellow-400 dark:border-yellow-600">
+          <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-3">
+            <div className="flex-1">
+              <div className="flex items-start sm:items-center gap-2 mb-1">
+                <span className="text-lg sm:text-xl">🎉</span>
+                <strong className="text-sm sm:text-base text-yellow-900 dark:text-yellow-200">New Reading Plans Available!</strong>
+              </div>
+              <p className="text-yellow-800 dark:text-yellow-300 text-xs sm:text-sm m-0 ml-6 sm:ml-0">
+                Explore Bible in a Year, Chronological, New Testament in 90 days, and more reading plans.
+              </p>
             </div>
-            <p className="text-yellow-800 dark:text-yellow-300 text-sm m-0">
-              Explore Bible in a Year, Chronological, New Testament in 90 days, and more reading plans.
-            </p>
-          </div>
-          <div className="flex gap-2 items-center">
-            <Link
-              href="/reading-plan-enhanced"
-              className="px-4 py-2 bg-amber-500 hover:bg-amber-600 text-white rounded-md no-underline text-sm font-medium transition-colors"
-            >
-              Explore Plans →
-            </Link>
-            <button
-              onClick={dismissPlansBanner}
-              className="p-1 bg-transparent text-yellow-900 dark:text-yellow-200 hover:text-yellow-700 dark:hover:text-yellow-100 transition-colors"
-            >
-              ✕
-            </button>
+            <div className="flex gap-2 items-center justify-end">
+              <Link
+                href="/reading-plan-enhanced"
+                className="px-3 sm:px-4 py-1.5 sm:py-2 bg-amber-500 hover:bg-amber-600 text-white rounded-md no-underline text-sm font-medium transition-colors whitespace-nowrap"
+              >
+                Explore Plans →
+              </Link>
+              <button
+                onClick={dismissPlansBanner}
+                className="p-1 text-yellow-900 dark:text-yellow-200 hover:text-yellow-700 dark:hover:text-yellow-100 transition-colors"
+              >
+                ✕
+              </button>
+            </div>
           </div>
         </div>
       )}
 
       {/* Statistics Banner */}
       {statistics && (
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
-          <div className="p-4 bg-gradient-to-br from-blue-600 to-purple-600 rounded-lg text-white text-center">
-            <div className="text-3xl font-bold">{statistics.currentStreak}</div>
-            <div className="text-sm opacity-90">Current Streak</div>
+        <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4 mb-4 sm:mb-6">
+          <div className="p-3 sm:p-4 bg-gradient-to-br from-blue-600 to-purple-600 rounded-lg text-white text-center">
+            <div className="text-2xl sm:text-3xl font-bold">{statistics.currentStreak}</div>
+            <div className="text-xs sm:text-sm opacity-90">Current Streak</div>
           </div>
-          <div className="p-4 bg-gradient-to-br from-purple-600 to-pink-400 rounded-lg text-white text-center">
-            <div className="text-3xl font-bold">{statistics.totalDaysRead}</div>
-            <div className="text-sm opacity-90">Total Days Read</div>
+          <div className="p-3 sm:p-4 bg-gradient-to-br from-purple-600 to-pink-400 rounded-lg text-white text-center">
+            <div className="text-2xl sm:text-3xl font-bold">{statistics.totalDaysRead}</div>
+            <div className="text-xs sm:text-sm opacity-90">Total Days Read</div>
           </div>
-          <div className="p-4 bg-gradient-to-br from-pink-500 to-yellow-400 rounded-lg text-white text-center">
-            <div className="text-3xl font-bold">{statistics.completionRate}%</div>
-            <div className="text-sm opacity-90">30-Day Completion</div>
+          <div className="p-3 sm:p-4 bg-gradient-to-br from-pink-500 to-yellow-400 rounded-lg text-white text-center">
+            <div className="text-2xl sm:text-3xl font-bold">{statistics.completionRate}%</div>
+            <div className="text-xs sm:text-sm opacity-90">30-Day Completion</div>
           </div>
-          <div className="p-4 bg-gradient-to-br from-cyan-500 to-indigo-900 rounded-lg text-white text-center">
-            <div className="text-3xl font-bold">{statistics.longestStreak}</div>
-            <div className="text-sm opacity-90">Longest Streak</div>
+          <div className="p-3 sm:p-4 bg-gradient-to-br from-cyan-500 to-indigo-900 rounded-lg text-white text-center">
+            <div className="text-2xl sm:text-3xl font-bold">{statistics.longestStreak}</div>
+            <div className="text-xs sm:text-sm opacity-90">Longest Streak</div>
           </div>
         </div>
       )}
       
       {/* Today's Reading Card */}
       {currentReading && (
-        <div className="p-6 bg-gradient-to-br from-gray-50 to-gray-100 dark:from-gray-700 dark:to-gray-600 rounded-lg mb-6 border border-gray-300 dark:border-gray-600">
-          <div className="flex justify-between items-center mb-4">
-            <div className="flex items-center gap-3">
-              <h2 className="text-2xl font-bold text-gray-900 dark:text-gray-100">
+        <div className="p-4 sm:p-6 bg-gradient-to-br from-gray-50 to-gray-100 dark:from-gray-700 dark:to-gray-600 rounded-lg mb-4 sm:mb-6 border border-gray-300 dark:border-gray-600">
+          <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-3 mb-4">
+            <div className="flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-3">
+              <h2 className="text-xl sm:text-2xl font-bold text-gray-900 dark:text-gray-100">
                 {currentReading.isToday ? "Today's Reading" : "Reading for"}
               </h2>
               {!currentReading.isToday && (
-                <span className="px-3 py-1 bg-yellow-100 dark:bg-yellow-900/30 text-yellow-700 dark:text-yellow-400 rounded-md text-sm font-medium">
+                <span className="px-2 sm:px-3 py-0.5 sm:py-1 bg-yellow-100 dark:bg-yellow-900/30 text-yellow-700 dark:text-yellow-400 rounded-md text-xs sm:text-sm font-medium inline-block w-fit">
                   Past Day
                 </span>
               )}
             </div>
-            <div className="flex items-center gap-3">
+            <div className="flex flex-col sm:flex-row items-start sm:items-center gap-2 sm:gap-3">
               <div className="flex items-center gap-1">
                 <button
                   onClick={() => navigateDate('prev')}
-                  className="p-2 bg-white dark:bg-gray-700 hover:bg-gray-100 dark:hover:bg-gray-600 text-gray-600 dark:text-gray-400 rounded-lg transition-colors"
+                  className="p-1.5 sm:p-2 bg-white dark:bg-gray-700 hover:bg-gray-100 dark:hover:bg-gray-600 text-gray-600 dark:text-gray-400 rounded-lg transition-colors"
                   title="Previous Day"
                 >
-                  <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                  <svg width="18" height="18" className="sm:w-5 sm:h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
                     <path d="M15 18l-6-6 6-6" />
                   </svg>
                 </button>
                 <button
                   onClick={() => navigateDate('today')}
-                  className={`px-3 py-2 rounded-lg text-sm font-medium transition-colors ${
+                  className={`px-2 sm:px-3 py-1 sm:py-2 rounded-lg text-xs sm:text-sm font-medium transition-colors ${
                     currentReading.isToday
                       ? 'bg-blue-600 dark:bg-blue-500 text-white'
                       : 'bg-white dark:bg-gray-700 hover:bg-gray-100 dark:hover:bg-gray-600 text-gray-600 dark:text-gray-400'
@@ -332,16 +336,16 @@ export default function ReadingPlanPage() {
                 </button>
                 <button
                   onClick={() => navigateDate('next')}
-                  className="p-2 bg-white dark:bg-gray-700 hover:bg-gray-100 dark:hover:bg-gray-600 text-gray-600 dark:text-gray-400 rounded-lg transition-colors"
+                  className="p-1.5 sm:p-2 bg-white dark:bg-gray-700 hover:bg-gray-100 dark:hover:bg-gray-600 text-gray-600 dark:text-gray-400 rounded-lg transition-colors"
                   title="Next Day"
                   disabled={currentReading.isToday}
                 >
-                  <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className={currentReading.isToday ? 'opacity-30' : ''}>
+                  <svg width="18" height="18" className={`sm:w-5 sm:h-5 ${currentReading.isToday ? 'opacity-30' : ''}`} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
                     <path d="M9 18l6-6-6-6" />
                   </svg>
                 </button>
               </div>
-              <span className="text-gray-500 dark:text-gray-400 text-sm">
+              <span className="text-gray-500 dark:text-gray-400 text-xs sm:text-sm hidden sm:inline">
                 {currentReading.date.toLocaleDateString('en-US', {
                   weekday: 'long',
                   month: 'long',
@@ -349,83 +353,101 @@ export default function ReadingPlanPage() {
                   year: 'numeric'
                 })}
               </span>
+              <span className="text-gray-500 dark:text-gray-400 text-xs sm:hidden">
+                {currentReading.date.toLocaleDateString('en-US', {
+                  weekday: 'short',
+                  month: 'short',
+                  day: 'numeric'
+                })}
+              </span>
             </div>
           </div>
 
           {/* Tab Navigation */}
-          <div className="flex gap-2 mb-5 border-b-2 border-gray-300 dark:border-gray-600 pb-0.5">
-            {(['combined', 'psalm', 'proverbs', 'calendar'] as TabView[]).map(tab => (
+          <div className="flex gap-1 sm:gap-2 mb-4 sm:mb-5 border-b-2 border-gray-300 dark:border-gray-600 pb-0.5 overflow-x-auto">
+            {(['combined', 'psalm', 'proverbs'] as TabView[]).map(tab => (
               <button
                 key={tab}
                 onClick={() => setActiveTab(tab)}
-                className={`px-4 py-2 rounded-t-md capitalize text-sm transition-all ${
+                className={`px-2 sm:px-4 py-1.5 sm:py-2 rounded-t-md capitalize text-xs sm:text-sm transition-all whitespace-nowrap ${
                   activeTab === tab
                     ? 'bg-blue-600 dark:bg-blue-500 text-white font-semibold'
                     : 'bg-transparent text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200'
                 }`}
               >
-                {tab === 'calendar' ? 'Monthly View' : tab}
+                {tab}
               </button>
             ))}
+            <button
+              onClick={() => setActiveTab('calendar')}
+              className={`px-2 sm:px-4 py-1.5 sm:py-2 rounded-t-md text-xs sm:text-sm transition-all whitespace-nowrap ${
+                activeTab === 'calendar'
+                  ? 'bg-blue-600 dark:bg-blue-500 text-white font-semibold'
+                  : 'bg-transparent text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200'
+              }`}
+            >
+              <span className="sm:hidden">Monthly</span>
+              <span className="hidden sm:inline">Monthly View</span>
+            </button>
           </div>
 
           {/* Tab Content */}
-          <div className="min-h-[200px]">
+          <div className="min-h-[150px] sm:min-h-[200px]">
             {/* Combined View */}
             {activeTab === 'combined' && (
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                <div className={`p-5 bg-white dark:bg-gray-700 rounded-lg border-2 ${
+              <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 sm:gap-6">
+                <div className={`p-4 sm:p-5 bg-white dark:bg-gray-700 rounded-lg border-2 ${
                   progress?.psalmCompleted ? 'border-green-500' : 'border-gray-300 dark:border-gray-600'
                 }`}>
-                  <div className="flex justify-between items-center mb-3">
-                    <h3 className="text-lg font-semibold text-gray-700 dark:text-gray-200">
+                  <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-2 mb-3">
+                    <h3 className="text-base sm:text-lg font-semibold text-gray-700 dark:text-gray-200">
                       Psalm {currentReading.psalm}
                     </h3>
                     <button
                       onClick={() => toggleReadingComplete('psalm')}
-                      className={`px-3 py-1.5 border-2 border-green-500 rounded-md text-sm font-medium transition-colors ${
+                      className={`px-2 sm:px-3 py-1 sm:py-1.5 border-2 border-green-500 rounded-md text-xs sm:text-sm font-medium transition-colors whitespace-nowrap ${
                         progress?.psalmCompleted
                           ? 'bg-green-500 text-white'
                           : 'bg-white dark:bg-gray-700 text-green-600 dark:text-green-400 hover:bg-green-50 dark:hover:bg-green-900/20'
                       }`}
                     >
-                      {progress?.psalmCompleted ? '✓ Completed' : 'Mark Complete'}
+                      {progress?.psalmCompleted ? '✓ Complete' : 'Mark Complete'}
                     </button>
                   </div>
                   <Link
                     href={`/?book=Psalms&chapter=${currentReading.psalm}`}
-                    className="inline-block px-4 py-2.5 bg-blue-600 dark:bg-blue-500 hover:bg-blue-700 dark:hover:bg-blue-600 text-white rounded-md no-underline text-sm transition-colors"
+                    className="inline-block w-full sm:w-auto text-center px-3 sm:px-4 py-2 sm:py-2.5 bg-blue-600 dark:bg-blue-500 hover:bg-blue-700 dark:hover:bg-blue-600 text-white rounded-md no-underline text-xs sm:text-sm transition-colors"
                   >
                     Read Psalm {currentReading.psalm} →
                   </Link>
                 </div>
 
-                <div className={`p-5 bg-white dark:bg-gray-700 rounded-lg border-2 ${
+                <div className={`p-4 sm:p-5 bg-white dark:bg-gray-700 rounded-lg border-2 ${
                   progress?.proverbsCompleted ? 'border-green-500' : 'border-gray-300 dark:border-gray-600'
                 }`}>
-                  <div className="flex justify-between items-center mb-3">
-                    <h3 className="text-lg font-semibold text-gray-700 dark:text-gray-200">
+                  <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-2 mb-3">
+                    <h3 className="text-base sm:text-lg font-semibold text-gray-700 dark:text-gray-200">
                       {formatProverbsList(currentReading.proverbs)}
                     </h3>
                     <button
                       onClick={() => toggleReadingComplete('proverbs')}
-                      className={`px-3 py-1.5 border-2 border-green-500 rounded-md text-sm font-medium transition-colors ${
+                      className={`px-2 sm:px-3 py-1 sm:py-1.5 border-2 border-green-500 rounded-md text-xs sm:text-sm font-medium transition-colors whitespace-nowrap ${
                         progress?.proverbsCompleted
                           ? 'bg-green-500 text-white'
                           : 'bg-white dark:bg-gray-700 text-green-600 dark:text-green-400 hover:bg-green-50 dark:hover:bg-green-900/20'
                       }`}
                     >
-                      {progress?.proverbsCompleted ? '✓ Completed' : 'Mark Complete'}
+                      {progress?.proverbsCompleted ? '✓ Complete' : 'Mark Complete'}
                     </button>
                   </div>
-                  <div className="flex gap-2">
+                  <div className="flex flex-col sm:flex-row gap-2">
                     {currentReading.proverbs.map(chapter => (
                       <Link
                         key={chapter}
                         href={`/?book=Proverbs&chapter=${chapter}`}
-                        className="inline-block px-4 py-2.5 bg-purple-600 dark:bg-purple-500 hover:bg-purple-700 dark:hover:bg-purple-600 text-white rounded-md no-underline text-sm transition-colors"
+                        className="inline-block w-full sm:w-auto text-center px-3 sm:px-4 py-2 sm:py-2.5 bg-purple-600 dark:bg-purple-500 hover:bg-purple-700 dark:hover:bg-purple-600 text-white rounded-md no-underline text-xs sm:text-sm transition-colors"
                       >
-                        Read Ch. {chapter} →
+                        Read Proverbs {chapter} →
                       </Link>
                     ))}
                   </div>
@@ -502,7 +524,7 @@ export default function ReadingPlanPage() {
                   manager={manager}
                   startingPsalm={startingPsalm}
                   planStartDate={planStartDate}
-                  onDateSelect={setSelectedDate}
+                  onDateSelect={(date) => setViewDate(date)}
                 />
               </div>
             )}
@@ -538,7 +560,7 @@ export default function ReadingPlanPage() {
             </form>
 
             <form onSubmit={handleStartingProverbSubmit}>
-              <label className="block mb-2 font-medium text-gray-700 dark:text-gray-300">
+              <label className="block mb-2 text-sm sm:text-base font-medium text-gray-700 dark:text-gray-300">
                 Proverbs Offset (Advanced):
               </label>
               <div className="flex gap-2">
@@ -548,11 +570,11 @@ export default function ReadingPlanPage() {
                   max="31"
                   value={tempStartingProverb}
                   onChange={(e) => setTempStartingProverb(e.target.value)}
-                  className="px-3 py-2 border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 rounded-md text-base w-24"
+                  className="px-3 py-2 border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 rounded-md text-sm sm:text-base w-20 sm:w-24"
                 />
                 <button
                   type="submit"
-                  className="px-4 py-2 bg-purple-600 dark:bg-purple-500 hover:bg-purple-700 dark:hover:bg-purple-600 text-white rounded-md text-base transition-colors"
+                  className="px-3 sm:px-4 py-2 bg-purple-600 dark:bg-purple-500 hover:bg-purple-700 dark:hover:bg-purple-600 text-white rounded-md text-sm sm:text-base transition-colors"
                 >
                   Update
                 </button>
@@ -563,11 +585,12 @@ export default function ReadingPlanPage() {
       )}
 
       {/* 30-Day Schedule */}
-      <div className="mt-8">
-        <h3 className="text-xl mb-4 text-gray-700 dark:text-gray-300">
-          Reading Schedule (Past 10 & Next 20 Days)
+      <div className="mt-6 sm:mt-8">
+        <h3 className="text-base sm:text-xl mb-3 sm:mb-4 text-gray-700 dark:text-gray-300">
+          <span className="hidden sm:inline">Reading Schedule (Past 10 & Next 20 Days)</span>
+          <span className="sm:hidden">Reading Schedule</span>
         </h3>
-        <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 xl:grid-cols-6 gap-3">
+        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 xl:grid-cols-6 gap-2 sm:gap-3">
           {schedule.map((day, index) => {
             const isPast = day.date < new Date() && !day.isToday
             const isViewing = isSameDay(day.date, viewDate)
@@ -576,7 +599,7 @@ export default function ReadingPlanPage() {
               <button
                 key={index}
                 onClick={() => setViewDate(new Date(day.date))}
-                className={`p-3 rounded-md relative border no-underline cursor-pointer transition-all hover:scale-105 ${
+                className={`p-2 sm:p-3 rounded-md relative border no-underline cursor-pointer transition-all hover:scale-105 ${
                   isViewing
                     ? 'border-2 border-purple-600 dark:border-purple-400 bg-purple-50 dark:bg-purple-900/20'
                     : day.isToday
@@ -593,23 +616,23 @@ export default function ReadingPlanPage() {
                 })}: Psalm ${day.psalm} and Proverbs ${day.proverbs.join(' & ')}`}
               >
                 {day.isCompleted && (
-                  <span className="absolute top-1 right-1 text-green-500 text-xl">
+                  <span className="absolute top-0.5 right-0.5 sm:top-1 sm:right-1 text-green-500 text-base sm:text-xl">
                     ✓
                   </span>
                 )}
                 {isPast && !day.isCompleted && (
-                  <span className="absolute top-1 right-1 text-yellow-500 text-xs">
+                  <span className="absolute top-0.5 right-0.5 sm:top-1 sm:right-1 text-yellow-500 text-[10px] sm:text-xs">
                     Missed
                   </span>
                 )}
-                <div className="text-xs text-gray-500 dark:text-gray-400 mb-1">
+                <div className="text-[10px] sm:text-xs text-gray-500 dark:text-gray-400 mb-0.5 sm:mb-1">
                   {day.date.toLocaleDateString('en-US', {
                     weekday: 'short',
                     month: 'short',
                     day: 'numeric'
                   })}
                 </div>
-                <div className={`mb-1 ${
+                <div className={`text-xs sm:text-sm mb-0.5 sm:mb-1 ${
                   isViewing
                     ? 'font-bold text-purple-600 dark:text-purple-400'
                     : day.isToday
@@ -618,7 +641,7 @@ export default function ReadingPlanPage() {
                 }`}>
                   Psalm {day.psalm}
                 </div>
-                <div className={`text-sm ${
+                <div className={`text-[10px] sm:text-sm ${
                   isViewing
                     ? 'text-purple-600 dark:text-purple-400'
                     : day.isToday
@@ -716,51 +739,52 @@ function MonthlyCalendar({
 
   return (
     <div>
-      <div className="flex justify-between items-center mb-4">
+      <div className="flex justify-between items-center mb-3 sm:mb-4 px-1">
         <button
           onClick={() => navigateMonth('prev')}
-          className="p-2 bg-transparent text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-100 text-2xl transition-colors"
+          className="p-1.5 sm:p-2 bg-transparent text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-100 text-xl sm:text-2xl transition-colors"
         >
           ←
         </button>
-        <h3 className="text-xl font-semibold text-gray-900 dark:text-gray-100">
+        <h3 className="text-base sm:text-xl font-semibold text-gray-900 dark:text-gray-100">
           {currentMonth.toLocaleDateString('en-US', { month: 'long', year: 'numeric' })}
         </h3>
         <button
           onClick={() => navigateMonth('next')}
-          className="p-2 bg-transparent text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-100 text-2xl transition-colors"
+          className="p-1.5 sm:p-2 bg-transparent text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-100 text-xl sm:text-2xl transition-colors"
         >
           →
         </button>
       </div>
 
-      <div className="grid grid-cols-7 gap-1">
-        {['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'].map(day => (
+      <div className="grid grid-cols-7 gap-0.5 sm:gap-1">
+        {['S', 'M', 'T', 'W', 'T', 'F', 'S'].map((day, i) => (
           <div
-            key={day}
-            className="p-2 text-center font-semibold text-sm text-gray-500 dark:text-gray-400"
+            key={i}
+            className="p-1 sm:p-2 text-center font-semibold text-[10px] sm:text-sm text-gray-500 dark:text-gray-400"
           >
-            {day}
+            <span className="sm:hidden">{day}</span>
+            <span className="hidden sm:inline">{['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'][i]}</span>
           </div>
         ))}
-        
+
         {days.map((day, index) => {
           if (!day) {
             return <div key={`empty-${index}`} />
           }
-          
+
           const date = new Date(currentMonth.getFullYear(), currentMonth.getMonth(), day)
           const dateStr = date.toISOString().split('T')[0]
           const progress = monthProgress.get(dateStr)
           const isToday = isCurrentMonth && day === today.getDate()
           const psalm = manager.calculatePsalm(date, startingPsalm, planStartDate)
           const proverbs = manager.calculateProverbs(date)
-          
+
           return (
-            <Link
+            <button
               key={day}
-              href={`/?book=Psalms&chapter=${psalm}`}
-              className={`p-2 rounded cursor-pointer transition-all border no-underline hover:scale-105 ${
+              onClick={() => onDateSelect(date)}
+              className={`p-1 sm:p-2 rounded cursor-pointer transition-all border no-underline hover:scale-105 min-h-[50px] sm:min-h-[70px] flex flex-col justify-between ${
                 isToday
                   ? 'border-2 border-blue-600 dark:border-blue-400 bg-blue-50 dark:bg-blue-900/20'
                   : progress?.psalmCompleted && progress?.proverbsCompleted
@@ -769,28 +793,21 @@ function MonthlyCalendar({
                   ? 'border-yellow-400 bg-yellow-50 dark:bg-yellow-900/20'
                   : 'border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 hover:bg-gray-50 dark:hover:bg-gray-600'
               }`}
-              title={`Go to Psalm ${psalm} and Proverbs ${proverbs.join(' & ')}`}
+              title={`View reading for ${date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}: Psalm ${psalm} and Proverbs ${proverbs.join(' & ')}`}
             >
-              <div className={`mb-1 ${isToday ? 'font-bold text-gray-900 dark:text-gray-100' : 'text-gray-700 dark:text-gray-200'}`}>
+              <div className={`text-xs sm:text-base ${isToday ? 'font-bold text-gray-900 dark:text-gray-100' : 'text-gray-700 dark:text-gray-200'}`}>
                 {day}
               </div>
-              <div className="text-[0.7rem] text-gray-500 dark:text-gray-400">
-                Ps {psalm}
+              <div className="text-[9px] sm:text-[0.7rem] text-gray-500 dark:text-gray-400 leading-tight">
+                <div>P{psalm}</div>
+                <div className="hidden sm:block">Pr{proverbs.join('&')}</div>
               </div>
-              <div className="text-[0.7rem] text-gray-500 dark:text-gray-400">
-                Pr {proverbs.join('&')}
-              </div>
-              {progress && (
-                <div className="flex gap-0.5 mt-1">
-                  {progress.psalmCompleted && (
-                    <span className="text-[0.6rem] text-green-500">P✓</span>
-                  )}
-                  {progress.proverbsCompleted && (
-                    <span className="text-[0.6rem] text-green-500">Pr✓</span>
-                  )}
+              {progress && (progress.psalmCompleted || progress.proverbsCompleted) && (
+                <div className="text-green-500 text-[10px] sm:text-xs mt-0.5">
+                  ✓
                 </div>
               )}
-            </Link>
+            </button>
           )
         })}
       </div>

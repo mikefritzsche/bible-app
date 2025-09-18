@@ -40,6 +40,10 @@ interface CompactBibleControlsProps {
   showHistoryPanel?: boolean
   showNotesPanel?: boolean
   notesCount?: number
+  // Reading plan integration
+  isInReadingPlan?: boolean
+  readingPlanProgress?: {psalmCompleted: boolean, proverbsCompleted: boolean} | null
+  onMarkAsRead?: () => void
 }
 
 const BIBLE_VERSIONS = [
@@ -78,7 +82,10 @@ export function CompactBibleControls({
   onNotesClick,
   showHistoryPanel = false,
   showNotesPanel = false,
-  notesCount = 0
+  notesCount = 0,
+  isInReadingPlan = false,
+  readingPlanProgress = null,
+  onMarkAsRead
 }: CompactBibleControlsProps) {
   const [selectorMode, setSelectorMode] = useState<SelectorMode>(null)
   const [showVersionDropdown, setShowVersionDropdown] = useState(false)
@@ -153,6 +160,36 @@ export function CompactBibleControls({
                   title="Today's Reading"
                 >
                   <CalendarCheck className="w-4 h-4 text-green-600 dark:text-green-400" />
+                </button>
+              )}
+              {isInReadingPlan && onMarkAsRead && (
+                <button
+                  onClick={onMarkAsRead}
+                  className={`px-2.5 py-1 rounded transition-colors flex items-center gap-1 relative ${
+                    (selectedBook === 'Psalms' && readingPlanProgress?.psalmCompleted) ||
+                    (selectedBook === 'Proverbs' && readingPlanProgress?.proverbsCompleted)
+                      ? 'bg-green-100 dark:bg-green-900/30 text-green-600 dark:text-green-400'
+                      : 'bg-amber-100 dark:bg-amber-900/30 text-amber-600 dark:text-amber-400 hover:bg-amber-200 dark:hover:bg-amber-900/50 animate-pulse border border-amber-400 dark:border-amber-600'
+                  }`}
+                  title={
+                    (selectedBook === 'Psalms' && readingPlanProgress?.psalmCompleted) ||
+                    (selectedBook === 'Proverbs' && readingPlanProgress?.proverbsCompleted)
+                      ? "Already marked as read in today's plan"
+                      : "Mark as complete in today's reading plan"
+                  }
+                >
+                  {(selectedBook === 'Psalms' && readingPlanProgress?.psalmCompleted) ||
+                  (selectedBook === 'Proverbs' && readingPlanProgress?.proverbsCompleted) ? (
+                    <>
+                      <span className="text-sm font-bold">✓</span>
+                      <span className="text-xs font-medium">Read</span>
+                    </>
+                  ) : (
+                    <>
+                      <span className="text-xs font-bold">Mark</span>
+                      <span className="text-xs font-normal">Read</span>
+                    </>
+                  )}
                 </button>
               )}
               {onHistoryClick && (
@@ -332,6 +369,38 @@ export function CompactBibleControls({
               >
                 <CalendarCheck className="w-4 h-4" />
                 <span className="hidden lg:inline">Today</span>
+              </button>
+            )}
+            {isInReadingPlan && onMarkAsRead && (
+              <button
+                onClick={onMarkAsRead}
+                className={`px-3 py-1.5 rounded transition-colors flex items-center gap-2 text-sm ${
+                  (selectedBook === 'Psalms' && readingPlanProgress?.psalmCompleted) ||
+                  (selectedBook === 'Proverbs' && readingPlanProgress?.proverbsCompleted)
+                    ? 'bg-green-100 dark:bg-green-900/30 text-green-600 dark:text-green-400'
+                    : 'bg-amber-100 dark:bg-amber-900/30 text-amber-600 dark:text-amber-400 hover:bg-amber-200 dark:hover:bg-amber-900/50 animate-pulse'
+                }`}
+                title={
+                  (selectedBook === 'Psalms' && readingPlanProgress?.psalmCompleted) ||
+                  (selectedBook === 'Proverbs' && readingPlanProgress?.proverbsCompleted)
+                    ? "Already marked as read in today's plan"
+                    : "Mark as complete in today's reading plan"
+                }
+              >
+                {(selectedBook === 'Psalms' && readingPlanProgress?.psalmCompleted) ||
+                (selectedBook === 'Proverbs' && readingPlanProgress?.proverbsCompleted) ? (
+                  <>
+                    <CalendarCheck className="w-4 h-4" />
+                    <span className="hidden lg:inline">Completed</span>
+                    <span className="hidden sm:inline lg:hidden">Done</span>
+                  </>
+                ) : (
+                  <>
+                    <CalendarCheck className="w-4 h-4" />
+                    <span className="hidden lg:inline">Mark as Read</span>
+                    <span className="hidden sm:inline lg:hidden">Mark Read</span>
+                  </>
+                )}
               </button>
             )}
             {onHistoryClick && (

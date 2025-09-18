@@ -7,10 +7,10 @@ import { StrongsManager } from '@/lib/StrongsManager'
 import { VerseHistoryManager } from '@/lib/VerseHistoryManager'
 import { HighlightManager, HIGHLIGHT_COLORS } from '@/lib/HighlightManager'
 import { NotesManager } from '@/lib/NotesManager'
+import { ReadingPlanManager } from '@/lib/ReadingPlanManager'
 import { useSettings } from '@/lib/SettingsContext'
 import { VerseWithStrongs } from '@/components/VerseWithStrongs'
 import { StrongsPopover } from '@/components/StrongsPopover'
-import { VerseHistory } from '@/components/VerseHistory'
 import { HighlightControls } from '@/components/HighlightControls'
 import { ParallelVerseView } from '@/components/ParallelVerseView'
 import { ParallelScrollView } from '@/components/ParallelScrollView'
@@ -18,6 +18,7 @@ import { InlineParallelVerse } from '@/components/InlineParallelVerse'
 import { FixedParallelComparison } from '@/components/FixedParallelComparison'
 import { BibleSettingsModal } from '@/components/BibleSettingsModal'
 import { NotesPanel } from '@/components/NotesPanel'
+import { HistoryPanel } from '@/components/HistoryPanel'
 import { VerseDisplay } from '@/components/VerseDisplay'
 import { CompactBibleControls } from '@/components/CompactBibleControls'
 import {
@@ -51,6 +52,7 @@ function BibleApp() {
   const [historyManager] = useState(() => new VerseHistoryManager())
   const [highlightManager] = useState(() => new HighlightManager())
   const [notesManager] = useState(() => new NotesManager())
+  const [readingPlanManager] = useState(() => new ReadingPlanManager())
   const [bibleData, setBibleData] = useState<BibleData | null>(null)
   const [loading, setLoading] = useState(false)
   const [selectedBook, setSelectedBook] = useState(() => {
@@ -105,6 +107,9 @@ function BibleApp() {
   })
   const [startingPsalm, setStartingPsalm] = useState(1)
   const [planStartDate, setPlanStartDate] = useState(new Date().toISOString().split('T')[0])
+  const [todaysReading, setTodaysReading] = useState<{psalm: number, proverbs: number[]} | null>(null)
+  const [isInReadingPlan, setIsInReadingPlan] = useState(false)
+  const [readingPlanProgress, setReadingPlanProgress] = useState<{psalmCompleted: boolean, proverbsCompleted: boolean} | null>(null)
 
   // Load Bible, history, highlights and notes on mount
   useEffect(() => {
@@ -147,6 +152,7 @@ function BibleApp() {
     initHighlights()
     initNotes()
     loadAllNotes()
+    initReadingPlan()
   }, [])
 
   // Reload Bible when version changes
@@ -205,6 +211,14 @@ function BibleApp() {
       }
     }
   }, [bibleData, selectedBook, selectedChapter, selectedVersion, parser])
+
+  // Check if current passage is in reading plan
+  useEffect(() => {
+    if (todaysReading && selectedBook && selectedChapter) {
+      const planType = checkIfInReadingPlan()
+      setIsInReadingPlan(!!planType)
+    }
+  }, [selectedBook, selectedChapter, todaysReading])
 
   // Update chapter count when book changes
   useEffect(() => {
@@ -415,6 +429,65 @@ function BibleApp() {
       setAllNotes(notes)
     } catch (error) {
       console.error('Failed to load all notes:', error)
+    }
+  }
+
+  const initReadingPlan = async () => {
+    try {
+      await readingPlanManager.init()
+      await checkTodaysReading()
+    } catch (error) {
+      console.error('Failed to init reading plan:', error)
+    }
+  }
+
+  const checkTodaysReading = async () => {
+    const today = new Date()
+    const savedStartingPsalm = localStorage.getItem('startingPsalm')
+    const savedPlanStartDate = localStorage.getItem('planStartDate')
+    const startPsalm = savedStartingPsalm ? parseInt(savedStartingPsalm) : 1
+    const startDate = savedPlanStartDate ? new Date(savedPlanStartDate) : new Date()
+
+    const psalm = readingPlanManager.calculatePsalm(today, startPsalm, startDate)
+    const proverbs = readingPlanManager.calculateProverbs(today)
+
+    setTodaysReading({ psalm, proverbs })
+
+    // Check progress for today
+    const dateStr = today.toISOString().split('T')[0]
+    const progress = await readingPlanManager.getProgress(dateStr)
+    if (progress) {
+      setReadingPlanProgress({
+        psalmCompleted: progress.psalmCompleted,
+        proverbsCompleted: progress.proverbsCompleted
+      })
+    }
+  }
+
+  const checkIfInReadingPlan = () => {
+    if (!todaysReading) return false
+
+    // Check if current passage is Psalms
+    if (selectedBook === 'Psalms' && selectedChapter === todaysReading.psalm) {
+      return 'psalm'
+    }
+
+    // Check if current passage is Proverbs
+    if (selectedBook === 'Proverbs' && todaysReading.proverbs.includes(selectedChapter)) {
+      return 'proverbs'
+    }
+
+    return false
+  }
+
+  const handleMarkAsRead = async () => {
+    const today = new Date()
+    const dateStr = today.toISOString().split('T')[0]
+    const readingType = checkIfInReadingPlan()
+
+    if (readingType) {
+      await readingPlanManager.markAsRead(dateStr, readingType)
+      await checkTodaysReading() // Refresh progress
     }
   }
 
@@ -657,6 +730,9 @@ function BibleApp() {
             showHistoryPanel={showHistoryPanel}
             showNotesPanel={showNotesPanel}
             notesCount={allNotes.length}
+            isInReadingPlan={isInReadingPlan}
+            readingPlanProgress={readingPlanProgress}
+            onMarkAsRead={handleMarkAsRead}
           />
 
           {/* Chapter Content */}
@@ -774,35 +850,15 @@ function BibleApp() {
       />
 
       {/* History Panel */}
-      {showHistoryPanel && (
-        <div className={`fixed left-0 top-0 bottom-0 w-96 bg-white dark:bg-gray-800 shadow-xl z-50 flex flex-col transform transition-transform duration-300 ${
-          showHistoryPanel ? 'translate-x-0' : '-translate-x-full'
-        }`}>
-          <div className="p-5 border-b-2 border-gray-200 dark:border-gray-600 bg-gray-50 dark:bg-gray-700 flex justify-between items-center">
-            <h2 className="text-xl font-bold text-gray-900 dark:text-gray-100">
-              Verse History
-            </h2>
-            <button
-              onClick={() => setShowHistoryPanel(false)}
-              className="p-1 text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-100"
-            >
-              ×
-            </button>
-          </div>
-          <div className="flex-1 overflow-y-auto p-4">
-            <VerseHistory 
-              history={verseHistory}
-              onVerseSelect={(book, chapter, verse) => {
-                handleHistoryVerseSelect(book, chapter, verse)
-                setShowHistoryPanel(false)
-              }}
-              onClearHistory={handleClearHistory}
-              onRemoveEntry={handleRemoveHistoryEntry}
-              onStrongsClick={handleStrongsClick}
-            />
-          </div>
-        </div>
-      )}
+      <HistoryPanel
+        history={verseHistory}
+        onVerseSelect={handleHistoryVerseSelect}
+        onClearHistory={handleClearHistory}
+        onRemoveEntry={handleRemoveHistoryEntry}
+        onStrongsClick={handleStrongsClick}
+        isOpen={showHistoryPanel}
+        onClose={() => setShowHistoryPanel(false)}
+      />
     </div>
 
     {/* Fixed Parallel Comparison - Outside main content */}
