@@ -59,3 +59,28 @@ export interface ParsedTextPart {
   display?: string;
   isGrammar?: boolean;
 }
+
+// Module system types
+export interface ModuleDownloadProgress {
+  moduleId: string;
+  status: 'pending' | 'downloading' | 'completed' | 'failed' | 'paused';
+  progress: number; // 0-100
+  bytesDownloaded: number;
+  totalBytes: number;
+  startedAt: Date;
+  completedAt?: Date;
+  error?: string;
+  currentFile?: string;
+}
+
+export interface ModuleInfo {
+  id: string;
+  name: string;
+  description: string;
+  installed: boolean;
+  size: string;
+  category: 'bible' | 'reference' | 'commentary';
+  features: string[];
+  publicDomain: boolean;
+  language: string;
+}

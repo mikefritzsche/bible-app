@@ -48,6 +48,14 @@ export class ReadingPlanManager {
    */
   calculatePsalm(date: Date, startingPsalm: number = 1, planStartDate: Date = new Date()): number {
     const daysSincePlanStart = Math.floor((date.getTime() - planStartDate.getTime()) / (1000 * 60 * 60 * 24));
+
+    // Handle negative days (dates before plan start) by working backwards from startingPsalm
+    if (daysSincePlanStart < 0) {
+      // For past days, count backwards from startingPsalm, wrapping around if needed
+      const adjustedDay = startingPsalm + daysSincePlanStart;
+      return adjustedDay <= 0 ? adjustedDay + 150 : adjustedDay;
+    }
+
     return ((daysSincePlanStart + startingPsalm - 1) % 150) + 1;
   }
 

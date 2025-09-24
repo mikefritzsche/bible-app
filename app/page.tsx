@@ -176,11 +176,21 @@ function BibleApp() {
       
       // Load current chapter (maintain position when switching versions)
       const chapter = parser.getChapter(selectedBook, selectedChapter)
-      if (chapter) {
+      if (chapter && bible.books[selectedBook]) {
         setChapterContent(chapter)
         const chapters = Object.keys(bible.books[selectedBook].chapters).length
         setChapterCount(chapters)
         setVerseCount(Object.keys(chapter.verses).length)
+      } else if (books.length > 0) {
+        // Selected book doesn't exist in this version, reset to first book
+        setSelectedBook(books[0])
+        setSelectedChapter(1)
+        const firstChapter = parser.getChapter(books[0], 1)
+        if (firstChapter) {
+          setChapterContent(firstChapter)
+          setChapterCount(Object.keys(bible.books[books[0]].chapters).length)
+          setVerseCount(Object.keys(firstChapter.verses).length)
+        }
       }
       
       // Preload Strong's definitions (only for versions with Strong's)
@@ -222,13 +232,17 @@ function BibleApp() {
 
   // Update chapter count when book changes
   useEffect(() => {
-    if (bibleData && selectedBook) {
+    if (bibleData && selectedBook && bibleData.books[selectedBook]) {
       const chapters = Object.keys(bibleData.books[selectedBook].chapters).length
       setChapterCount(chapters)
       // Reset chapter to 1 if current selection is out of range
       if (selectedChapter > chapters) {
         setSelectedChapter(1)
       }
+    } else if (bibleData && selectedBook && bookNames.length > 0) {
+      // Selected book doesn't exist in this Bible version, reset to first available book
+      setSelectedBook(bookNames[0])
+      setSelectedChapter(1)
     }
   }, [bibleData, selectedBook, selectedChapter])
 
@@ -549,7 +563,7 @@ function BibleApp() {
         } else if (bookNames.indexOf(selectedBook) > 0) {
           const prevBookIndex = bookNames.indexOf(selectedBook) - 1
           const prevBook = bookNames[prevBookIndex]
-          if (bibleData) {
+          if (bibleData && bibleData.books[prevBook]) {
             const prevBookChapters = Object.keys(bibleData.books[prevBook].chapters).length
             setSelectedBook(prevBook)
             setSelectedChapter(prevBookChapters)
@@ -692,7 +706,7 @@ function BibleApp() {
               } else if (bookNames.indexOf(selectedBook) > 0) {
                 const prevBookIndex = bookNames.indexOf(selectedBook) - 1
                 const prevBook = bookNames[prevBookIndex]
-                if (bibleData) {
+                if (bibleData && bibleData.books[prevBook]) {
                   const prevBookChapters = Object.keys(bibleData.books[prevBook].chapters).length
                   setSelectedBook(prevBook)
                   setSelectedChapter(prevBookChapters)

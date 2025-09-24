@@ -6,11 +6,12 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ### Development Server
 ```bash
-npm run dev                    # Start Next.js development server on port 3000
 npm run build                  # Build Next.js application for production
 npm start                      # Start production server
 npm run lint                   # Run ESLint on the codebase
 ```
+
+**IMPORTANT**: Never ask to run `npm run dev` - the user handles all development server operations.
 
 ### Electron Development
 ```bash
@@ -136,4 +137,4 @@ Test with various formats in verse text:
 Use the sync debug pages (`/sync-debug`, `/sync-demo`) to test cloud sync functionality without affecting real data.
 
 ### Cross-Platform Testing
-Test in both browser (`npm run dev`) and Electron (`npm run electron-dev`) environments as behaviors can differ.
+Test in both browser and Electron (`npm run electron-dev`) environments as behaviors can differ.

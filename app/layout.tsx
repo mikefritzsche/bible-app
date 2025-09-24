@@ -2,6 +2,8 @@ import type { Metadata } from 'next'
 import Navigation from '@/components/Navigation'
 import { ThemeProvider } from '@/lib/ThemeContext'
 import { SettingsProvider } from '@/lib/SettingsContext'
+import FirstRunInitializer from '@/components/FirstRunInitializer'
+import DownloadProgress from '@/components/DownloadProgress'
 import './globals.css'
 
 export const metadata: Metadata = {
@@ -19,6 +21,8 @@ export default function RootLayout({
       <body className="bg-gray-50 dark:bg-gray-900 text-gray-900 dark:text-gray-100 h-screen overflow-hidden">
         <ThemeProvider>
           <SettingsProvider>
+            <FirstRunInitializer />
+            <DownloadProgress />
             <div className="h-screen flex flex-col">
               {/* Fixed Navigation */}
               <div className="flex-shrink-0 bg-gray-50 dark:bg-gray-900 border-b border-gray-200 dark:border-gray-700">

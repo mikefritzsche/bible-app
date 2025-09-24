@@ -1,0 +1,359 @@
+import { IModuleManager, ModuleDownloadProgress, ModuleManifest } from './types/IModuleManager';
+import { IModule, ModuleType } from './types/IModule';
+import ModuleRegistryInstance from './ModuleRegistry';
+import GitHubJSONSource from './sources/GitHubJSONSource';
+import BibleAPISource from './sources/BibleAPISource';
+import StaticSource from './sources/StaticSource';
+import FileSystemStorage from './storage/FileSystemStorage';
+
+export class ModuleManager implements IModuleManager {
+  private registry: any;
+  private storage: Map<string, any>; // In-memory cache for performance
+  private fileSystemStorage: FileSystemStorage;
+  private downloadProgress: Map<string, ModuleDownloadProgress>;
+  private activeDownloads: Map<string, AbortController>;
+
+  constructor() {
+    this.registry = ModuleRegistryInstance;
+    this.storage = new Map();
+    this.fileSystemStorage = new FileSystemStorage();
+    this.downloadProgress = new Map();
+    this.activeDownloads = new Map();
+  }
+
+  // Module Management
+  async getAvailableModules(): Promise<Record<string, IModule>> {
+    return await this.registry.getAvailableModules();
+  }
+
+  async getInstalledModules(): Promise<string[]> {
+    return await this.registry.getInstalledModules();
+  }
+
+  async isModuleInstalled(moduleId: string): Promise<boolean> {
+    return await this.registry.isModuleInstalled(moduleId);
+  }
+
+  async getModule(moduleId: string): Promise<IModule | null> {
+    return await this.registry.getModule(moduleId);
+  }
+
+  // Download Operations
+  async downloadModule(moduleId: string, progressCallback?: (progress: ModuleDownloadProgress) => void): Promise<void> {
+    const module = await this.getModule(moduleId);
+    if (!module) {
+      throw new Error(`Module ${moduleId} not found`);
+    }
+
+    // Check if already downloading
+    if (this.activeDownloads.has(moduleId)) {
+      throw new Error(`Module ${moduleId} is already being downloaded`);
+    }
+
+    // Create abort controller for cancellation
+    const abortController = new AbortController();
+    this.activeDownloads.set(moduleId, abortController);
+
+    // Initialize progress tracking
+    const progress: ModuleDownloadProgress = {
+      moduleId,
+      status: 'pending',
+      progress: 0,
+      bytesDownloaded: 0,
+      totalBytes: 0,
+      startedAt: new Date()
+    };
+
+    this.downloadProgress.set(moduleId, progress);
+
+    try {
+      // Update status to downloading
+      progress.status = 'downloading';
+      this.notifyProgress(progress, progressCallback);
+
+      // Route to appropriate downloader based on source type
+      switch (module.source.type) {
+        case 'github':
+          await this.downloadGitHubModule(module, progress, progressCallback, abortController.signal);
+          break;
+        case 'api':
+          await this.downloadAPIModule(module, progress, progressCallback, abortController.signal);
+          break;
+        case 'static':
+          await this.downloadStaticModule(module, progress, progressCallback);
+          break;
+        default:
+          throw new Error(`Unsupported source type: ${module.source.type}`);
+      }
+
+      // Mark as completed
+      progress.status = 'completed';
+      progress.progress = 100;
+      progress.completedAt = new Date();
+      this.notifyProgress(progress, progressCallback);
+
+      // Update registry to mark as installed
+      await this.registry.addInstalledModule(moduleId);
+
+      // Cache the module data
+      const moduleData = await this.getModuleData(moduleId);
+      this.storage.set(moduleId, moduleData);
+
+    } catch (error) {
+      // Mark as failed
+      progress.status = 'failed';
+      progress.error = error instanceof Error ? error.message : String(error);
+      this.notifyProgress(progress, progressCallback);
+      throw error;
+    } finally {
+      // Clean up download tracking
+      this.activeDownloads.delete(moduleId);
+    }
+  }
+
+  async pauseDownload(moduleId: string): Promise<void> {
+    // For now, we'll implement cancellation as pause
+    await this.cancelDownload(moduleId);
+  }
+
+  async resumeDownload(moduleId: string): Promise<void> {
+    // Restart the download
+    await this.downloadModule(moduleId);
+  }
+
+  async cancelDownload(moduleId: string): Promise<void> {
+    const abortController = this.activeDownloads.get(moduleId);
+    if (abortController) {
+      abortController.abort();
+      this.activeDownloads.delete(moduleId);
+
+      const progress = this.downloadProgress.get(moduleId);
+      if (progress) {
+        progress.status = 'failed';
+        progress.error = 'Download cancelled';
+        this.downloadProgress.delete(moduleId);
+      }
+    }
+  }
+
+  // Module Operations
+  async deleteModule(moduleId: string): Promise<void> {
+    const module = await this.getModule(moduleId);
+    if (!module) {
+      throw new Error(`Module ${moduleId} not found`);
+    }
+
+    if (module.isDefault) {
+      throw new Error('Cannot delete default module');
+    }
+
+    // Remove from storage
+    this.storage.delete(moduleId);
+
+    // Remove from filesystem storage
+    if (this.fileSystemStorage.isAvailable()) {
+      try {
+        await this.fileSystemStorage.deleteModuleData(moduleId);
+      } catch (error) {
+        console.warn(`Failed to remove module data from filesystem for ${moduleId}:`, error);
+      }
+    }
+
+    // Update registry
+    await this.registry.removeInstalledModule(moduleId);
+
+    // Clear any download progress
+    this.downloadProgress.delete(moduleId);
+  }
+
+  async getModuleData(moduleId: string, book?: string, chapter?: number, term?: string): Promise<any> {
+    // Check if cached
+    if (this.storage.has(moduleId)) {
+      const cachedData = this.storage.get(moduleId);
+
+      // For Bible modules, return specific book/chapter if requested
+      if (book && cachedData.books && cachedData.books[book]) {
+        if (chapter !== undefined && cachedData.books[book].chapters) {
+          return cachedData.books[book].chapters[chapter - 1] || null;
+        }
+        return cachedData.books[book] || null;
+      }
+
+      // For dictionaries, return specific term if requested
+      if (term && cachedData.entries && cachedData.entries[term]) {
+        return cachedData.entries[term];
+      }
+
+      return cachedData;
+    }
+
+    // Try to load from filesystem storage
+    if (this.fileSystemStorage.isAvailable()) {
+      try {
+        const data = await this.fileSystemStorage.loadModuleData(moduleId);
+        this.storage.set(moduleId, data);
+
+        // Return specific data if requested
+        if (book && data.books && data.books[book]) {
+          if (chapter !== undefined && data.books[book].chapters) {
+            return data.books[book].chapters[chapter - 1] || null;
+          }
+          return data.books[book] || null;
+        }
+        if (term && data.entries && data.entries[term]) {
+          return data.entries[term];
+        }
+        return data;
+      } catch (error) {
+        console.warn(`Failed to load module data from filesystem for ${moduleId}:`, error);
+      }
+
+    }
+
+    // If not cached, try to load from static source
+    const module = await this.getModule(moduleId);
+    if (!module) {
+      throw new Error(`Module ${moduleId} not found`);
+    }
+
+    // Load from static source as fallback (only on client side)
+    if (typeof window === 'undefined') {
+      throw new Error(`Module ${moduleId} is not available during server-side rendering`);
+    }
+    try {
+      const staticSource = new StaticSource();
+      const data = await staticSource.getModuleData(module, book, chapter, term);
+      this.storage.set(moduleId, data);
+
+      // Save to filesystem storage for persistence
+      if (this.fileSystemStorage.isAvailable()) {
+        try {
+          await this.fileSystemStorage.saveModuleData(moduleId, data);
+        } catch (error) {
+          console.warn(`Failed to save module data to filesystem for ${moduleId}:`, error);
+        }
+      }
+
+      return data;
+    } catch (error) {
+      throw new Error(`Module ${moduleId} is not installed and could not be loaded`);
+    }
+  }
+
+  // Filesystem availability check
+  isFilesystemAvailable(): boolean {
+    return this.fileSystemStorage.isAvailable();
+  }
+
+  // Get modules directory path (Electron only)
+  async getModulesDirectory(): Promise<string | null> {
+    if (this.fileSystemStorage.isAvailable()) {
+      try {
+        return await this.fileSystemStorage.getModulesDirectory();
+      } catch (error) {
+        console.warn('Failed to get modules directory:', error);
+        return null;
+      }
+    }
+    return null;
+  }
+
+  // Storage Management
+  async getStorageInfo(): Promise<{ used: number; total: number; available: number }> {
+    // Simplified storage info - in real implementation, this would check actual storage
+    const used = Array.from(this.storage.values()).reduce((total, data) => {
+      return total + JSON.stringify(data).length;
+    }, 0);
+
+    return {
+      used,
+      total: 100 * 1024 * 1024, // 100MB limit
+      available: Math.max(0, (100 * 1024 * 1024) - used)
+    };
+  }
+
+  async cleanup(): Promise<void> {
+    // Clean up unused data
+    const installed = await this.getInstalledModules();
+
+    // Remove cached data for uninstalled modules
+    for (const moduleId of this.storage.keys()) {
+      if (!installed.includes(moduleId)) {
+        this.storage.delete(moduleId);
+      }
+    }
+
+    // Clear completed download progress
+    for (const [moduleId, progress] of this.downloadProgress.entries()) {
+      if (progress.status === 'completed' || progress.status === 'failed') {
+        this.downloadProgress.delete(moduleId);
+      }
+    }
+  }
+
+  // Manifest Operations
+  async getManifest(): Promise<ModuleManifest> {
+    return await this.registry.getManifest();
+  }
+
+  async updateManifest(manifest: ModuleManifest): Promise<void> {
+    await this.registry.updateManifest(manifest);
+  }
+
+  // Helper methods
+  private async downloadGitHubModule(
+    module: IModule,
+    progress: ModuleDownloadProgress,
+    progressCallback?: (progress: ModuleDownloadProgress) => void,
+    abortSignal?: AbortSignal
+  ): Promise<void> {
+    const source = new GitHubJSONSource();
+    await source.downloadModule(module, progress, progressCallback, abortSignal);
+  }
+
+  private async downloadAPIModule(
+    module: IModule,
+    progress: ModuleDownloadProgress,
+    progressCallback?: (progress: ModuleDownloadProgress) => void,
+    abortSignal?: AbortSignal
+  ): Promise<void> {
+    const source = new BibleAPISource();
+    await source.downloadModule(module, progress, progressCallback, abortSignal);
+  }
+
+  private async downloadStaticModule(
+    module: IModule,
+    progress: ModuleDownloadProgress,
+    progressCallback?: (progress: ModuleDownloadProgress) => void
+  ): Promise<void> {
+    // Only allow static module downloads on client side
+    if (typeof window === 'undefined') {
+      throw new Error('Static module downloads are not available during server-side rendering');
+    }
+    try {
+      const source = new StaticSource();
+      await source.downloadModule(module, progress, progressCallback);
+    } catch (error) {
+      console.error('Error creating StaticSource:', error);
+      throw error;
+    }
+  }
+
+  private notifyProgress(progress: ModuleDownloadProgress, callback?: (progress: ModuleDownloadProgress) => void): void {
+    this.downloadProgress.set(progress.moduleId, progress);
+    if (callback) {
+      callback(progress);
+    }
+  }
+
+  // Public method to get download progress
+  getDownloadProgress(moduleId?: string): ModuleDownloadProgress | ModuleDownloadProgress[] | null {
+    if (moduleId) {
+      return this.downloadProgress.get(moduleId) || null;
+    }
+    return Array.from(this.downloadProgress.values());
+  }
+}
+
+// Export singleton instance
+export default new ModuleManager();

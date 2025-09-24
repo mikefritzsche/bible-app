@@ -2,6 +2,7 @@
 
 import { useTheme } from '@/lib/ThemeContext'
 import { useSettings } from '@/lib/SettingsContext'
+import ModuleManager from '@/components/ModuleManager'
 
 export default function SettingsPage() {
   const { theme, setTheme } = useTheme()
@@ -257,6 +258,11 @@ export default function SettingsPage() {
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
             </svg>
           </a>
+        </div>
+
+        {/* Module Management Section */}
+        <div className="border-b border-gray-200 dark:border-gray-700 pb-6">
+          <ModuleManager />
         </div>
 
         {/* Data Management Section */}
