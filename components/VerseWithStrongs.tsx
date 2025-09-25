@@ -5,6 +5,15 @@ import type { VerseWithStrongsProps, ParsedTextPart } from '@/types/bible';
 import { HIGHLIGHT_COLORS_LIGHT, HIGHLIGHT_COLORS_DARK } from '@/lib/HighlightManager';
 
 export function VerseWithStrongs({ text, verseNumber, onStrongsClick, highlights, isDarkMode = false, fontSize, lineHeight }: VerseWithStrongsProps) {
+  // Debug: log what VerseWithStrongs is receiving
+  console.log('🔍 [VerseWithStrongs] Component called with:', {
+    text: text.substring(0, 50),
+    verseNumber,
+    hasClickHandler: !!onStrongsClick,
+    textLength: text.length,
+    containsStrongs: text.includes('{H') || text.includes('{G')
+  });
+
   // Debug: log the original text and highlights
   if (highlights && highlights.length > 0) {
     console.log('VerseWithStrongs - Original text:', text);
@@ -16,6 +25,7 @@ export function VerseWithStrongs({ text, verseNumber, onStrongsClick, highlights
 
   // Parse the text to separate words from Strong's numbers and handle punctuation correctly
   const parseVerseText = (text: string): ParsedTextPart[] => {
+    console.log('🔍 [VerseWithStrongs] parseVerseText called with:', text.substring(0, 50));
     const parts: ParsedTextPart[] = [];
 
     // Handle {{ pattern - everything from {{ to end of text should be italicized
@@ -34,7 +44,9 @@ export function VerseWithStrongs({ text, verseNumber, onStrongsClick, highlights
     }
 
     // Split by Strong's numbers and bracketed text
-    const segments = processedText.split(/(\{[^}]+\}|\[[^\]]+\])/);
+    // Handle cases where multiple Strong's numbers appear together like {H1254}{H853}
+    const segments = processedText.split(/(\{[HG]\d{1,5}\}|\[[^\]]+\])/);
+    console.log('🔍 [VerseWithStrongs] Split into segments:', segments.length, 'segments:', segments);
 
     let pendingTrailingSpace = '';
 
@@ -172,7 +184,8 @@ export function VerseWithStrongs({ text, verseNumber, onStrongsClick, highlights
         content: pendingTrailingSpace
       });
     }
-    
+
+    console.log('🔍 [VerseWithStrongs] Parsed parts:', parts);
     return parts;
   };
 
