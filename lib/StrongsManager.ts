@@ -20,8 +20,9 @@ export class StrongsManager {
     }
 
     try {
-      // Load from file - browser will cache this automatically via HTTP caching
-      const response = await fetch('/bibles/extras/strongs_definitions.json');
+      // Load from file with cache-busting to force fresh load
+      const timestamp = Date.now();
+      const response = await fetch(`/bibles/extras/strongs_definitions.json?t=${timestamp}`);
       if (!response.ok) {
         throw new Error(`Failed to load Strong's definitions: ${response.status}`);
       }
@@ -62,7 +63,7 @@ export class StrongsManager {
 
     const normalized = this.normalizeStrongsNumber(strongsNumber);
     const definition = this.definitions[normalized];
-    
+
     if (!definition) {
       console.log(`No definition found for ${normalized}`);
       return null;
