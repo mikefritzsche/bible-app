@@ -5,7 +5,7 @@ export interface ModuleSource {
 }
 
 export interface ModuleFormat {
-  type: 'github-json' | 'bible-api' | 'api-scripture' | 'static-json';
+  type: 'github-json' | 'bible-api' | 'api-scripture' | 'static-json' | 'kjv-strongs-json' | 'scrollmapper-strongs' | 'berean-json' | 'berean-interlinear';
   parser?: string;
 }
 

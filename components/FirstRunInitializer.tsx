@@ -1,6 +1,34 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import React, { useEffect, useState } from 'react';
+import getModuleManager from '@/lib/modules/ModuleManager';
+
+class ErrorBoundary extends React.Component<
+  { children: React.ReactNode },
+  { hasError: boolean; error?: Error }
+> {
+  constructor(props: { children: React.ReactNode }) {
+    super(props);
+    this.state = { hasError: false };
+  }
+
+  static getDerivedStateFromError(error: Error) {
+    return { hasError: true, error };
+  }
+
+  componentDidCatch(error: Error, errorInfo: React.ErrorInfo) {
+    console.error('FirstRunInitializer ErrorBoundary caught an error:', error, errorInfo);
+  }
+
+  render() {
+    if (this.state.hasError) {
+      // Return null to render nothing instead of crashing the app
+      return null;
+    }
+
+    return this.props.children;
+  }
+}
 
 interface FirstRunStatus {
   isFirstRun: boolean;
@@ -9,27 +37,55 @@ interface FirstRunStatus {
   installedModules: string[];
 }
 
-export default function FirstRunInitializer() {
+function FirstRunInitializerInternal() {
   const [status, setStatus] = useState<FirstRunStatus | null>(null);
   const [isInitializing, setIsInitializing] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [moduleManager, setModuleManager] = useState<any>(null);
 
   useEffect(() => {
     // Only run on client side
     if (typeof window !== 'undefined') {
-      checkFirstRunStatus();
+      try {
+        const manager = getModuleManager();
+        setModuleManager(manager);
+        checkFirstRunStatus(manager);
+      } catch (err) {
+        console.error('Failed to initialize ModuleManager:', err);
+        setError('Failed to initialize module system');
+      }
     }
   }, []);
 
-  const checkFirstRunStatus = async () => {
+  const checkFirstRunStatus = async (manager: any) => {
     try {
-      const response = await fetch('/api/modules/first-run');
-      const data = await response.json();
-      setStatus(data.status);
+      // Check if we have a flag in localStorage
+      const hasRunBefore = localStorage.getItem('bible-app-first-run-complete') === 'true';
+
+      // Check if KJV modules are already installed
+      if (!manager) {
+        throw new Error('ModuleManager is not available');
+      }
+      const kjvInstalled = await manager.isModuleInstalled('kjv');
+      const kjvStrongsInstalled = await manager.isModuleInstalled('kjv-strongs');
+      const installedModules = await manager.getInstalledModules();
+
+      const isFirstRun = !hasRunBefore || (!kjvInstalled && !kjvStrongsInstalled);
+      const defaultModulesInstalled = kjvInstalled && kjvStrongsInstalled;
+
+      const currentStatus: FirstRunStatus = {
+        isFirstRun,
+        hasRunSetup: hasRunBefore,
+        defaultModulesInstalled,
+        installedModules
+      };
+
+      setStatus(currentStatus);
+      console.log('First-run status:', currentStatus);
 
       // Auto-initialize if it's first run and default modules aren't installed
-      if (data.status.isFirstRun && !data.status.defaultModulesInstalled) {
-        await initializeSetup();
+      if (isFirstRun && !defaultModulesInstalled) {
+        await initializeSetup(manager);
       }
     } catch (err) {
       console.error('Error checking first-run status:', err);
@@ -37,27 +93,44 @@ export default function FirstRunInitializer() {
     }
   };
 
-  const initializeSetup = async () => {
+  const initializeSetup = async (manager: any) => {
     setIsInitializing(true);
     setError(null);
 
     try {
-      const response = await fetch('/api/modules/first-run', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({ action: 'initialize' }),
-      });
+      console.log('Starting first-run setup...');
 
-      const data = await response.json();
+      const defaultModules = [
+        { id: 'kjv', name: 'King James Version' },
+        { id: 'kjv-strongs', name: 'KJV with Strong\'s Numbers' }
+      ];
 
-      if (!response.ok) {
-        throw new Error(data.error || 'Failed to initialize setup');
+      for (const module of defaultModules) {
+        try {
+          console.log(`Installing default module: ${module.name} (${module.id})`);
+
+          if (!manager) {
+            throw new Error('ModuleManager is not available');
+          }
+          const isInstalled = await manager.isModuleInstalled(module.id);
+          if (!isInstalled) {
+            await manager.downloadModule(module.id);
+            console.log(`Successfully installed ${module.name}`);
+          } else {
+            console.log(`${module.name} already installed`);
+          }
+        } catch (error) {
+          console.error(`Failed to install ${module.name}:`, error);
+          // Continue with other modules even if one fails
+        }
       }
 
-      setStatus(data.status);
+      // Mark first run as complete
+      localStorage.setItem('bible-app-first-run-complete', 'true');
       console.log('First-run setup completed successfully');
+
+      // Update status
+      await checkFirstRunStatus(manager);
     } catch (err) {
       console.error('Error initializing first-run setup:', err);
       setError(err instanceof Error ? err.message : 'Failed to initialize setup');
@@ -71,22 +144,15 @@ export default function FirstRunInitializer() {
     setError(null);
 
     try {
-      const response = await fetch('/api/modules/first-run', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({ action: 'reinitialize' }),
-      });
+      console.log('Reinitializing first-run setup...');
 
-      const data = await response.json();
+      // Clear the first-run flag
+      localStorage.removeItem('bible-app-first-run-complete');
 
-      if (!response.ok) {
-        throw new Error(data.error || 'Failed to reinitialize setup');
+      // Reset and re-run setup
+      if (moduleManager) {
+        await initializeSetup(moduleManager);
       }
-
-      setStatus(data.status);
-      console.log('First-run setup reinitialized successfully');
     } catch (err) {
       console.error('Error reinitializing first-run setup:', err);
       setError(err instanceof Error ? err.message : 'Failed to reinitialize setup');
@@ -98,4 +164,13 @@ export default function FirstRunInitializer() {
   // This component doesn't render anything visible
   // It just handles the background initialization
   return null;
+}
+
+// Wrap the component in an error boundary to prevent app crashes
+export default function FirstRunInitializerWithErrorBoundary() {
+  return (
+    <ErrorBoundary>
+      <FirstRunInitializerInternal />
+    </ErrorBoundary>
+  );
 }

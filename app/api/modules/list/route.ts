@@ -3,7 +3,7 @@ import ModuleManagerInstance from '@/lib/modules/ModuleManager';
 
 export async function GET(request: NextRequest) {
   try {
-    const moduleManager = ModuleManagerInstance;
+    const moduleManager = ModuleManagerInstance();
     const [available, installed] = await Promise.all([
       moduleManager.getAvailableModules(),
       moduleManager.getInstalledModules()

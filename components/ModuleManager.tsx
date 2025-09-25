@@ -39,10 +39,10 @@ export default function ModuleManager() {
       setError(null)
 
       // Get available modules from registry
-      const availableModules = await ModuleRegistryInstance.getAvailableModules()
+      const availableModules = await ModuleRegistryInstance().getAvailableModules()
 
       // Get installed modules
-      const installedModules = await ModuleManagerInstance.getInstalledModules()
+      const installedModules = await ModuleManagerInstance().getInstalledModules()
 
       // Transform to ModuleInfo array
       const moduleList = Object.values(availableModules).map((module) => ({
@@ -50,7 +50,7 @@ export default function ModuleManager() {
         module,
         isInstalled: installedModules.includes(module.id),
         size: module.size || 'Unknown',
-        downloadProgress: ModuleManagerInstance.getDownloadProgress(module.id) as ModuleDownloadProgress
+        downloadProgress: ModuleManagerInstance().getDownloadProgress(module.id) as ModuleDownloadProgress
       }))
 
       setModules(moduleList)
@@ -65,7 +65,7 @@ export default function ModuleManager() {
   // Download a module
   const handleDownload = async (moduleId: string) => {
     try {
-      await ModuleManagerInstance.downloadModule(moduleId, (progress) => {
+      await ModuleManagerInstance().downloadModule(moduleId, (progress) => {
         setModules(prev => prev.map(mod =>
           mod.id === moduleId
             ? { ...mod, downloadProgress: progress }
@@ -84,7 +84,7 @@ export default function ModuleManager() {
   // Delete a module
   const handleDelete = async (moduleId: string) => {
     try {
-      await ModuleManagerInstance.deleteModule(moduleId)
+      await ModuleManagerInstance().deleteModule(moduleId)
       await fetchModules()
     } catch (err) {
       console.error('Error deleting module:', err)
@@ -152,115 +152,79 @@ export default function ModuleManager() {
   }
 
   return (
-    <div className="space-y-6">
-      {/* Header */}
-      <div className="flex items-center justify-between">
-        <div>
-          <h2 className="text-xl font-semibold text-gray-800 dark:text-gray-200">
-            Module Management
-          </h2>
-          <p className="text-gray-600 dark:text-gray-400 text-sm">
-            Download and manage Bible translations, dictionaries, and other resources
-          </p>
-        </div>
-        <button
-          onClick={fetchModules}
-          className="p-2 text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-100 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg transition-colors"
-          title="Refresh modules"
-        >
-          <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
-          </svg>
-        </button>
-      </div>
-
-      {/* Search and Filter */}
-      <div className="flex flex-col sm:flex-row gap-4">
-        <div className="flex-1">
-          <input
-            type="text"
-            placeholder="Search modules..."
-            value={searchTerm}
-            onChange={(e) => setSearchTerm(e.target.value)}
-            className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-blue-500"
-          />
-        </div>
-        <select
-          value={selectedType}
-          onChange={(e) => setSelectedType(e.target.value as ModuleType | 'all')}
-          className="px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-blue-500"
-        >
-          <option value="all">All Types</option>
-          <option value="bible">Bible Translations</option>
-          <option value="dictionary">Dictionaries</option>
-          <option value="commentary">Commentaries</option>
-          <option value="cross_reference">Cross References</option>
-        </select>
-      </div>
-
-      {/* Module Statistics */}
-      <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-        <div className="p-4 bg-blue-50 dark:bg-blue-900/20 rounded-lg border border-blue-200 dark:border-blue-800">
-          <div className="text-2xl font-bold text-blue-600 dark:text-blue-400">
-            {modules.filter(m => m.isInstalled).length}
-          </div>
-          <div className="text-sm text-blue-600 dark:text-blue-400">
-            Installed Modules
-          </div>
-        </div>
-        <div className="p-4 bg-green-50 dark:bg-green-900/20 rounded-lg border border-green-200 dark:border-green-800">
-          <div className="text-2xl font-bold text-green-600 dark:text-green-400">
-            {modules.filter(m => m.downloadProgress?.status === 'downloading').length}
-          </div>
-          <div className="text-sm text-green-600 dark:text-green-400">
-            Downloading
-          </div>
-        </div>
-        <div className="p-4 bg-gray-50 dark:bg-gray-900/20 rounded-lg border border-gray-200 dark:border-gray-700">
-          <div className="text-2xl font-bold text-gray-600 dark:text-gray-400">
-            {modules.length}
-          </div>
-          <div className="text-sm text-gray-600 dark:text-gray-400">
+    <div className="space-y-4">
+      {/* Header with Search and Filter */}
+      <div className="flex flex-col sm:flex-row gap-4 items-start sm:items-center justify-between">
+        <div className="flex-1 w-full">
+          <h2 className="text-lg font-semibold text-gray-800 dark:text-gray-200 mb-2">
             Available Modules
+          </h2>
+          <div className="flex flex-col sm:flex-row gap-2">
+            <input
+              type="text"
+              placeholder="Search modules..."
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+              className="flex-1 px-3 py-2 text-sm border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-blue-500"
+            />
+            <select
+              value={selectedType}
+              onChange={(e) => setSelectedType(e.target.value as ModuleType | 'all')}
+              className="px-3 py-2 text-sm border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-blue-500"
+            >
+              <option value="all">All Types</option>
+              <option value="bible">Bible</option>
+              <option value="dictionary">Dictionary</option>
+              <option value="commentary">Commentary</option>
+              <option value="cross_reference">Cross Reference</option>
+            </select>
+            <button
+              onClick={fetchModules}
+              className="p-2 text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-100 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg transition-colors"
+              title="Refresh modules"
+            >
+              <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+              </svg>
+            </button>
           </div>
         </div>
       </div>
 
-      {/* Modules by Type */}
-      {Object.entries(modulesByType).map(([type, typeModules]) => (
-        <div key={type} className="space-y-4">
-          <h3 className="text-lg font-medium text-gray-800 dark:text-gray-200 capitalize">
-            {type} ({typeModules.length})
-          </h3>
+      {/* Compact Module Statistics */}
+      <div className="flex gap-4 text-xs text-gray-600 dark:text-gray-400 pb-2 border-b border-gray-200 dark:border-gray-700">
+        <span>{modules.filter(m => m.isInstalled).length} installed</span>
+        <span>{modules.filter(m => m.downloadProgress?.status === 'downloading').length} downloading</span>
+        <span>{modules.length} available</span>
+      </div>
 
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-            {typeModules.map((moduleInfo) => (
-              <ModuleCard
-                key={moduleInfo.id}
-                moduleInfo={moduleInfo}
-                onDownload={handleDownload}
-                onDelete={handleDelete}
-                formatBytes={formatBytes}
-                formatDate={formatDate}
-              />
-            ))}
+      {/* Streamlined Module List */}
+      <div className="space-y-1 max-h-96 overflow-y-auto">
+        {filteredModules.map((moduleInfo) => (
+          <ModuleListItem
+            key={moduleInfo.id}
+            moduleInfo={moduleInfo}
+            onDownload={handleDownload}
+            onDelete={handleDelete}
+            formatBytes={formatBytes}
+            formatDate={formatDate}
+          />
+        ))}
+
+        {filteredModules.length === 0 && (
+          <div className="text-center py-8">
+            <p className="text-gray-500 dark:text-gray-400 text-sm">
+              No modules found matching your search criteria.
+            </p>
           </div>
-        </div>
-      ))}
-
-      {filteredModules.length === 0 && (
-        <div className="text-center py-8">
-          <p className="text-gray-500 dark:text-gray-400">
-            No modules found matching your search criteria.
-          </p>
-        </div>
-      )}
+        )}
+      </div>
     </div>
   )
 }
 
-// Module Card Component
-interface ModuleCardProps {
+// Module List Item Component
+interface ModuleListItemProps {
   moduleInfo: ModuleInfo
   onDownload: (moduleId: string) => void
   onDelete: (moduleId: string) => void
@@ -268,14 +232,14 @@ interface ModuleCardProps {
   formatDate: (date?: Date) => string
 }
 
-function ModuleCard({ moduleInfo, onDownload, onDelete, formatBytes, formatDate }: ModuleCardProps) {
+function ModuleListItem({ moduleInfo, onDownload, onDelete, formatBytes, formatDate }: ModuleListItemProps) {
   const { module, isInstalled, downloadProgress } = moduleInfo
 
   const getStatusBadge = () => {
     if (isInstalled) {
       return (
         <span className="px-2 py-1 text-xs font-medium text-green-700 dark:text-green-400 bg-green-100 dark:bg-green-900/30 rounded-full">
-          Installed
+          ✓ Installed
         </span>
       )
     }
@@ -285,7 +249,7 @@ function ModuleCard({ moduleInfo, onDownload, onDelete, formatBytes, formatDate 
         case 'downloading':
           return (
             <span className="px-2 py-1 text-xs font-medium text-blue-700 dark:text-blue-400 bg-blue-100 dark:bg-blue-900/30 rounded-full">
-              Downloading ({downloadProgress.progress}%)
+              {downloadProgress.progress}%
             </span>
           )
         case 'failed':
@@ -296,7 +260,7 @@ function ModuleCard({ moduleInfo, onDownload, onDelete, formatBytes, formatDate 
           )
         default:
           return (
-            <span className="px-2 py-1 text-xs font-medium text-gray-700 dark:text-gray-400 bg-gray-100 dark:bg-gray-700 rounded-full">
+            <span className="px-2 py-1 text-xs font-medium text-gray-600 dark:text-gray-400">
               Available
             </span>
           )
@@ -304,84 +268,71 @@ function ModuleCard({ moduleInfo, onDownload, onDelete, formatBytes, formatDate 
     }
 
     return (
-      <span className="px-2 py-1 text-xs font-medium text-gray-700 dark:text-gray-400 bg-gray-100 dark:bg-gray-700 rounded-full">
+      <span className="px-2 py-1 text-xs font-medium text-gray-600 dark:text-gray-400">
         Available
       </span>
     )
   }
 
   return (
-    <div className="p-4 bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 hover:shadow-md transition-shadow">
-      <div className="flex items-start justify-between mb-3">
-        <div className="flex-1">
-          <h4 className="font-medium text-gray-900 dark:text-gray-100 mb-1">
+    <div className="flex items-center justify-between p-3 bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-750 transition-colors">
+      <div className="flex-1 min-w-0">
+        <div className="flex items-center gap-3 mb-1">
+          <h4 className="font-medium text-gray-900 dark:text-gray-100 text-sm truncate">
             {module.name}
           </h4>
-          <p className="text-sm text-gray-600 dark:text-gray-400">
-            {module.description}
-          </p>
+          {getStatusBadge()}
         </div>
-        {getStatusBadge()}
-      </div>
-
-      {/* Module Details */}
-      <div className="space-y-2 text-sm text-gray-500 dark:text-gray-400 mb-4">
-        {module.language && (
-          <div className="flex items-center gap-2">
-            <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 5h12M9 3v2m1.048 9.5A18.022 18.022 0 016.412 9m6.088 9h7M11 21l5-10 5 10M12.751 5C11.783 10.77 8.07 15.61 3 18.129" />
-            </svg>
-            <span>Language: {module.language}</span>
-          </div>
-        )}
-
-        {module.size && (
-          <div className="flex items-center gap-2">
-            <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 7v10c0 2.21 3.582 4 8 4s8-1.79 8-4V7M4 7c0 2.21 3.582 4 8 4s8-1.79 8-4M4 7c0-2.21 3.582-4 8-4s8 1.79 8 4" />
-            </svg>
-            <span>Size: {module.size}</span>
-          </div>
-        )}
-
-        {downloadProgress?.startedAt && (
-          <div className="flex items-center gap-2">
-            <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
-            </svg>
-            <span>Started: {formatDate(downloadProgress.startedAt)}</span>
-          </div>
-        )}
-      </div>
-
-      {/* Progress Bar */}
-      {downloadProgress?.status === 'downloading' && (
-        <div className="mb-4">
-          <div className="flex justify-between text-sm text-gray-600 dark:text-gray-400 mb-1">
-            <span>Downloading...</span>
-            <span>{downloadProgress.progress}%</span>
-          </div>
-          <div className="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-2">
-            <div
-              className="bg-blue-600 h-2 rounded-full transition-all duration-300"
-              style={{ width: `${downloadProgress.progress}%` }}
-            ></div>
-          </div>
-          {downloadProgress.currentFile && (
-            <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
-              {downloadProgress.currentFile}
-            </p>
+        <p className="text-xs text-gray-600 dark:text-gray-400 truncate mb-1">
+          {module.description}
+        </p>
+        <div className="flex items-center gap-4 text-xs text-gray-500 dark:text-gray-400">
+          {module.language && (
+            <span className="flex items-center gap-1">
+              <svg className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 5h12M9 3v2m1.048 9.5A18.022 18.022 0 016.412 9m6.088 9h7M11 21l5-10 5 10M12.751 5C11.783 10.77 8.07 15.61 3 18.129" />
+              </svg>
+              {module.language}
+            </span>
           )}
+          {module.size && (
+            <span className="flex items-center gap-1">
+              <svg className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 7v10c0 2.21 3.582 4 8 4s8-1.79 8-4V7M4 7c0 2.21 3.582 4 8 4s8-1.79 8-4M4 7c0-2.21 3.582-4 8-4s8 1.79 8 4" />
+              </svg>
+              {module.size}
+            </span>
+          )}
+          <span className="capitalize text-gray-500 dark:text-gray-400">
+            {module.type}
+          </span>
         </div>
-      )}
+
+        {/* Progress Bar */}
+        {downloadProgress?.status === 'downloading' && (
+          <div className="mt-2">
+            <div className="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-1">
+              <div
+                className="bg-blue-600 h-1 rounded-full transition-all duration-300"
+                style={{ width: `${downloadProgress.progress}%` }}
+              ></div>
+            </div>
+            {downloadProgress.currentFile && (
+              <p className="text-xs text-gray-500 dark:text-gray-400 mt-1 truncate">
+                {downloadProgress.currentFile}
+              </p>
+            )}
+          </div>
+        )}
+      </div>
 
       {/* Action Buttons */}
-      <div className="flex gap-2">
+      <div className="flex items-center gap-2 ml-4">
         {isInstalled ? (
           <button
             onClick={() => onDelete(module.id)}
             disabled={module.isDefault}
-            className={`px-3 py-1.5 text-sm rounded-lg transition-colors ${
+            className={`px-3 py-1 text-xs rounded-lg transition-colors ${
               module.isDefault
                 ? 'bg-gray-100 dark:bg-gray-700 text-gray-400 dark:text-gray-500 cursor-not-allowed'
                 : 'bg-red-600 hover:bg-red-700 text-white'
@@ -393,7 +344,7 @@ function ModuleCard({ moduleInfo, onDownload, onDelete, formatBytes, formatDate 
           <button
             onClick={() => onDownload(module.id)}
             disabled={downloadProgress?.status === 'downloading'}
-            className={`px-3 py-1.5 text-sm rounded-lg transition-colors ${
+            className={`px-3 py-1 text-xs rounded-lg transition-colors ${
               downloadProgress?.status === 'downloading'
                 ? 'bg-gray-100 dark:bg-gray-700 text-gray-400 dark:text-gray-500 cursor-not-allowed'
                 : 'bg-blue-600 hover:bg-blue-700 text-white'
@@ -406,7 +357,7 @@ function ModuleCard({ moduleInfo, onDownload, onDelete, formatBytes, formatDate 
         {downloadProgress?.status === 'failed' && (
           <button
             onClick={() => onDownload(module.id)}
-            className="px-3 py-1.5 text-sm bg-orange-600 hover:bg-orange-700 text-white rounded-lg transition-colors"
+            className="px-3 py-1 text-xs bg-orange-600 hover:bg-orange-700 text-white rounded-lg transition-colors"
           >
             Retry
           </button>

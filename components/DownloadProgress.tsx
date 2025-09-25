@@ -15,7 +15,7 @@ export default function DownloadProgress() {
   // Poll for active downloads
   useEffect(() => {
     const pollDownloads = () => {
-      const progressData = ModuleManagerInstance.getDownloadProgress() as ModuleDownloadProgress[]
+      const progressData = ModuleManagerInstance().getDownloadProgress() as ModuleDownloadProgress[]
       if (Array.isArray(progressData)) {
         const active = progressData.filter(p =>
           p.status === 'downloading' || p.status === 'pending'
