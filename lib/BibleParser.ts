@@ -1,5 +1,5 @@
 import type { BibleData, Book, Chapter, Verse } from '@/types/bible';
-import ModuleManagerInstance from '@/lib/modules/ModuleManager';
+import getModuleManager from '@/lib/modules/ModuleManager';
 
 // Helper function to map version names for module system compatibility
 function mapVersionForModuleSystem(version: string): string {
@@ -38,41 +38,27 @@ export class BibleParser {
   async loadBible(version: string = 'kjv_strongs'): Promise<BibleData> {
     try {
       // First try to load from module system (only on client side)
-      if (typeof window !== 'undefined') {
+      // TEMPORARY: Skip module system to force static file loading
+      if (typeof window !== 'undefined' && false) {
         if (!this.moduleManager) {
-          this.moduleManager = ModuleManagerInstance;
+          this.moduleManager = getModuleManager();
         }
 
         try {
           // Map version names for module system compatibility
           const moduleVersion = mapVersionForModuleSystem(version);
-          console.log(`Checking if module ${moduleVersion} is installed for version ${version}...`);
           const isInstalled = await this.moduleManager.isModuleInstalled(moduleVersion);
-          console.log(`Module ${moduleVersion} installed:`, isInstalled);
 
           if (isInstalled) {
-            console.log(`Loading ${version} from module system...`);
+            console.log('🔍 [BibleParser] Module found, loading data for:', moduleVersion);
             const moduleData = await this.moduleManager.getModuleData(moduleVersion);
             if (moduleData) {
-              console.log(`Successfully loaded ${version} from module system`);
-              console.log('Module data structure:', Object.keys(moduleData));
-
-              if (moduleData.verses) {
-                console.log(`Module data contains ${moduleData.verses.length} verses`);
-                // Check if Psalms is in the verses
-                const psalmsVerses = moduleData.verses.filter((v: any) => v.book_name === 'Psalms');
-                console.log(`Found ${psalmsVerses.length} Psalms verses`);
-              }
-
-              if (moduleData.books) {
-                console.log(`Module data contains ${Object.keys(moduleData.books).length} books:`, Object.keys(moduleData.books));
-              }
-
+              console.log('🔍 [BibleParser] Module data loaded, sample verse:', moduleData.verses?.[0]);
               this.bibleData = await this.transformModuleData(moduleData, version);
               return this.bibleData;
-            } else {
-              console.log(`Module system returned null data for ${moduleVersion}`);
             }
+          } else {
+            console.log('🔍 [BibleParser] Module not installed:', moduleVersion);
           }
         } catch (moduleError) {
           console.warn('Module system failed, falling back to static files:', moduleError);
@@ -88,7 +74,13 @@ export class BibleParser {
       }
 
       const rawData = await response.json();
-      
+
+      // Debug: Check if static file data has Strong's numbers
+      if (rawData.verses && rawData.verses.length > 0) {
+        console.log('🔍 [BibleParser] Static file sample verse:', rawData.verses[0]);
+        console.log('🔍 [BibleParser] Static file contains Strong\'s:', rawData.verses[0].text.includes('{H'));
+      }
+
       // Transform flat verse array into hierarchical structure
       const books: Record<string, Book> = {};
       
@@ -314,7 +306,7 @@ export class BibleParser {
     try {
       if (typeof window !== 'undefined') {
         if (!this.moduleManager) {
-          this.moduleManager = ModuleManagerInstance;
+          this.moduleManager = getModuleManager();
         }
         const availableModules = await this.moduleManager.getAvailableModules();
         return Object.values(availableModules)
@@ -333,7 +325,7 @@ export class BibleParser {
     try {
       if (typeof window !== 'undefined') {
         if (!this.moduleManager) {
-          this.moduleManager = ModuleManagerInstance;
+          this.moduleManager = getModuleManager();
         }
         return await this.moduleManager.isModuleInstalled(version);
       }
@@ -349,7 +341,7 @@ export class BibleParser {
     try {
       if (typeof window !== 'undefined') {
         if (!this.moduleManager) {
-          this.moduleManager = ModuleManagerInstance;
+          this.moduleManager = getModuleManager();
         }
         await this.moduleManager.downloadModule(version);
         return true;
