@@ -58,7 +58,7 @@ Transform the Bible Reader from traditional web page scrolling to an app-like ex
 - [ ] Update imports and props
 
 ### Phase 3: Parallel Panel Alignment ⏱️ 1-2 hours
-- [ ] Update `components/FixedParallelComparison.tsx`
+- [ ] Update `components/ParallelComparison.tsx`
   - Change from `left-0 right-0` to centered positioning
   - Add `max-w-5xl` width constraint
   - Add padding wrapper
@@ -84,7 +84,7 @@ Transform the Bible Reader from traditional web page scrolling to an app-like ex
 ✏️ app/layout.tsx
 ✏️ app/page.tsx
 ✏️ components/Navigation.tsx
-✏️ components/FixedParallelComparison.tsx
+✏️ components/ParallelComparison.tsx
 ```
 
 ### Files to Create
@@ -113,7 +113,7 @@ Transform the Bible Reader from traditional web page scrolling to an app-like ex
 className="sticky top-0 z-50 bg-white dark:bg-gray-800"
 ```
 
-### 3. Parallel Panel (components/FixedParallelComparison.tsx)
+### 3. Parallel Panel (components/ParallelComparison.tsx)
 ```tsx
 // FROM:
 className="fixed bottom-0 left-0 right-0"

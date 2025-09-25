@@ -4,10 +4,10 @@ import getModuleManager from '@/lib/modules/ModuleManager';
 // Helper function to map version names for module system compatibility
 function mapVersionForModuleSystem(version: string): string {
   const versionMap: Record<string, string> = {
-    'kjv_strongs': 'kjv-strongs',
+    'kjv-strongs': 'kjv-strongs',
     'kjv': 'kjv',
+    'asv-strongs': 'asv-strongs',
     'asv': 'asv',
-    'asvs': 'asvs', // This might need to be mapped to something else
     'geneva': 'geneva',
     'web': 'web'
   };
@@ -18,10 +18,10 @@ function mapVersionForModuleSystem(version: string): string {
 // Helper function to map module system names back to app version names
 function mapVersionFromModuleSystem(moduleVersion: string): string {
   const versionMap: Record<string, string> = {
-    'kjv-strongs': 'kjv_strongs',
+    'kjv-strongs': 'kjv-strongs',
     'kjv': 'kjv',
+    'asv-strongs': 'asv-strongs',
     'asv': 'asv',
-    'asvs': 'asvs',
     'geneva': 'geneva',
     'web': 'web'
   };
@@ -35,7 +35,7 @@ export class BibleParser {
   private currentChapter: number = 1;
   private moduleManager: any = null;
 
-  async loadBible(version: string = 'kjv_strongs'): Promise<BibleData> {
+  async loadBible(version: string = 'kjv-strongs'): Promise<BibleData> {
     try {
       // First try to load from module system (only on client side)
       // TEMPORARY: Skip module system to force static file loading
@@ -313,10 +313,10 @@ export class BibleParser {
           .filter((module: any) => module.type === 'bible')
           .map((module: any) => module.id);
       }
-      return ['kjv_strongs']; // Fallback for SSR
+      return ['kjv-strongs']; // Fallback for SSR
     } catch (error) {
       console.error('Error getting available versions:', error);
-      return ['kjv_strongs']; // Fallback to default
+      return ['kjv-strongs']; // Fallback to default
     }
   }
 

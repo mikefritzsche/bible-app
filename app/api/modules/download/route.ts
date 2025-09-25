@@ -12,7 +12,7 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    const moduleManager = ModuleManagerInstance;
+    const moduleManager = ModuleManagerInstance();
 
     // Check if module is already installed
     const isInstalled = await moduleManager.isModuleInstalled(moduleId);

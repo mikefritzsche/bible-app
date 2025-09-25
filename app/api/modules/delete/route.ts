@@ -12,7 +12,7 @@ export async function DELETE(request: NextRequest) {
       );
     }
 
-    const moduleManager = ModuleManagerInstance;
+    const moduleManager = ModuleManagerInstance();
 
     // Check if module is installed
     const isInstalled = await moduleManager.isModuleInstalled(moduleId);

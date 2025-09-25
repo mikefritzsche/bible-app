@@ -2,7 +2,7 @@ import ModuleManager from './ModuleManager';
 
 export class FirstRunSetup {
   private static instance: FirstRunSetup;
-  private moduleManager = ModuleManager;
+  private moduleManager = ModuleManager();
   private hasRunSetup = false;
 
   private constructor() {}

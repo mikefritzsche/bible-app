@@ -1,22 +1,22 @@
 import { IModuleManager, ModuleDownloadProgress, ModuleManifest } from './types/IModuleManager';
 import { IModule, ModuleType } from './types/IModule';
-import ModuleRegistryInstance from './ModuleRegistry';
+import getModuleRegistry from './ModuleRegistry';
 import GitHubJSONSource from './sources/GitHubJSONSource';
 import BibleAPISource from './sources/BibleAPISource';
 import StaticSource from './sources/StaticSource';
-import FileSystemStorage from './storage/FileSystemStorage';
+import HybridStorage from './storage/HybridStorage';
 
 export class ModuleManager implements IModuleManager {
   private registry: any;
   private storage: Map<string, any>; // In-memory cache for performance
-  private fileSystemStorage: FileSystemStorage;
+  private hybridStorage: HybridStorage;
   private downloadProgress: Map<string, ModuleDownloadProgress>;
   private activeDownloads: Map<string, AbortController>;
 
   constructor() {
-    this.registry = ModuleRegistryInstance;
+    this.registry = getModuleRegistry();
     this.storage = new Map();
-    this.fileSystemStorage = new FileSystemStorage();
+    this.hybridStorage = new HybridStorage();
     this.downloadProgress = new Map();
     this.activeDownloads = new Map();
   }
@@ -74,7 +74,36 @@ export class ModuleManager implements IModuleManager {
       // Route to appropriate downloader based on source type
       switch (module.source.type) {
         case 'github':
-          await this.downloadGitHubModule(module, progress, progressCallback, abortController.signal);
+          console.log(`Starting GitHub download for ${moduleId}...`);
+          const githubData = await this.downloadGitHubModule(module, progress, progressCallback, abortController.signal);
+          console.log(`GitHub download completed for ${moduleId}:`, githubData ? 'Success' : 'Failed');
+
+          // Save the downloaded data to storage
+          if (githubData) {
+            console.log(`Caching ${moduleId} in memory...`);
+            this.storage.set(moduleId, githubData);
+
+            console.log(`Checking storage availability for ${moduleId}...`);
+            console.log(`Hybrid storage available:`, this.hybridStorage.isAvailable());
+
+            if (this.hybridStorage.isAvailable()) {
+              try {
+                console.log(`Saving ${moduleId} to persistent storage...`);
+                await this.hybridStorage.saveModuleData(moduleId, githubData);
+                console.log(`✅ Successfully saved ${moduleId} to storage`);
+              } catch (error) {
+                console.error(`❌ Failed to save GitHub module data to storage for ${moduleId}:`, error);
+                console.log(`⚠️  Continuing with in-memory cache only for ${moduleId}`);
+                // Don't throw error - continue with in-memory cache
+              }
+            } else {
+              console.log(`⚠️  Storage not available for ${moduleId}, using in-memory cache only`);
+              // Don't throw error - continue with in-memory cache
+            }
+          } else {
+            console.error(`❌ No data returned from GitHub download for ${moduleId}`);
+            throw new Error('Download returned no data');
+          }
           break;
         case 'api':
           await this.downloadAPIModule(module, progress, progressCallback, abortController.signal);
@@ -95,9 +124,8 @@ export class ModuleManager implements IModuleManager {
       // Update registry to mark as installed
       await this.registry.addInstalledModule(moduleId);
 
-      // Cache the module data
-      const moduleData = await this.getModuleData(moduleId);
-      this.storage.set(moduleId, moduleData);
+      // Module data is already cached during download
+      // No need to fetch again
 
     } catch (error) {
       // Mark as failed
@@ -151,9 +179,9 @@ export class ModuleManager implements IModuleManager {
     this.storage.delete(moduleId);
 
     // Remove from filesystem storage
-    if (this.fileSystemStorage.isAvailable()) {
+    if (this.hybridStorage.isAvailable()) {
       try {
-        await this.fileSystemStorage.deleteModuleData(moduleId);
+        await this.hybridStorage.deleteModuleData(moduleId);
       } catch (error) {
         console.warn(`Failed to remove module data from filesystem for ${moduleId}:`, error);
       }
@@ -188,9 +216,9 @@ export class ModuleManager implements IModuleManager {
     }
 
     // Try to load from filesystem storage
-    if (this.fileSystemStorage.isAvailable()) {
+    if (this.hybridStorage.isAvailable()) {
       try {
-        const data = await this.fileSystemStorage.loadModuleData(moduleId);
+        const data = await this.hybridStorage.loadModuleData(moduleId);
         this.storage.set(moduleId, data);
 
         // Return specific data if requested
@@ -226,9 +254,9 @@ export class ModuleManager implements IModuleManager {
       this.storage.set(moduleId, data);
 
       // Save to filesystem storage for persistence
-      if (this.fileSystemStorage.isAvailable()) {
+      if (this.hybridStorage.isAvailable()) {
         try {
-          await this.fileSystemStorage.saveModuleData(moduleId, data);
+          await this.hybridStorage.saveModuleData(moduleId, data);
         } catch (error) {
           console.warn(`Failed to save module data to filesystem for ${moduleId}:`, error);
         }
@@ -242,14 +270,14 @@ export class ModuleManager implements IModuleManager {
 
   // Filesystem availability check
   isFilesystemAvailable(): boolean {
-    return this.fileSystemStorage.isAvailable();
+    return this.hybridStorage.isAvailable();
   }
 
   // Get modules directory path (Electron only)
   async getModulesDirectory(): Promise<string | null> {
-    if (this.fileSystemStorage.isAvailable()) {
+    if (this.hybridStorage.isAvailable()) {
       try {
-        return await this.fileSystemStorage.getModulesDirectory();
+        return await this.hybridStorage.getModulesDirectory();
       } catch (error) {
         console.warn('Failed to get modules directory:', error);
         return null;
@@ -306,9 +334,9 @@ export class ModuleManager implements IModuleManager {
     progress: ModuleDownloadProgress,
     progressCallback?: (progress: ModuleDownloadProgress) => void,
     abortSignal?: AbortSignal
-  ): Promise<void> {
+  ): Promise<any> {
     const source = new GitHubJSONSource();
-    await source.downloadModule(module, progress, progressCallback, abortSignal);
+    return await source.downloadModule(module, progress, progressCallback, abortSignal);
   }
 
   private async downloadAPIModule(
@@ -355,5 +383,12 @@ export class ModuleManager implements IModuleManager {
   }
 }
 
-// Export singleton instance
-export default new ModuleManager();
+// Lazy initialization - will be created when first accessed
+let moduleManagerInstance: ModuleManager | null = null;
+
+export default function getModuleManager(): ModuleManager {
+  if (!moduleManagerInstance) {
+    moduleManagerInstance = new ModuleManager();
+  }
+  return moduleManagerInstance;
+}
