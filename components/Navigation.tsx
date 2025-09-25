@@ -13,6 +13,7 @@ import {
   Menu,
   X
 } from 'lucide-react'
+import { PanelControls } from './PanelControls'
 
 export default function Navigation() {
   const pathname = usePathname()
@@ -110,6 +111,11 @@ export default function Navigation() {
                 )
               })}
             </div>
+          </div>
+
+          {/* Panel Controls */}
+          <div className="flex items-center gap-4">
+            <PanelControls />
           </div>
         </div>
       </nav>
