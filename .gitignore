@@ -11,6 +11,12 @@ dist/
 # testing
 /coverage
 
+# Ignore downloaded Bible files but keep essential assets
+public/bibles/json/*.json
+public/bibles/text/*.txt
+!public/bibles/extras/strongs_definitions.json
+!public/bibles/module-manifest.json
+
 # next.js
 /.next/
 /out/
