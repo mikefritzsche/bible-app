@@ -1083,12 +1083,26 @@ export function VerseDisplay({
                 }
               }}
             >
-              {hasStrongs && onStrongsClick ? (
-                <VerseWithStrongs
-                  text={verse.text}
-                  verseNumber={null}
-                  onStrongsClick={onStrongsClick}
-                  highlights={(() => {
+              {verse.text && (verse.text.includes('{H') || verse.text.includes('{G')) ? (
+                (() => {
+                  console.log('🔍 [VerseDisplay] DEBUG - Text contains Strong\'s patterns, forcing VerseWithStrongs:', {
+                    hasStrongs,
+                    textHasStrongs: verse.text && (verse.text.includes('{H') || verse.text.includes('{G')),
+                    onStrongsClick: !!onStrongsClick,
+                    textSample: verse.text.substring(0, 50)
+                  });
+
+                  // Create a default click handler if none provided
+                  const handleClick = onStrongsClick || ((strongsNumber: string, position: { x: number; y: number }) => {
+                    console.log('Strong\'s number clicked:', strongsNumber, 'but no handler provided');
+                  });
+
+                  return (
+                    <VerseWithStrongs
+                      text={verse.text}
+                      verseNumber={null}
+                      onStrongsClick={handleClick}
+                      highlights={(() => {
                     // Collect all partial highlights
                     const allHighlights: any[] = []
                     if (highlights && highlights.length > 0) {
@@ -1106,6 +1120,8 @@ export function VerseDisplay({
                   })()}
                   isDarkMode={isDarkMode}
                 />
+              );
+            })()
               ) : (
                 renderHighlightedText(verse.text)
               )}
