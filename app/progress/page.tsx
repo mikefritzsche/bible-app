@@ -1,6 +1,15 @@
 'use client'
 
 import { useState, useEffect } from 'react'
+import {
+  Flame,
+  Crown,
+  Medal,
+  Trophy,
+  BookOpenCheck,
+  Sparkles,
+  type LucideIcon
+} from 'lucide-react'
 import { EnhancedReadingPlanManager, READING_PLANS, type ReadingPlanType } from '@/lib/ReadingPlanManagerEnhanced'
 import { ReadingPlanManager } from '@/lib/ReadingPlanManager'
 
@@ -118,13 +127,20 @@ export default function ProgressPage() {
   const getAchievements = () => {
     if (!statistics) return []
     
-    const achievements = []
+    const achievements: Array<{
+      title: string
+      description: string
+      icon: LucideIcon
+      colorClass: string
+      unlocked: boolean
+    }> = []
     
     if (statistics.currentStreak >= 7) {
       achievements.push({ 
         title: 'Week Warrior', 
         description: '7 day streak!',
-        icon: '🔥',
+        icon: Flame as LucideIcon,
+        colorClass: 'text-amber-500 dark:text-amber-400',
         unlocked: true 
       })
     }
@@ -133,7 +149,8 @@ export default function ProgressPage() {
       achievements.push({ 
         title: 'Monthly Master', 
         description: '30 day streak!',
-        icon: '👑',
+        icon: Crown as LucideIcon,
+        colorClass: 'text-yellow-500 dark:text-yellow-400',
         unlocked: true 
       })
     }
@@ -142,7 +159,8 @@ export default function ProgressPage() {
       achievements.push({ 
         title: 'Century Reader', 
         description: '100 days of reading',
-        icon: '💯',
+        icon: Medal as LucideIcon,
+        colorClass: 'text-blue-500 dark:text-blue-400',
         unlocked: true 
       })
     }
@@ -151,7 +169,8 @@ export default function ProgressPage() {
       achievements.push({ 
         title: 'Consistency Champion', 
         description: '50 day streak achieved',
-        icon: '🏆',
+        icon: Trophy as LucideIcon,
+        colorClass: 'text-purple-500 dark:text-purple-400',
         unlocked: true 
       })
     }
@@ -161,17 +180,19 @@ export default function ProgressPage() {
       { 
         title: 'Bible Scholar', 
         description: 'Complete entire Bible',
-        icon: '📚',
+        icon: BookOpenCheck as LucideIcon,
+        colorClass: 'text-emerald-500 dark:text-emerald-400',
         unlocked: false 
       },
       { 
         title: 'Year of Devotion', 
         description: '365 day streak',
-        icon: '🌟',
+        icon: Sparkles as LucideIcon,
+        colorClass: 'text-indigo-500 dark:text-indigo-400',
         unlocked: false 
       }
     )
-    
+
     return achievements
   }
 
@@ -378,16 +399,27 @@ export default function ProgressPage() {
             Your Achievements
           </h3>
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-            {getAchievements().map((achievement, idx) => (
-              <div
-                key={idx}
-                className={`p-6 rounded-lg border-2 ${
-                  achievement.unlocked
-                    ? 'bg-gradient-to-br from-yellow-50 to-amber-50 dark:from-yellow-900/20 dark:to-amber-900/20 border-yellow-400 dark:border-yellow-600'
-                    : 'bg-gray-50 dark:bg-gray-700 border-gray-300 dark:border-gray-600 opacity-60'
-                }`}
-              >
-                <div className="text-4xl mb-3">{achievement.icon}</div>
+            {getAchievements().map((achievement, idx) => {
+              const Icon = achievement.icon
+              return (
+                <div
+                  key={idx}
+                  className={`p-6 rounded-lg border-2 ${
+                    achievement.unlocked
+                      ? 'bg-gradient-to-br from-yellow-50 to-amber-50 dark:from-yellow-900/20 dark:to-amber-900/20 border-yellow-400 dark:border-yellow-600'
+                      : 'bg-gray-50 dark:bg-gray-700 border-gray-300 dark:border-gray-600 opacity-60'
+                  }`}
+                >
+                  <div className="mb-3">
+                    <Icon
+                      className={`h-10 w-10 transition-colors ${
+                        achievement.unlocked
+                          ? achievement.colorClass
+                          : 'text-gray-400 dark:text-gray-500'
+                      }`}
+                      strokeWidth={1.6}
+                    />
+                  </div>
                 <h4 className={`font-semibold mb-1 ${
                   achievement.unlocked
                     ? 'text-gray-900 dark:text-gray-100'
@@ -407,8 +439,9 @@ export default function ProgressPage() {
                     ✓ Unlocked
                   </div>
                 )}
-              </div>
-            ))}
+                </div>
+              )
+            })}
           </div>
         </div>
       )}
