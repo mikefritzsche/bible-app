@@ -18,6 +18,10 @@ public/bibles/text/*.txt
 !public/bibles/extras/strongs_definitions.json
 !public/bibles/module-manifest.json
 
+# Local Bible modules (large downloads kept out of git)
+public/bibles/modules/*
+!public/bibles/modules/README.md
+
 # next.js
 /.next/
 /out/

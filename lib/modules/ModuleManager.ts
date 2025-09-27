@@ -67,6 +67,40 @@ export class ModuleManager implements IModuleManager {
     this.downloadProgress.set(moduleId, progress);
 
     try {
+      // First attempt to satisfy the request from bundled static modules
+      if (typeof window !== 'undefined') {
+        const staticUrl = `/bibles/modules/${moduleId}.json`;
+        try {
+          const response = await fetch(staticUrl);
+          if (response.ok) {
+            const staticData = await response.json();
+            console.log(`✅ Loaded ${moduleId} from bundled static modules`);
+
+            this.storage.set(moduleId, staticData);
+
+            if (this.hybridStorage.isAvailable()) {
+              try {
+                await this.hybridStorage.saveModuleData(moduleId, staticData);
+              } catch (storageError) {
+                console.warn(`Failed to persist ${moduleId} from static modules:`, storageError);
+              }
+            }
+
+            progress.status = 'completed';
+            progress.progress = 100;
+            progress.bytesDownloaded = staticData?.verses?.length || 0;
+            progress.totalBytes = progress.bytesDownloaded;
+            progress.completedAt = new Date();
+            this.notifyProgress(progress, progressCallback);
+
+            await this.registry.addInstalledModule(moduleId);
+            return;
+          }
+        } catch (staticError) {
+          console.warn(`Bundled module lookup failed for ${moduleId}:`, staticError);
+        }
+      }
+
       // Update status to downloading
       progress.status = 'downloading';
       this.notifyProgress(progress, progressCallback);
@@ -195,74 +229,107 @@ export class ModuleManager implements IModuleManager {
   }
 
   async getModuleData(moduleId: string, book?: string, chapter?: number, term?: string): Promise<any> {
-    // Check if cached
-    if (this.storage.has(moduleId)) {
-      const cachedData = this.storage.get(moduleId);
-
-      // For Bible modules, return specific book/chapter if requested
-      if (book && cachedData.books && cachedData.books[book]) {
-        if (chapter !== undefined && cachedData.books[book].chapters) {
-          return cachedData.books[book].chapters[chapter - 1] || null;
-        }
-        return cachedData.books[book] || null;
-      }
-
-      // For dictionaries, return specific term if requested
-      if (term && cachedData.entries && cachedData.entries[term]) {
-        return cachedData.entries[term];
-      }
-
-      return cachedData;
-    }
-
-    // Try to load from filesystem storage
-    if (this.hybridStorage.isAvailable()) {
-      try {
-        const data = await this.hybridStorage.loadModuleData(moduleId);
-        this.storage.set(moduleId, data);
-
-        // Return specific data if requested
-        if (book && data.books && data.books[book]) {
-          if (chapter !== undefined && data.books[book].chapters) {
-            return data.books[book].chapters[chapter - 1] || null;
-          }
-          return data.books[book] || null;
-        }
-        if (term && data.entries && data.entries[term]) {
-          return data.entries[term];
-        }
-        return data;
-      } catch (error) {
-        console.warn(`Failed to load module data from filesystem for ${moduleId}:`, error);
-      }
-
-    }
-
-    // If not cached, try to load from static source
     const module = await this.getModule(moduleId);
     if (!module) {
       throw new Error(`Module ${moduleId} not found`);
     }
 
-    // Load from static source as fallback (only on client side)
-    if (typeof window === 'undefined') {
-      throw new Error(`Module ${moduleId} is not available during server-side rendering`);
-    }
-    try {
-      const staticSource = new StaticSource();
-      const data = await staticSource.getModuleData(module, book, chapter, term);
-      this.storage.set(moduleId, data);
+    const extractModuleSlice = (data: any) => {
+      if (!data) return null;
 
-      // Save to filesystem storage for persistence
-      if (this.hybridStorage.isAvailable()) {
-        try {
-          await this.hybridStorage.saveModuleData(moduleId, data);
-        } catch (error) {
-          console.warn(`Failed to save module data to filesystem for ${moduleId}:`, error);
+      if (module.type === ModuleType.BIBLE && book && data.books && data.books[book]) {
+        if (chapter !== undefined && data.books[book].chapters) {
+          return data.books[book].chapters[chapter - 1] || null;
         }
+        return data.books[book] || null;
+      }
+
+      if (module.type === ModuleType.DICTIONARY && term && data.entries) {
+        return data.entries[term] || null;
       }
 
       return data;
+    };
+
+    const isValidModuleData = (data: any): boolean => {
+      if (!data) return false;
+
+      if (module.type === ModuleType.BIBLE) {
+        if (data.books && typeof data.books === 'object') {
+          return Object.keys(data.books).length > 0;
+        }
+
+        if (data.chapters && Array.isArray(data.chapters)) {
+          return data.chapters.length > 0;
+        }
+
+        if (data.verses && typeof data.verses === 'object') {
+          return Object.keys(data.verses).length > 0;
+        }
+
+        if (Array.isArray(data.verses)) {
+          return data.verses.length > 0;
+        }
+
+        return false;
+      }
+
+      return true;
+    };
+
+    // Check in-memory cache first
+    if (this.storage.has(moduleId)) {
+      const cachedData = this.storage.get(moduleId);
+      if (isValidModuleData(cachedData)) {
+        return extractModuleSlice(cachedData);
+      }
+
+      // Purge invalid cached data
+      this.storage.delete(moduleId);
+    }
+
+    // Try persistent storage next
+    if (this.hybridStorage.isAvailable()) {
+      try {
+        const storedData = await this.hybridStorage.loadModuleData(moduleId);
+        if (storedData && isValidModuleData(storedData)) {
+          this.storage.set(moduleId, storedData);
+          return extractModuleSlice(storedData);
+        }
+
+        if (storedData) {
+          // Remove corrupted or incomplete data so we can fall back to a known-good source
+          await this.hybridStorage.deleteModuleData(moduleId).catch(error => {
+            console.warn(`Failed to delete corrupted module data for ${moduleId}:`, error);
+          });
+        }
+      } catch (error) {
+        console.warn(`Failed to load module data from filesystem for ${moduleId}:`, error);
+      }
+    }
+
+    // Load from static source as final fallback (client side only)
+    if (typeof window === 'undefined') {
+      throw new Error(`Module ${moduleId} is not available during server-side rendering`);
+    }
+
+    try {
+      const staticSource = new StaticSource();
+      const data = await staticSource.getModuleData(module, book, chapter, term);
+
+      if (!isValidModuleData(data)) {
+        throw new Error(`Static module data for ${moduleId} is incomplete`);
+      }
+
+      this.storage.set(moduleId, data);
+
+      if (this.hybridStorage.isAvailable()) {
+        await this.hybridStorage.saveModuleData(moduleId, data).catch(error => {
+          console.warn(`Failed to save module data to filesystem for ${moduleId}:`, error);
+        });
+      }
+
+      return extractModuleSlice(data);
     } catch (error) {
       throw new Error(`Module ${moduleId} is not installed and could not be loaded`);
     }

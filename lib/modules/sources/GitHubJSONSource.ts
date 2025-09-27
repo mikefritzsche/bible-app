@@ -169,7 +169,7 @@ export class GitHubJSONSource {
 
       // Fallback: load from local static file
       try {
-        const fallbackResponse = await fetch('/bibles/json/kjv.json');
+        const fallbackResponse = await fetch('/bibles/modules/kjv.json');
         if (fallbackResponse.ok) {
           const fallbackData = await fallbackResponse.json();
           console.log('✅ Loaded fallback KJV data with', fallbackData.verses?.length || 0, 'verses');
@@ -298,7 +298,7 @@ export class GitHubJSONSource {
 
       // Fallback: load from local static file
       try {
-        const fallbackResponse = await fetch('/bibles/json/kjv_strongs.json');
+        const fallbackResponse = await fetch('/bibles/modules/kjv-strongs.json');
         if (fallbackResponse.ok) {
           const fallbackData = await fallbackResponse.json();
           console.log('✅ Loaded fallback KJV-Strongs data with', fallbackData.verses?.length || 0, 'verses');

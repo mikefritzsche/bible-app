@@ -44,12 +44,12 @@ export class StaticSource {
   private async getBibleData(moduleId: string, book: string, chapter: number): Promise<any> {
     // Try to load from existing static Bible files
     const staticFiles = {
-      'kjv': '/bibles/json/kjv.json',
-      'kjv-strongs': '/bibles/json/kjv_strongs.json',
-      'kjv_strongs': '/bibles/json/kjv_strongs.json',
-      'asv': '/bibles/json/asv.json',
-      'web': '/bibles/json/web.json',
-      'geneva': '/bibles/json/geneva.json'
+      'kjv': '/bibles/modules/kjv.json',
+      'kjv-strongs': '/bibles/modules/kjv-strongs.json',
+      'kjv_strongs': '/bibles/modules/kjv-strongs.json',
+      'asv': '/bibles/modules/asv.json',
+      'web': '/bibles/modules/web.json',
+      'geneva': '/bibles/modules/geneva.json'
     };
 
     const filePath = staticFiles[moduleId as keyof typeof staticFiles];
@@ -103,12 +103,12 @@ export class StaticSource {
   private async getGeneralModuleData(moduleId: string): Promise<any> {
     // Load the full Bible data from static files
     const staticFiles = {
-      'kjv': '/bibles/json/kjv.json',
-      'kjv-strongs': '/bibles/json/kjv_strongs.json', // Map module ID to file name
-      'kjv_strongs': '/bibles/json/kjv_strongs.json',
-      'asv': '/bibles/json/asv.json',
-      'web': '/bibles/json/web.json',
-      'geneva': '/bibles/json/geneva.json'
+      'kjv': '/bibles/modules/kjv.json',
+      'kjv-strongs': '/bibles/modules/kjv-strongs.json', // Map module ID to file name
+      'kjv_strongs': '/bibles/modules/kjv-strongs.json',
+      'asv': '/bibles/modules/asv.json',
+      'web': '/bibles/modules/web.json',
+      'geneva': '/bibles/modules/geneva.json'
     };
 
     const filePath = staticFiles[moduleId as keyof typeof staticFiles];

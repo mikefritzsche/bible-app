@@ -29,7 +29,7 @@ const getDefaultSettings = (): Settings => {
       showVerseNumbers: true,
       showStrongsNumbers: true,
       enableReminders: true,
-      bibleVersion: 'kjv_strongs'
+      bibleVersion: 'kjv-strongs'
     }
   }
 
@@ -41,7 +41,7 @@ const getDefaultSettings = (): Settings => {
     showVerseNumbers: true,
     showStrongsNumbers: true,
     enableReminders: true,
-    bibleVersion: 'kjv_strongs'
+    bibleVersion: 'kjv-strongs'
   }
 }
 

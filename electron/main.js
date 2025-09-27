@@ -3,7 +3,7 @@ const path = require('path');
 const url = require('url');
 const fs = require('fs').promises;
 const os = require('os');
-const isDev = process.env.NODE_ENV === 'development' || !app.isPackaged;
+let isDev = process.env.NODE_ENV === 'development';
 
 let mainWindow;
 
@@ -129,6 +129,7 @@ ipcMain.handle('get-modules-directory', () => {
 });
 
 app.whenReady().then(async () => {
+  isDev = process.env.NODE_ENV === 'development' || !app.isPackaged;
   await initializeModulesDir();
   createWindow();
 });

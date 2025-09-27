@@ -5,8 +5,10 @@ import getModuleManager from '@/lib/modules/ModuleManager';
 function mapVersionForModuleSystem(version: string): string {
   const versionMap: Record<string, string> = {
     'kjv-strongs': 'kjv-strongs',
+    'kjv_strongs': 'kjv-strongs',
     'kjv': 'kjv',
     'asv-strongs': 'asv-strongs',
+    'asv_strongs': 'asv-strongs',
     'asv': 'asv',
     'geneva': 'geneva',
     'web': 'web'
@@ -19,8 +21,10 @@ function mapVersionForModuleSystem(version: string): string {
 function mapVersionFromModuleSystem(moduleVersion: string): string {
   const versionMap: Record<string, string> = {
     'kjv-strongs': 'kjv-strongs',
+    'kjv_strongs': 'kjv-strongs',
     'kjv': 'kjv',
     'asv-strongs': 'asv-strongs',
+    'asv_strongs': 'asv-strongs',
     'asv': 'asv',
     'geneva': 'geneva',
     'web': 'web'
@@ -36,115 +40,132 @@ export class BibleParser {
   private moduleManager: any = null;
 
   async loadBible(version: string = 'kjv-strongs'): Promise<BibleData> {
-    try {
-      // First try to load from module system (only on client side)
-      // TEMPORARY: Skip module system to force static file loading
-      if (typeof window !== 'undefined' && false) {
-        if (!this.moduleManager) {
-          this.moduleManager = getModuleManager();
-        }
+    const normalizedVersion = version.toLowerCase();
+    const requiresStrongs = normalizedVersion.includes('strongs');
+    let lastError: unknown = null;
 
-        try {
-          // Map version names for module system compatibility
-          const moduleVersion = mapVersionForModuleSystem(version);
-          const isInstalled = await this.moduleManager.isModuleInstalled(moduleVersion);
+    const attemptModuleFirst = requiresStrongs;
+    let bible: BibleData | null = null;
+    let fallbackBible: BibleData | null = null;
 
-          if (isInstalled) {
-            console.log('🔍 [BibleParser] Module found, loading data for:', moduleVersion);
-            const moduleData = await this.moduleManager.getModuleData(moduleVersion);
-            if (moduleData) {
-              console.log('🔍 [BibleParser] Module data loaded, sample verse:', moduleData.verses?.[0]);
-              this.bibleData = await this.transformModuleData(moduleData, version);
-              return this.bibleData;
-            }
-          } else {
-            console.log('🔍 [BibleParser] Module not installed:', moduleVersion);
-          }
-        } catch (moduleError) {
-          console.warn('Module system failed, falling back to static files:', moduleError);
+    if (attemptModuleFirst) {
+      const moduleResult = await this.loadBibleFromModuleSystem(version, requiresStrongs);
+      if (moduleResult) {
+        if (!requiresStrongs || moduleResult.hasStrongs) {
+          bible = moduleResult.bible;
+        } else {
+          fallbackBible = moduleResult.bible;
         }
       }
-
-      // Fall back to static files
-      console.log(`Loading ${version} from static files...`);
-      const response = await fetch(`/bibles/json/${version}.json`);
-      if (!response.ok) {
-        console.error(`Failed to load Bible ${version}: HTTP ${response.status}`);
-        throw new Error(`Failed to load Bible: ${response.status}`);
-      }
-
-      const rawData = await response.json();
-
-      // Debug: Check if static file data has Strong's numbers
-      if (rawData.verses && rawData.verses.length > 0) {
-        console.log('🔍 [BibleParser] Static file sample verse:', rawData.verses[0]);
-        console.log('🔍 [BibleParser] Static file contains Strong\'s:', rawData.verses[0].text.includes('{H'));
-      }
-
-      // Transform flat verse array into hierarchical structure
-      const books: Record<string, Book> = {};
-      
-      if (rawData.verses && Array.isArray(rawData.verses)) {
-        rawData.verses.forEach((verse: any) => {
-          const bookName = verse.book_name;
-          
-          if (!books[bookName]) {
-            books[bookName] = {
-              book: bookName,
-              chapters: []
-            };
-          }
-          
-          // Find or create chapter
-          let chapter = books[bookName].chapters.find(c => c.chapter === verse.chapter);
-          if (!chapter) {
-            chapter = {
-              chapter: verse.chapter,
-              name: `${bookName} ${verse.chapter}`,
-              verses: {}
-            };
-            books[bookName].chapters.push(chapter);
-          }
-          
-          // Add verse to chapter
-          chapter.verses[verse.verse.toString()] = {
-            chapter: verse.chapter,
-            verse: verse.verse,
-            name: `${bookName} ${verse.chapter}:${verse.verse}`,
-            text: verse.text
-          };
-        });
-        
-        // Sort chapters in each book
-        Object.values(books).forEach(book => {
-          book.chapters.sort((a, b) => a.chapter - b.chapter);
-        });
-      }
-      
-      this.bibleData = {
-        version: version,
-        books: books
-      };
-      
-      console.log(`Loaded ${version} Bible with ${Object.keys(this.bibleData.books).length} books`);
-      const bookNames = Object.keys(this.bibleData.books);
-      console.log('Available books:', bookNames.slice(0, 10), '...');
-
-      // Check for common book name variations
-      const psalmsVariations = ['Psalms', 'Psalm', 'Psalme', 'Psalme', 'The Psalms'];
-      const foundPsalms = psalmsVariations.find(name => bookNames.includes(name));
-      if (foundPsalms) {
-        console.log(`Found Psalms as: "${foundPsalms}"`);
-      } else {
-        console.log('Psalms not found in any of these variations:', psalmsVariations);
-        console.log('All available books:', bookNames);
-      }
-
-      return this.bibleData;
-    } catch (error) {
-      console.error('Error loading Bible:', error);
-      throw error;
     }
+
+    if (!bible) {
+      try {
+        const staticResult = await this.loadBibleFromStatic(version, requiresStrongs);
+        if (staticResult) {
+          if (!requiresStrongs || staticResult.hasStrongs) {
+            bible = staticResult.bible;
+          } else {
+            fallbackBible = fallbackBible ?? staticResult.bible;
+          }
+        }
+      } catch (error) {
+        lastError = error;
+      }
+    }
+
+    if (!bible && !attemptModuleFirst) {
+      const moduleResult = await this.loadBibleFromModuleSystem(version, requiresStrongs);
+      if (moduleResult) {
+        if (!requiresStrongs || moduleResult.hasStrongs) {
+          bible = moduleResult.bible;
+        } else {
+          fallbackBible = fallbackBible ?? moduleResult.bible;
+        }
+      }
+    }
+
+    if (!bible && requiresStrongs) {
+      // One more attempt in case a module became available after the static fallback failed validation
+      const moduleResult = await this.loadBibleFromModuleSystem(version, requiresStrongs);
+      if (moduleResult) {
+        if (!requiresStrongs || moduleResult.hasStrongs) {
+          bible = moduleResult.bible;
+        } else {
+          fallbackBible = fallbackBible ?? moduleResult.bible;
+        }
+      }
+    }
+
+    if (!bible && fallbackBible) {
+      bible = fallbackBible;
+    }
+
+    if (!bible) {
+      if (lastError) {
+        console.error('Error loading Bible:', lastError);
+        throw lastError;
+      }
+      const message = requiresStrongs
+        ? `Failed to load Strong's-enabled Bible data for version ${version}. Please download the module or ensure the dataset includes Strong's annotations.`
+        : `Failed to load Bible data for version ${version}`;
+      throw new Error(message);
+    }
+
+    this.bibleData = bible;
+
+    console.log(`Loaded ${version} Bible with ${Object.keys(this.bibleData.books).length} books`);
+    const bookNames = Object.keys(this.bibleData.books);
+    console.log('Available books:', bookNames.slice(0, 10), '...');
+
+    // Check for common book name variations
+    const psalmsVariations = ['Psalms', 'Psalm', 'Psalme', 'Psalme', 'The Psalms'];
+    const foundPsalms = psalmsVariations.find(name => bookNames.includes(name));
+    if (foundPsalms) {
+      console.log(`Found Psalms as: "${foundPsalms}"`);
+    } else {
+      console.log('Psalms not found in any of these variations:', psalmsVariations);
+      console.log('All available books:', bookNames);
+    }
+
+    return this.bibleData;
+  }
+
+  private async loadFromStaticFiles(version: string): Promise<any> {
+    const normalizedVersion = version.replace('_', '-');
+
+    const candidatePaths = Array.from(new Set([
+      `/bibles/modules/${normalizedVersion}.json`,
+      `/bibles/modules/${version}.json`,
+      `/bibles/json/${normalizedVersion}.json`,
+      `/bibles/json/${version}.json`,
+      normalizedVersion === 'kjv-strongs' ? '/bibles/json/kjv_complete.json' : null
+    ].filter(Boolean) as string[]));
+
+    let lastError: any = null;
+    for (const path of candidatePaths) {
+      try {
+        const response = await fetch(path);
+        if (!response.ok) {
+          lastError = new Error(`HTTP ${response.status} for ${path}`);
+          console.warn(`Static Bible source not found at ${path}`);
+          continue;
+        }
+
+        const data = await response.json();
+        if (normalizedVersion === 'kjv-strongs' && data?.verses && data.verses.length < 30000) {
+          console.warn(`Static Bible data from ${path} appears incomplete (${data.verses.length} verses). Trying next fallback.`);
+          continue;
+        }
+        console.log(`Loaded static Bible data from ${path}`);
+        return data;
+      } catch (error) {
+        lastError = error;
+        console.warn(`Failed to load Bible data from ${path}:`, error);
+      }
+    }
+
+    throw lastError ?? new Error(`No static Bible data available for version ${version}`);
   }
 
   getBooks(): string[] {
@@ -251,6 +272,11 @@ export class BibleParser {
 
     if (moduleData.verses && Array.isArray(moduleData.verses)) {
       // Handle flat verse array format
+      const hasZeroChapter = moduleData.verses.some((verse: any) => Number(verse.chapter) === 0);
+      const hasZeroVerse = moduleData.verses.some((verse: any) => Number(verse.verse) === 0);
+      const chapterOffset = hasZeroChapter ? 1 : 0;
+      const verseOffset = hasZeroVerse ? 1 : 0;
+
       moduleData.verses.forEach((verse: any) => {
         const bookName = verse.book_name;
 
@@ -262,21 +288,26 @@ export class BibleParser {
         }
 
         // Find or create chapter
-        let chapter = books[bookName].chapters.find(c => c.chapter === verse.chapter);
+        const rawChapter = typeof verse.chapter === 'number' ? verse.chapter : parseInt(verse.chapter, 10);
+        const rawVerse = typeof verse.verse === 'number' ? verse.verse : parseInt(verse.verse, 10);
+        const normalizedChapter = rawChapter + chapterOffset;
+        const normalizedVerse = rawVerse + verseOffset;
+
+        let chapter = books[bookName].chapters.find(c => c.chapter === normalizedChapter);
         if (!chapter) {
           chapter = {
-            chapter: verse.chapter,
-            name: `${bookName} ${verse.chapter}`,
+            chapter: normalizedChapter,
+            name: `${bookName} ${normalizedChapter}`,
             verses: {}
           };
           books[bookName].chapters.push(chapter);
         }
 
         // Add verse to chapter
-        chapter.verses[verse.verse.toString()] = {
-          chapter: verse.chapter,
-          verse: verse.verse,
-          name: `${bookName} ${verse.chapter}:${verse.verse}`,
+        chapter.verses[normalizedVerse.toString()] = {
+          chapter: normalizedChapter,
+          verse: normalizedVerse,
+          name: `${bookName} ${normalizedChapter}:${normalizedVerse}`,
           text: verse.text
         };
       });
@@ -299,6 +330,79 @@ export class BibleParser {
       version: version,
       books: books
     };
+  }
+
+  private containsStrongsData(bible: BibleData | null): boolean {
+    if (!bible) return false;
+
+    const books = Object.values(bible.books);
+    for (const book of books) {
+      for (const chapter of book.chapters) {
+        for (const verse of Object.values(chapter.verses)) {
+          if (verse.text && /\{[HG]\d{1,5}\}/.test(verse.text)) {
+            return true;
+          }
+        }
+      }
+    }
+    return false;
+  }
+
+  private async loadBibleFromStatic(version: string, requiresStrongs: boolean): Promise<{ bible: BibleData; hasStrongs: boolean } | null> {
+    try {
+      console.log(`Loading ${version} from static files...`);
+      const rawData = await this.loadFromStaticFiles(version);
+      const transformed = await this.transformModuleData(rawData, version);
+      const hasStrongs = this.containsStrongsData(transformed);
+
+      if (requiresStrongs && !hasStrongs) {
+        console.warn(`Static data for ${version} is missing Strong's annotations. Will try module sources.`);
+      }
+
+      return { bible: transformed, hasStrongs };
+    } catch (error) {
+      console.warn(`Static lookup for ${version} failed:`, error);
+      throw error;
+    }
+  }
+
+  private async loadBibleFromModuleSystem(version: string, requiresStrongs: boolean): Promise<{ bible: BibleData; hasStrongs: boolean } | null> {
+    if (typeof window === 'undefined') {
+      return null;
+    }
+
+    if (!this.moduleManager) {
+      this.moduleManager = getModuleManager();
+    }
+
+    try {
+      const moduleVersion = mapVersionForModuleSystem(version);
+      const isInstalled = await this.moduleManager.isModuleInstalled(moduleVersion);
+
+      if (!isInstalled) {
+        console.log('🔍 [BibleParser] Module not installed:', moduleVersion);
+        return null;
+      }
+
+      console.log('🔍 [BibleParser] Loading module data for:', moduleVersion);
+      const moduleData = await this.moduleManager.getModuleData(moduleVersion);
+      if (!moduleData) {
+        console.warn('🔍 [BibleParser] Module returned no data:', moduleVersion);
+        return null;
+      }
+
+      const transformed = await this.transformModuleData(moduleData, version);
+      const hasStrongs = this.containsStrongsData(transformed);
+      if (requiresStrongs && !hasStrongs) {
+        console.warn(`Module data for ${version} is missing Strong's annotations.`);
+        return { bible: transformed, hasStrongs: false };
+      }
+
+      return { bible: transformed, hasStrongs };
+    } catch (error) {
+      console.warn('Module system failed while loading', version, error);
+      return null;
+    }
   }
 
   // New method to get available Bible versions
@@ -327,7 +431,8 @@ export class BibleParser {
         if (!this.moduleManager) {
           this.moduleManager = getModuleManager();
         }
-        return await this.moduleManager.isModuleInstalled(version);
+        const normalized = version.replace('_', '-');
+        return await this.moduleManager.isModuleInstalled(normalized);
       }
       return false; // Fallback for SSR
     } catch (error) {
