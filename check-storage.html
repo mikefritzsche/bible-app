@@ -1,0 +1,124 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Storage Debug</title>
+</head>
+<body>
+    <h1>Storage Debug Information</h1>
+    <div id="debug-info"></div>
+
+    <script>
+        async function checkStorage() {
+            const info = document.getElementById('debug-info');
+
+            // Environment check
+            info.innerHTML += '<h2>Environment</h2>';
+            info.innerHTML += `<p>isBrowser: ${typeof window !== 'undefined'}</p>`;
+            info.innerHTML += `<p>isElectron: ${typeof window !== 'undefined' && !!window.electronAPI}</p>`;
+            info.innerHTML += `<p>hasIndexedDB: ${typeof indexedDB !== 'undefined'}</p>`;
+
+            // Check IndexedDB
+            if (typeof indexedDB !== 'undefined') {
+                info.innerHTML += '<h2>IndexedDB Status</h2>';
+
+                try {
+                    const request = indexedDB.open('BibleAppModules', 1);
+
+                    request.onsuccess = function() {
+                        const db = request.result;
+                        info.innerHTML += `<p>✅ Database opened successfully</p>`;
+                        info.innerHTML += `<p>Database name: ${db.name}</p>`;
+                        info.innerHTML += `<p>Version: ${db.version}</p>`;
+                        info.innerHTML += `<p>Object stores: ${Array.from(db.objectStoreNames).join(', ')}</p>`;
+
+                        // Check for modules
+                        if (db.objectStoreNames.contains('modules')) {
+                            info.innerHTML += '<p>✅ Modules store exists</p>';
+
+                            // List all modules
+                            const transaction = db.transaction('modules', 'readonly');
+                            const store = transaction.objectStore('modules');
+                            const getAll = store.getAllKeys();
+
+                            getAll.onsuccess = function() {
+                                info.innerHTML += `<p>Stored modules: ${JSON.stringify(getAll.result)}</p>`;
+                            };
+
+                            getAll.onerror = function() {
+                                info.innerHTML += '<p>❌ Failed to get module keys</p>';
+                            };
+                        } else {
+                            info.innerHTML += '<p>❌ Modules store does not exist</p>';
+                        }
+                    };
+
+                    request.onerror = function() {
+                        info.innerHTML += `<p>❌ Failed to open database: ${request.error?.message || 'Unknown error'}</p>`;
+                    };
+
+                    request.onupgradeneeded = function() {
+                        info.innerHTML += '<p>⚠️ Database upgrade needed</p>';
+                    };
+                } catch (error) {
+                    info.innerHTML += `<p>❌ IndexedDB error: ${error.message}</p>`;
+                }
+            } else {
+                info.innerHTML += '<p>❌ IndexedDB not available</p>';
+            }
+
+            // Check localStorage
+            info.innerHTML += '<h2>LocalStorage</h2>';
+            info.innerHTML += `<p>first-run-complete: ${localStorage.getItem('bible-app-first-run-complete')}</p>`;
+            info.innerHTML += `<p>selectedBibleVersion: ${localStorage.getItem('selectedBibleVersion')}</p>`;
+        }
+
+        // Function to manually test storage
+        async function testStorage() {
+            if (typeof indexedDB === 'undefined') {
+                alert('IndexedDB not available');
+                return;
+            }
+
+            try {
+                // Create a simple test database
+                const request = indexedDB.open('TestStorage', 1);
+
+                request.onupgradeneeded = function(event) {
+                    const db = event.target.result;
+                    if (!db.objectStoreNames.contains('test')) {
+                        db.createObjectStore('test');
+                    }
+                };
+
+                request.onsuccess = function(event) {
+                    const db = event.target.result;
+
+                    // Test write
+                    const transaction = db.transaction('test', 'readwrite');
+                    const store = transaction.objectStore('test');
+                    const writeRequest = store.put('test data', 'test key');
+
+                    writeRequest.onsuccess = function() {
+                        alert('✅ Storage test successful!');
+                    };
+
+                    writeRequest.onerror = function() {
+                        alert('❌ Storage test failed: ' + writeRequest.error?.message);
+                    };
+                };
+
+                request.onerror = function() {
+                    alert('❌ Failed to open test database: ' + request.error?.message);
+                };
+            } catch (error) {
+                alert('❌ Storage test error: ' + error.message);
+            }
+        }
+
+        checkStorage();
+    </script>
+
+    <br>
+    <button onclick="testStorage()">Test Storage</button>
+</body>
+</html>
