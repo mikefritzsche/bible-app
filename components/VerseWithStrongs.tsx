@@ -1,52 +1,41 @@
 'use client'
 
-import React from 'react';
-import type { VerseWithStrongsProps, ParsedTextPart } from '@/types/bible';
-import { HIGHLIGHT_COLORS_LIGHT, HIGHLIGHT_COLORS_DARK } from '@/lib/HighlightManager';
+import React from 'react'
+import type { VerseWithStrongsProps, ParsedTextPart } from '@/types/bible'
+import { HIGHLIGHT_COLORS_LIGHT, HIGHLIGHT_COLORS_DARK } from '@/lib/HighlightManager'
 
 export function VerseWithStrongs({ text, verseNumber, onStrongsClick, highlights, isDarkMode = false, fontSize, lineHeight }: VerseWithStrongsProps) {
-  // Debug: log what VerseWithStrongs is receiving
-  console.log('🔍 [VerseWithStrongs] Component called with:', {
-    text: text.substring(0, 50),
-    verseNumber,
-    hasClickHandler: !!onStrongsClick,
-    textLength: text.length,
-    containsStrongs: text.includes('{H') || text.includes('{G')
-  });
-
-  // Debug: log the original text and highlights
-  if (highlights && highlights.length > 0) {
-    console.log('VerseWithStrongs - Original text:', text);
-    console.log('VerseWithStrongs - Highlights:', highlights);
-    highlights.forEach(h => {
-      console.log(`  Highlight: "${text.substring(h.startOffset, h.endOffset)}" at [${h.startOffset}, ${h.endOffset}]`);
-    });
-  }
 
   // Parse the text to separate words from Strong's numbers and handle punctuation correctly
   const parseVerseText = (text: string): ParsedTextPart[] => {
-    console.log('🔍 [VerseWithStrongs] parseVerseText called with:', text.substring(0, 50));
     const parts: ParsedTextPart[] = [];
 
-    // Handle {{ pattern - everything from {{ to end of text should be italicized
+    // Handle both HTML tags and {{ pattern for italics
     let processedText = text;
-    const doubleBraceIndex = text.indexOf('{{');
-    if (doubleBraceIndex !== -1) {
-      // Debug logging
-      console.log('Found {{ pattern in verse:', text);
 
-      // Split at the {{ and wrap the rest in brackets for italics
-      const beforeBrace = text.substring(0, doubleBraceIndex);
-      const afterBrace = text.substring(doubleBraceIndex + 2); // Skip the {{
-      processedText = beforeBrace + '[' + afterBrace + ']';
+    // First, handle HTML <em> tags - convert them to bracket format for processing
+    processedText = processedText.replace(/<em>([^<]+)<\/em>/gi, '[$1]');
 
-      console.log('Processed to:', processedText);
-    }
+    // Remove leftover double-brace markers (used by some Strong's datasets to denote italics)
+    processedText = processedText
+      .replace(/\{\{/g, '')
+      .replace(/\}\}/g, '')
+      .replace(/\{\((H\d{1,5})\)\}/gi, '{$1}')
+      .replace(/\{\((G\d{1,5})\)\}/gi, '{$1}')
+
+    // Ensure Strong's numbers are wrapped with braces if they aren't already
+    processedText = processedText.replace(/([HG]\d{1,5})/g, (match, p1, offset, str) => {
+      const prevChar = str[offset - 1]
+      const nextChar = str[offset + match.length]
+      if (prevChar === '{' && nextChar === '}') {
+        return match
+      }
+      return `{${match}}`
+    });
 
     // Split by Strong's numbers and bracketed text
     // Handle cases where multiple Strong's numbers appear together like {H1254}{H853}
     const segments = processedText.split(/(\{[HG]\d{1,5}\}|\[[^\]]+\])/);
-    console.log('🔍 [VerseWithStrongs] Split into segments:', segments.length, 'segments:', segments);
 
     let pendingTrailingSpace = '';
 
@@ -184,8 +173,6 @@ export function VerseWithStrongs({ text, verseNumber, onStrongsClick, highlights
         content: pendingTrailingSpace
       });
     }
-
-    console.log('🔍 [VerseWithStrongs] Parsed parts:', parts);
     return parts;
   };
 
@@ -215,8 +202,16 @@ export function VerseWithStrongs({ text, verseNumber, onStrongsClick, highlights
 
   const parsedText = parseVerseText(text);
 
+  const computedStyle: React.CSSProperties = {}
+  if (fontSize) {
+    computedStyle.fontSize = fontSize
+  }
+  if (lineHeight) {
+    computedStyle.lineHeight = lineHeight
+  }
+
   return (
-    <span>
+    <span style={computedStyle}>
       {verseNumber !== null && (
         <strong className="text-blue-600 dark:text-blue-400 mr-2">{verseNumber}</strong>
       )}
@@ -243,8 +238,6 @@ export function VerseWithStrongs({ text, verseNumber, onStrongsClick, highlights
               }
             }
             const originalPos = reconstructed.length;
-            
-            console.log(`Text part ${index}: "${part.content}" starts at position ${originalPos}`);
             
             const textContent = part.content;
             const segments: React.ReactNode[] = [];

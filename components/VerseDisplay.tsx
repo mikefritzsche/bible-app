@@ -1062,7 +1062,19 @@ export function VerseDisplay({
                   return (highlightColor || isSelected) ? '3px' : '0'
                 })(),
                 transition: 'all 0.2s',
-                display: 'inline'
+                display: 'inline',
+                cursor: 'pointer'
+              }}
+              onClick={(event) => {
+                event.stopPropagation()
+
+                // Avoid hijacking the click when the user is actively selecting text
+                const selection = typeof window !== 'undefined' ? window.getSelection() : null
+                if (selection && selection.toString().trim().length > 0) {
+                  return
+                }
+
+                onVerseClick(verse)
               }}
               onMouseEnter={(e) => {
                 if (!isSelected && !highlightColor && (!highlights || highlights.length === 0)) {

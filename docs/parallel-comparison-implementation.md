@@ -28,12 +28,12 @@ className="fixed bottom-0 left-1/2 -translate-x-1/2 w-full max-w-5xl z-35"
 
 ## Detailed Implementation
 
-### 1. Update FixedParallelComparison Component
+### 1. Update ParallelComparison Component
 
 ```tsx
-// components/FixedParallelComparison.tsx
+// components/ParallelComparison.tsx
 
-export function FixedParallelComparison({...props}) {
+export function ParallelComparison({...props}) {
   // ... existing logic ...
 
   return (
@@ -105,7 +105,7 @@ function BibleApp() {
       </div>
 
       {/* Fixed Parallel Comparison - Updated positioning */}
-      <FixedParallelComparison
+      <ParallelComparison
         {...props}
         onMinimizeChange={setParallelPanelMinimized}
       />
@@ -193,7 +193,7 @@ Ensure proper layering of all fixed elements:
    ```
 
 2. **Update component classes**
-   - Modify `FixedParallelComparison.tsx`
+   - Modify `ParallelComparison.tsx`
    - Update positioning classes
    - Add width constraints
 

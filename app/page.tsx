@@ -1,36 +1,28 @@
 'use client'
 
-import { useState, useEffect, Suspense } from 'react'
+import { useState, useEffect, Suspense, useCallback, useRef } from 'react'
 import { useSearchParams } from 'next/navigation'
 import { BibleParser } from '@/lib/BibleParser'
 import { StrongsManager } from '@/lib/StrongsManager'
 import { VerseHistoryManager } from '@/lib/VerseHistoryManager'
-import { HighlightManager, HIGHLIGHT_COLORS } from '@/lib/HighlightManager'
+import { HighlightManager } from '@/lib/HighlightManager'
 import { NotesManager } from '@/lib/NotesManager'
 import { ReadingPlanManager } from '@/lib/ReadingPlanManager'
 import { useSettings } from '@/lib/SettingsContext'
-import { VerseWithStrongs } from '@/components/VerseWithStrongs'
+import { usePanels } from '@/lib/contexts/PanelContext'
+import { panelRegistry } from '@/lib/panels/PanelRegistry'
 import { StrongsPopover } from '@/components/StrongsPopover'
-import { HighlightControls } from '@/components/HighlightControls'
-import { ParallelVerseView } from '@/components/ParallelVerseView'
 import { ParallelScrollView } from '@/components/ParallelScrollView'
-import { InlineParallelVerse } from '@/components/InlineParallelVerse'
-import { FixedParallelComparison } from '@/components/FixedParallelComparison'
 import { BibleSettingsModal } from '@/components/BibleSettingsModal'
-import { NotesPanel } from '@/components/NotesPanel'
-import { HistoryPanel } from '@/components/HistoryPanel'
-import { VerseDisplay } from '@/components/VerseDisplay'
-import { CompactBibleControls } from '@/components/CompactBibleControls'
-import {
-  Settings,
-  CalendarCheck,
-  History,
-  FileText
-} from 'lucide-react'
+import { NotesPanelComponent } from '@/components/panels/NotesPanel'
+import { HistoryPanelComponent } from '@/components/panels/HistoryPanel'
+import { BibleReaderPanel } from '@/components/panels/BibleReaderPanel'
 import type { BibleData, Chapter, StrongsDefinition } from '@/types/bible'
 import type { VerseHistoryEntry } from '@/lib/VerseHistoryManager'
 import type { VerseHighlight } from '@/lib/HighlightManager'
 import type { VerseNote } from '@/lib/NotesManager'
+
+const normalizeVersionValue = (value: string) => value.replace(/_/g, '-').toLowerCase()
 
 interface StrongsPopoverState {
   strongsNumber: string;
@@ -46,6 +38,13 @@ interface StrongsHistoryEntry {
 function BibleApp() {
   const searchParams = useSearchParams()
   const { settings } = useSettings()
+  const { panelManager, togglePanel, visiblePanels, refreshPanels } = usePanels()
+  const bibleReaderPanelVisible = visiblePanels.some(panel => panel.id === 'bible-reader' && panel.isVisible)
+  const historyPanelVisible = visiblePanels.some(panel => panel.id === 'history' && panel.isVisible)
+  const notesPanelVisible = visiblePanels.some(panel => panel.id === 'notes' && panel.isVisible)
+  const searchParamsString = searchParams?.toString()
+  const hasEnsuredBiblePanel = useRef(false)
+  const hasEnsuredCrossPanel = useRef(false)
   const [mounted, setMounted] = useState(false)
   const [parser] = useState(() => new BibleParser())
   const [strongsManager] = useState(() => new StrongsManager())
@@ -54,6 +53,7 @@ function BibleApp() {
   const [notesManager] = useState(() => new NotesManager())
   const [readingPlanManager] = useState(() => new ReadingPlanManager())
   const [bibleData, setBibleData] = useState<BibleData | null>(null)
+
   const [loading, setLoading] = useState(false)
   const [selectedBook, setSelectedBook] = useState(() => {
     if (typeof window !== 'undefined') {
@@ -71,11 +71,51 @@ function BibleApp() {
   const [selectedVerse, setSelectedVerse] = useState<number | null>(() => {
     if (typeof window !== 'undefined') {
       const saved = localStorage.getItem('selectedVerse')
-      return saved ? parseInt(saved) : 1  // Default to verse 1
+      return saved ? parseInt(saved) : null
     }
-    return 1  // Default to verse 1
+    return null
   })
-  const [selectedVersion, setSelectedVersion] = useState('kjv_strongs')
+  const selectedBookRef = useRef(selectedBook)
+  const selectedChapterRef = useRef(selectedChapter)
+  const selectedVerseRef = useRef(selectedVerse)
+  const [selectedVersion, setSelectedVersionInternal] = useState(() => {
+    if (typeof window !== 'undefined') {
+      const stored = localStorage.getItem('selectedBibleVersion')
+      if (stored) {
+        return normalizeVersionValue(stored) || 'kjv-strongs'
+      }
+    }
+    return 'kjv-strongs'
+  })
+  const [lastLoadedVersion, setLastLoadedVersion] = useState<string | null>(null)
+
+  const setSelectedVersion = (version: string) => {
+    const normalized = normalizeVersionValue(version || '')
+    const nextVersion = normalized || 'kjv-strongs'
+    const currentVersion = normalizeVersionValue(selectedVersion)
+
+    if (!normalized && version) {
+      console.warn('Unrecognized Bible version, defaulting to kjv-strongs:', version)
+    }
+
+    if (currentVersion === nextVersion) {
+      return
+    }
+
+    setLastLoadedVersion(null)
+    setSelectedVersionInternal(nextVersion)
+    setBibleData(null)
+    setChapterContent(null)
+
+    if (typeof window !== 'undefined') {
+      localStorage.setItem('selectedBibleVersion', nextVersion)
+    }
+
+    // Reset verse/chapter selection references so the new version loads correctly
+    selectedBookRef.current = selectedBook
+    selectedChapterRef.current = selectedChapter
+    selectedVerseRef.current = selectedVerse
+  }
   const [chapterContent, setChapterContent] = useState<Chapter | null>(null)
   const [strongsPopover, setStrongsPopover] = useState<StrongsPopoverState | null>(null)
   const [strongsHistory, setStrongsHistory] = useState<StrongsHistoryEntry[]>([])
@@ -85,58 +125,468 @@ function BibleApp() {
   const [bookNames, setBookNames] = useState<string[]>([])
   const [chapterCount, setChapterCount] = useState(50)
   const [verseCount, setVerseCount] = useState(0)
-  const [showParallelVerse, setShowParallelVerse] = useState(false)
-  const [parallelVersion, setParallelVersion] = useState(() => {
+  const [parallelVersion, setParallelVersionInternal] = useState(() => {
     if (typeof window !== 'undefined') {
-      return localStorage.getItem('parallelVersion') || 'kjv'
+      const saved = localStorage.getItem('parallelVersion')
+      if (saved) {
+        return normalizeVersionValue(saved)
+      }
+      return 'kjv'
     }
     return 'kjv'
   })
-  const [parallelVerseData, setParallelVerseData] = useState<{book: string, chapter: number, verse: number} | null>(null)
+
+  const setParallelVersion = (version: string) => {
+    const normalized = normalizeVersionValue(version || '')
+    const nextVersion = normalized || 'kjv'
+
+    if (!normalized && version) {
+      console.warn('Unrecognized parallel version, defaulting to kjv:', version)
+    }
+
+    setParallelVersionInternal(nextVersion)
+
+    if (typeof window !== 'undefined') {
+      localStorage.setItem('parallelVersion', nextVersion)
+    }
+  }
+
+  const refreshChapterContent = useCallback(async (book: string, chapterNum: number) => {
+    let localBible = bibleData
+    if (!localBible) {
+      try {
+        const stored = await parser.loadBible(selectedVersion)
+        setBibleData(stored)
+        localBible = stored
+      } catch (error) {
+        return
+      }
+    }
+
+    const availableBooks = Object.keys(localBible.books)
+    const safeBook = localBible.books[book] ? book : availableBooks[0]
+    if (!safeBook) return
+
+    let totalChapters = 0
+    try {
+      totalChapters = parser.getChapterCount(safeBook)
+    } catch {
+      totalChapters = localBible.books[safeBook]?.chapters.length ?? 0
+    }
+
+    if (totalChapters <= 0) return
+
+    const normalizedChapter = Math.min(Math.max(chapterNum, 1), totalChapters)
+    setChapterCount(totalChapters)
+
+    const chapterData = parser.getChapter(safeBook, normalizedChapter)
+    if (chapterData) {
+      setChapterContent(chapterData)
+      setVerseCount(Object.keys(chapterData.verses).length)
+      selectedBookRef.current = safeBook
+      selectedChapterRef.current = normalizedChapter
+      refreshPanels()
+    }
+  }, [bibleData, parser, selectedVersion, refreshPanels])
+
+  const handleBookChange = (book: string) => {
+    setSelectedBook(book)
+    setSelectedChapter(1)
+    setSelectedVerse(1)
+    selectedBookRef.current = book
+    selectedChapterRef.current = 1
+    selectedVerseRef.current = 1
+    setPreviousChapter({ book, chapter: 1 })
+    refreshChapterContent(book, 1)
+  }
+
+  const handleChapterChange = (chapter: number) => {
+    setSelectedChapter(chapter)
+    setSelectedVerse(1)
+    selectedChapterRef.current = chapter
+    selectedVerseRef.current = 1
+    setPreviousChapter({ book: selectedBookRef.current || selectedBook, chapter })
+    refreshChapterContent(selectedBookRef.current || selectedBook, chapter)
+  }
+
+  const handleVerseChange = (verse: number | null) => {
+    setSelectedVerse(verse)
+    selectedVerseRef.current = verse
+    refreshPanels()
+  }
+
+  const handleVersionChange = (version: string) => {
+    console.log('[BibleApp] handleVersionChange', version)
+    setSelectedVersion(version)
+  }
+
+  const handlePreviousChapter = () => {
+    if (selectedChapter > 1) {
+      setSelectedChapter(selectedChapter - 1)
+      setSelectedVerse(1)
+      selectedChapterRef.current = selectedChapter - 1
+      selectedVerseRef.current = 1
+      const newChapter = selectedChapter - 1
+      setPreviousChapter({ book: selectedBookRef.current || selectedBook, chapter: newChapter })
+      refreshChapterContent(selectedBookRef.current || selectedBook, newChapter)
+    } else if (bookNames.indexOf(selectedBook) > 0 && bibleData) {
+      const prevBookIndex = bookNames.indexOf(selectedBook) - 1
+      const prevBook = bookNames[prevBookIndex]
+      if (bibleData.books[prevBook]) {
+        const prevBookChapters = Object.keys(bibleData.books[prevBook].chapters).length
+        setSelectedBook(prevBook)
+        setSelectedChapter(prevBookChapters)
+        setSelectedVerse(1)
+        selectedBookRef.current = prevBook
+        selectedChapterRef.current = prevBookChapters
+        selectedVerseRef.current = 1
+        setPreviousChapter({ book: prevBook, chapter: prevBookChapters })
+        refreshChapterContent(prevBook, prevBookChapters)
+      }
+    }
+  }
+
+  const handleNextChapter = () => {
+    if (selectedChapter < chapterCount) {
+      setSelectedChapter(selectedChapter + 1)
+      setSelectedVerse(1)
+      selectedChapterRef.current = selectedChapter + 1
+      selectedVerseRef.current = 1
+      const newChapter = selectedChapter + 1
+      setPreviousChapter({ book: selectedBookRef.current || selectedBook, chapter: newChapter })
+      refreshChapterContent(selectedBookRef.current || selectedBook, newChapter)
+    } else if (bookNames.indexOf(selectedBook) < bookNames.length - 1) {
+      const nextBookIndex = bookNames.indexOf(selectedBook) + 1
+      const nextBook = bookNames[nextBookIndex]
+      setSelectedBook(nextBook)
+      setSelectedChapter(1)
+      setSelectedVerse(1)
+      selectedBookRef.current = nextBook
+      selectedChapterRef.current = 1
+      selectedVerseRef.current = 1
+      setPreviousChapter({ book: nextBook, chapter: 1 })
+      refreshChapterContent(nextBook, 1)
+    }
+  }
+
+  const handleParallelReading = () => {
+    setShowParallelScroll(true)
+  }
+
+  const handleSettingsClick = () => {
+    setShowSettingsModal(true)
+  }
+
+  const handleTodayClick = () => {
+    const today = new Date()
+    const daysSincePlanStart = Math.floor((today.getTime() - new Date(planStartDate).getTime()) / (1000 * 60 * 60 * 24))
+    const todayPsalm = ((daysSincePlanStart + (startingPsalm || 1) - 1) % 150) + 1
+    setSelectedBook('Psalms')
+    setSelectedChapter(todayPsalm)
+    setSelectedVerse(1)
+  }
+
+  const handleHistoryToggle = () => {
+    togglePanel('history')
+  }
+
+  const handleNotesToggle = () => {
+    togglePanel('notes')
+  }
+
+  const handleAddNoteRequest = (verse: number) => {
+    setSelectedVerse(verse)
+    refreshPanels()
+  }
+
+  useEffect(() => {
+    selectedBookRef.current = selectedBook
+    if (typeof window !== 'undefined') {
+      localStorage.setItem('selectedBook', selectedBook)
+    }
+  }, [selectedBook])
+
+  useEffect(() => {
+    selectedChapterRef.current = selectedChapter
+    if (typeof window !== 'undefined') {
+      localStorage.setItem('selectedChapter', selectedChapter.toString())
+    }
+  }, [selectedChapter])
+
+  useEffect(() => {
+    selectedVerseRef.current = selectedVerse
+    if (typeof window !== 'undefined') {
+      if (selectedVerse === null) {
+        localStorage.removeItem('selectedVerse')
+      } else {
+        localStorage.setItem('selectedVerse', selectedVerse.toString())
+      }
+    }
+  }, [selectedVerse])
   const [showParallelScroll, setShowParallelScroll] = useState(false)
-  const [showNotesPanel, setShowNotesPanel] = useState(false)
   const [allNotes, setAllNotes] = useState<VerseNote[]>([])
-  const [showHistoryPanel, setShowHistoryPanel] = useState(false)
+
+  const NotesPanelWithData = (props: any) => (
+    <NotesPanelComponent
+      {...props}
+      notes={allNotes}
+      onNoteSelect={handleNoteSelect}
+      onDeleteNote={handleDeleteNote}
+    />
+  )
+
+  const HistoryPanelWithData = (props: any) => (
+    <HistoryPanelComponent
+      {...props}
+      history={verseHistory}
+      onVerseSelect={handleHistoryVerseSelect}
+      onClearHistory={handleClearHistory}
+      onRemoveEntry={handleRemoveHistoryEntry}
+      onStrongsClick={handleStrongsClick}
+    />
+  )
+
+  const BibleReaderPanelWithData = (panelProps: any) => {
+    console.log('[BibleApp] render BibleReaderPanelWithData', {
+      loading,
+      hasChapterContent: !!chapterContent,
+      verses: chapterContent ? Object.keys(chapterContent.verses || {}).length : 0,
+      book: selectedBook,
+      chapter: selectedChapter
+    })
+    return (
+      <BibleReaderPanel
+        {...panelProps}
+        loading={loading}
+        chapterContent={chapterContent}
+        selectedBook={selectedBook}
+        selectedChapter={selectedChapter}
+      selectedVerse={selectedVerse}
+      selectedVersion={selectedVersion}
+      bookNames={bookNames}
+      chapterCount={chapterCount}
+      verseCount={verseCount}
+      settings={settings}
+      onBookChange={handleBookChange}
+      onChapterChange={handleChapterChange}
+      onVerseChange={handleVerseChange}
+      onVersionChange={handleVersionChange}
+      onPreviousChapter={handlePreviousChapter}
+      onNextChapter={handleNextChapter}
+      onParallelReading={() => setShowParallelScroll(true)}
+      onSettingsClick={handleSettingsClick}
+      onTodayClick={handleTodayClick}
+      onHistoryClick={handleHistoryToggle}
+      onNotesClick={handleNotesToggle}
+      showHistoryPanel={historyPanelVisible}
+      showNotesPanel={notesPanelVisible}
+      notesCount={allNotes.length}
+      isInReadingPlan={isInReadingPlan}
+      readingPlanProgress={readingPlanProgress}
+      onMarkAsRead={handleMarkAsRead}
+      chapterHighlights={chapterHighlights}
+      chapterNotes={chapterNotes}
+      onVerseClick={handleVerseClick}
+      onHighlightVerse={handleHighlightVerse}
+        onRemoveHighlight={handleRemoveHighlight}
+        onAddNote={handleAddNoteRequest}
+        onStrongsClick={handleStrongsClick}
+        showParallelComparison={parallelComparisonEnabled}
+        parallelVersion={parallelVersion}
+      />
+    )
+  }
+
+  useEffect(() => {
+    if (typeof window === 'undefined') return
+
+    console.log('[BibleApp] effect:setPanelComponent')
+    panelRegistry.setPanelComponent('bible-reader', BibleReaderPanelWithData)
+    panelRegistry.setPanelComponent('notes', NotesPanelWithData)
+    panelRegistry.setPanelComponent('history', HistoryPanelWithData)
+
+    panelManager.showPanel('bible-reader')
+    panelManager.movePanel('bible-reader', 'main')
+    hasEnsuredBiblePanel.current = true
+
+    const crossVisible = visiblePanels.some(panel => panel.id === 'cross-references' && panel.isVisible)
+    if (!crossVisible) {
+      panelManager.showPanel('cross-references')
+    }
+    hasEnsuredCrossPanel.current = true
+  }, [panelManager, visiblePanels, BibleReaderPanelWithData, NotesPanelWithData, HistoryPanelWithData])
   const [showSettingsModal, setShowSettingsModal] = useState(false)
-  const [parallelComparisonEnabled, setParallelComparisonEnabled] = useState(() => {
+  const [parallelComparisonEnabled, setParallelComparisonEnabledState] = useState(() => {
     if (typeof window !== 'undefined') {
       const saved = localStorage.getItem('parallelComparisonEnabled')
       return saved === 'true'
     }
     return false
   })
+
+  const setParallelComparisonEnabled = (enabled: boolean) => {
+    setParallelComparisonEnabledState(enabled)
+    if (typeof window !== 'undefined') {
+      localStorage.setItem('parallelComparisonEnabled', enabled ? 'true' : 'false')
+    }
+  }
   const [startingPsalm, setStartingPsalm] = useState(1)
   const [planStartDate, setPlanStartDate] = useState(new Date().toISOString().split('T')[0])
   const [todaysReading, setTodaysReading] = useState<{psalm: number, proverbs: number[]} | null>(null)
   const [isInReadingPlan, setIsInReadingPlan] = useState(false)
   const [readingPlanProgress, setReadingPlanProgress] = useState<{psalmCompleted: boolean, proverbsCompleted: boolean} | null>(null)
+  const [previousChapter, setPreviousChapter] = useState<{book: string, chapter: number} | null>(null)
 
   // Load Bible, history, highlights and notes on mount
+  const loadBible = useCallback(async (version: string) => {
+    const normalizedVersion = normalizeVersionValue(version || 'kjv-strongs')
+    setLastLoadedVersion(normalizedVersion)
+    setLoading(true)
+    try {
+      const bible = await parser.loadBible(normalizedVersion)
+      setBibleData(bible)
+      let books: string[] = []
+      try {
+        books = parser.getBooks()
+      } catch {
+        books = Object.keys(bible.books)
+      }
+      setBookNames(books)
+
+      const currentBook = selectedBookRef.current || 'Genesis'
+      const currentChapter = selectedChapterRef.current || 1
+      const currentBookExists = bible.books[currentBook]
+      let nextBook = currentBook
+      let nextChapter = currentChapter
+
+      if (!currentBookExists && books.length > 0) {
+        nextBook = books[0]
+        nextChapter = 1
+        setSelectedBook(nextBook)
+        setSelectedChapter(nextChapter)
+        selectedBookRef.current = nextBook
+        selectedChapterRef.current = nextChapter
+        setSelectedVerse(1)
+        selectedVerseRef.current = 1
+      }
+
+      let chapter = parser.getChapter(nextBook, nextChapter)
+      if (!chapter) {
+        nextChapter = 1
+        setSelectedChapter(nextChapter)
+        selectedChapterRef.current = nextChapter
+        setSelectedVerse(1)
+        selectedVerseRef.current = 1
+        chapter = parser.getChapter(nextBook, nextChapter)
+      }
+
+      if (chapter) {
+        setChapterContent(chapter)
+        try {
+          setChapterCount(parser.getChapterCount(nextBook))
+        } catch {
+          setChapterCount(Object.keys(bible.books[nextBook].chapters).length)
+        }
+        setVerseCount(Object.keys(chapter.verses).length)
+        refreshPanels()
+      }
+
+      if (normalizedVersion === 'kjv-strongs' || normalizedVersion === 'asv-strongs') {
+        strongsManager
+          .loadDefinitions()
+          .then(() => console.log('Strong\'s definitions loaded'))
+          .catch(err => console.error('Failed to load Strong\'s:', err))
+      }
+    } catch (error) {
+      setLastLoadedVersion(prev => (prev === normalizedVersion ? null : prev))
+    } finally {
+      setLoading(false)
+    }
+  }, [parser, strongsManager])
+
   useEffect(() => {
     setMounted(true)
 
-    // Load saved preferences from localStorage
     const savedVersion = localStorage.getItem('selectedBibleVersion')
     const savedStartingPsalm = localStorage.getItem('startingPsalm')
     const savedPlanStartDate = localStorage.getItem('planStartDate')
 
-    // Handle URL parameters (override localStorage if present)
-    const version = searchParams?.get('version')
-    const book = searchParams?.get('book')
-    const chapter = searchParams?.get('chapter')
-    const verse = searchParams?.get('verse')
+    const params = searchParamsString ? new URLSearchParams(searchParamsString) : null
+    const versionParamRaw = params?.get('version')
+    const bookParam = params?.get('book')
+    const chapterParam = params?.get('chapter')
+    const verseParam = params?.get('verse')
 
-    // Set initial values from URL params if they exist, otherwise from localStorage
-    if (version) {
-      setSelectedVersion(version)
-    } else if (savedVersion) {
-      setSelectedVersion(savedVersion)
-    } else {
-      // Only load default if no version in URL or localStorage
-      loadBible()
+    const validVersions = ['kjv', 'kjv-strongs', 'asv', 'asv-strongs', 'kjv_strongs', 'asv_strongs'].map(normalizeVersionValue)
+
+    let initialVersion = selectedVersion || 'kjv-strongs'
+    if (versionParamRaw && validVersions.includes(normalizeVersionValue(versionParamRaw))) {
+      initialVersion = normalizeVersionValue(versionParamRaw)
+    } else if (savedVersion && validVersions.includes(normalizeVersionValue(savedVersion))) {
+      initialVersion = normalizeVersionValue(savedVersion)
     }
 
-    // Load other saved preferences
+    let initialBook = selectedBookRef.current || selectedBook
+    if (bookParam) {
+      initialBook = bookParam
+    } else if (typeof window !== 'undefined') {
+      const storedBook = localStorage.getItem('selectedBook')
+      if (storedBook) {
+        initialBook = storedBook
+      }
+    }
+
+    let initialChapter = selectedChapterRef.current || selectedChapter
+    if (chapterParam) {
+      const parsedChapter = parseInt(chapterParam)
+      if (!Number.isNaN(parsedChapter)) {
+        initialChapter = parsedChapter
+      }
+    } else if (typeof window !== 'undefined') {
+      const storedChapter = localStorage.getItem('selectedChapter')
+      if (storedChapter) {
+        const parsedChapter = parseInt(storedChapter)
+        if (!Number.isNaN(parsedChapter)) {
+          initialChapter = parsedChapter
+        }
+      }
+    }
+
+    let initialVerse: number | null = selectedVerseRef.current ?? selectedVerse
+    if (verseParam) {
+      const parsedVerse = parseInt(verseParam)
+      if (!Number.isNaN(parsedVerse)) {
+        initialVerse = parsedVerse
+      }
+    } else if (typeof window !== 'undefined') {
+      const storedVerse = localStorage.getItem('selectedVerse')
+      if (storedVerse) {
+        const parsedVerse = parseInt(storedVerse)
+        if (!Number.isNaN(parsedVerse)) {
+          initialVerse = parsedVerse
+        }
+      } else {
+        initialVerse = null
+      }
+    }
+
+    selectedBookRef.current = initialBook
+    selectedChapterRef.current = initialChapter
+    selectedVerseRef.current = initialVerse
+
+    if (initialBook !== selectedBook) {
+      setSelectedBook(initialBook)
+    }
+    if (initialChapter !== selectedChapter) {
+      setSelectedChapter(initialChapter)
+    }
+    if ((initialVerse ?? 1) !== selectedVerse) {
+      setSelectedVerse(initialVerse ?? 1)
+    }
+
+    setSelectedVersion(initialVersion)
+    loadBible(initialVersion)
+
     if (savedStartingPsalm) {
       setStartingPsalm(parseInt(savedStartingPsalm))
     }
@@ -144,83 +594,38 @@ function BibleApp() {
       setPlanStartDate(savedPlanStartDate)
     }
 
-    if (book) setSelectedBook(book)
-    if (chapter) setSelectedChapter(parseInt(chapter))
-    if (verse) setSelectedVerse(parseInt(verse))
-
     loadVerseHistory()
     initHighlights()
     initNotes()
     loadAllNotes()
     initReadingPlan()
-  }, [])
+  }, [loadBible, searchParamsString])
 
   // Reload Bible when version changes
   useEffect(() => {
-    if (selectedVersion && mounted) {
+    if (!mounted) return
+    if (!selectedVersion) return
+
+    if (!lastLoadedVersion || normalizeVersionValue(lastLoadedVersion) !== normalizeVersionValue(selectedVersion)) {
       loadBible(selectedVersion)
-      // Save version to localStorage
-      if (typeof window !== 'undefined') {
-        localStorage.setItem('selectedBibleVersion', selectedVersion)
-      }
     }
-  }, [selectedVersion, mounted])
 
-  const loadBible = async (version: string = 'kjv_strongs') => {
-    setLoading(true)
-    try {
-      const bible = await parser.loadBible(version)
-      setBibleData(bible)
-      const books = Object.keys(bible.books)
-      setBookNames(books)
-      
-      // Load current chapter (maintain position when switching versions)
-      const chapter = parser.getChapter(selectedBook, selectedChapter)
-      if (chapter && bible.books[selectedBook]) {
-        setChapterContent(chapter)
-        const chapters = Object.keys(bible.books[selectedBook].chapters).length
-        setChapterCount(chapters)
-        setVerseCount(Object.keys(chapter.verses).length)
-      } else if (books.length > 0) {
-        // Selected book doesn't exist in this version, reset to first book
-        setSelectedBook(books[0])
-        setSelectedChapter(1)
-        const firstChapter = parser.getChapter(books[0], 1)
-        if (firstChapter) {
-          setChapterContent(firstChapter)
-          setChapterCount(Object.keys(bible.books[books[0]].chapters).length)
-          setVerseCount(Object.keys(firstChapter.verses).length)
-        }
-      }
-      
-      // Preload Strong's definitions (only for versions with Strong's)
-      if (version === 'kjv_strongs' || version === 'asvs') {
-        strongsManager.loadDefinitions()
-          .then(() => console.log('Strong\'s definitions loaded'))
-          .catch(err => console.error('Failed to load Strong\'s:', err))
-      }
-    } catch (error) {
-      console.error('Failed to load Bible:', error)
-    } finally {
-      setLoading(false)
+    if (typeof window !== 'undefined') {
+      localStorage.setItem('selectedBibleVersion', selectedVersion)
     }
-  }
+  }, [selectedVersion, mounted, lastLoadedVersion, loadBible])
 
-  // Auto-load chapter when selection changes
   useEffect(() => {
-    if (bibleData && selectedBook && selectedChapter) {
-      const chapter = parser.getChapter(selectedBook, selectedChapter)
-      if (chapter) {
-        setChapterContent(chapter)
-        setVerseCount(Object.keys(chapter.verses).length)
-        // Auto-select verse 1 when chapter changes
-        setSelectedVerse(1)
-        // Load highlights and notes for this chapter
-        loadChapterHighlights()
-        loadChapterNotes()
-      }
+    if (!bibleData) {
+      console.log('[BibleApp] effect:bibleData -> no bibleData yet')
+      return
     }
-  }, [bibleData, selectedBook, selectedChapter, selectedVersion, parser])
+    console.log('[BibleApp] effect:bibleData -> refresh', selectedBook, selectedChapter)
+    refreshChapterContent(selectedBook, selectedChapter)
+    setPreviousChapter({ book: selectedBook, chapter: selectedChapter })
+    loadChapterHighlights()
+    loadChapterNotes()
+  }, [bibleData, selectedBook, selectedChapter, refreshChapterContent])
 
   // Check if current passage is in reading plan
   useEffect(() => {
@@ -244,14 +649,22 @@ function BibleApp() {
       setSelectedBook(bookNames[0])
       setSelectedChapter(1)
     }
-  }, [bibleData, selectedBook, selectedChapter])
+  }, [bibleData, selectedBook, selectedChapter, bookNames])
+
+  useEffect(() => {
+    if (!mounted) return
+    refreshPanels()
+  }, [mounted, selectedBook, selectedChapter, selectedVerse, selectedVersion, parallelVersion, refreshPanels])
 
   const handleStrongsClick = async (strongsNumber: string, position: { x: number; y: number }, isFromPopover = false) => {
+    console.log('🔍 [Main App] handleStrongsClick called with:', strongsNumber, 'isFromPopover:', isFromPopover);
     if (!strongsManager.loaded) {
+      console.log('🔍 [Main App] Loading Strong\'s definitions...');
       await strongsManager.loadDefinitions()
     }
 
     const definition = strongsManager.lookup(strongsNumber)
+    console.log('🔍 [Main App] Definition lookup result:', !!definition);
     if (definition) {
       if (isFromPopover && strongsPopover) {
         // Save current to history and replace content
@@ -316,26 +729,31 @@ function BibleApp() {
   }
 
   const handleVerseClick = async (verse: any) => {
-    console.log('Verse clicked:', verse.verse)
-    
-    // Select/deselect verse first
-    const isNewSelection = verse.verse !== selectedVerse
-    setSelectedVerse(isNewSelection ? verse.verse : null)
-    
-    // Track verse in history only for new selections
-    if (isNewSelection && chapterContent) {
-      const reference = `${selectedBook} ${selectedChapter}:${verse.verse}`
+    if (!verse) return
+
+    const verseNumber = Number(verse.verse)
+    if (Number.isNaN(verseNumber)) {
+      return
+    }
+
+    const isNewVerse = verseNumber !== selectedVerse
+
+    setSelectedVerse(verseNumber)
+    selectedVerseRef.current = verseNumber
+    refreshPanels()
+
+    if (chapterContent && isNewVerse) {
+      const reference = `${selectedBook} ${selectedChapter}:${verseNumber}`
+
       try {
         await historyManager.addToHistory({
           book: selectedBook,
           chapter: selectedChapter,
-          verse: verse.verse,
+          verse: verseNumber,
           verseText: verse.text,
           version: selectedVersion,
           reference
         })
-        console.log('Added to history:', reference)
-        // Reload history
         await loadVerseHistory()
       } catch (error) {
         console.error('Failed to add to history:', error)
@@ -533,7 +951,9 @@ function BibleApp() {
     setSelectedBook(book)
     setSelectedChapter(chapter)
     setSelectedVerse(verse)
-    setShowNotesPanel(false)
+    if (notesPanelVisible) {
+      togglePanel('notes')
+    }
   }
 
   // Handle keyboard shortcuts
@@ -602,31 +1022,6 @@ function BibleApp() {
     }
   }, [selectedVerse])
 
-  // Handle click outside to deselect verse
-  useEffect(() => {
-    const handleClickOutside = (e: MouseEvent) => {
-      const target = e.target as HTMLElement
-      // Check if click is outside verse content area and controls
-      if (!target.closest('#verse-content') && 
-          !target.closest('.verse-controls') &&
-          !target.closest('.inline-parallel-verse')) {
-        setSelectedVerse(null)
-      }
-    }
-
-    if (selectedVerse) {
-      // Use mousedown to capture before click events
-      const timer = setTimeout(() => {
-        document.addEventListener('mousedown', handleClickOutside)
-      }, 100)
-      
-      return () => {
-        clearTimeout(timer)
-        document.removeEventListener('mousedown', handleClickOutside)
-      }
-    }
-  }, [selectedVerse])
-
   // Save parallel comparison preference
   useEffect(() => {
     if (typeof window !== 'undefined') {
@@ -669,144 +1064,15 @@ function BibleApp() {
 
   return (
     <>
-      <div className="bg-white dark:bg-gray-800 md:rounded-lg md:shadow-sm mt-0 md:mt-6">
-
-      {loading && (
-        <div className="p-8 text-center text-blue-600 dark:text-blue-400">
-          Loading Bible...
+      {!bibleReaderPanelVisible && (
+        <div className="flex h-full items-center justify-center p-8 text-gray-500 dark:text-gray-400">
+          <div className="text-center space-y-2">
+            <div className="text-sm uppercase tracking-wide">Preparing layout</div>
+            <div className="text-base">Loading Bible reader…</div>
+          </div>
         </div>
       )}
 
-      {!loading && bibleData && (
-        <div>
-          {/* Compact Bible Controls */}
-          <CompactBibleControls
-            selectedBook={selectedBook}
-            selectedChapter={selectedChapter}
-            selectedVerse={selectedVerse}
-            selectedVersion={selectedVersion}
-            bookNames={bookNames}
-            chapterCount={chapterCount}
-            verseCount={verseCount}
-            onBookChange={(book) => {
-              setSelectedBook(book)
-              setSelectedChapter(1)
-              setSelectedVerse(1)  // Auto-select verse 1 when changing books
-            }}
-            onChapterChange={(chapter) => {
-              setSelectedChapter(chapter)
-              setSelectedVerse(1)  // Auto-select verse 1 when changing chapters
-            }}
-            onVerseChange={setSelectedVerse}
-            onVersionChange={setSelectedVersion}
-            onPreviousChapter={() => {
-              if (selectedChapter > 1) {
-                setSelectedChapter(selectedChapter - 1)
-                setSelectedVerse(1)  // Auto-select verse 1
-              } else if (bookNames.indexOf(selectedBook) > 0) {
-                const prevBookIndex = bookNames.indexOf(selectedBook) - 1
-                const prevBook = bookNames[prevBookIndex]
-                if (bibleData && bibleData.books[prevBook]) {
-                  const prevBookChapters = Object.keys(bibleData.books[prevBook].chapters).length
-                  setSelectedBook(prevBook)
-                  setSelectedChapter(prevBookChapters)
-                  setSelectedVerse(1)  // Auto-select verse 1
-                }
-              }
-            }}
-            onNextChapter={() => {
-              if (selectedChapter < chapterCount) {
-                setSelectedChapter(selectedChapter + 1)
-                setSelectedVerse(1)  // Auto-select verse 1
-              } else if (bookNames.indexOf(selectedBook) < bookNames.length - 1) {
-                const nextBookIndex = bookNames.indexOf(selectedBook) + 1
-                const nextBook = bookNames[nextBookIndex]
-                setSelectedBook(nextBook)
-                setSelectedChapter(1)
-                setSelectedVerse(1)  // Auto-select verse 1
-              }
-            }}
-            onParallelReading={() => setShowParallelScroll(true)}
-            isPreviousDisabled={selectedChapter === 1 && bookNames.indexOf(selectedBook) === 0}
-            isNextDisabled={selectedChapter === chapterCount && bookNames.indexOf(selectedBook) === bookNames.length - 1}
-            // Quick actions
-            onSettingsClick={() => setShowSettingsModal(true)}
-            onTodayClick={() => {
-              const today = new Date()
-              const daysSincePlanStart = Math.floor((today.getTime() - new Date(planStartDate).getTime()) / (1000 * 60 * 60 * 24))
-              const todayPsalm = ((daysSincePlanStart + (startingPsalm || 1) - 1) % 150) + 1
-              setSelectedBook('Psalms')
-              setSelectedChapter(todayPsalm)
-              setSelectedVerse(1)
-            }}
-            onHistoryClick={() => setShowHistoryPanel(!showHistoryPanel)}
-            onNotesClick={() => setShowNotesPanel(!showNotesPanel)}
-            showHistoryPanel={showHistoryPanel}
-            showNotesPanel={showNotesPanel}
-            notesCount={allNotes.length}
-            isInReadingPlan={isInReadingPlan}
-            readingPlanProgress={readingPlanProgress}
-            onMarkAsRead={handleMarkAsRead}
-          />
-
-          {/* Chapter Content */}
-          {mounted && chapterContent && (
-            <div
-              className="mt-4 p-3 sm:p-4 md:p-6 bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700"
-              style={{ marginBottom: parallelComparisonEnabled ? '200px' : '24px' }}>
-              <div className="mb-4 md:mb-5 pb-3 md:pb-4 border-b-2 border-gray-200 dark:border-gray-600">
-                <h2 className="text-xl md:text-2xl font-bold text-gray-900 dark:text-gray-100 mb-1 md:mb-2">
-                  {selectedBook} Chapter {selectedChapter}
-                </h2>
-                {(selectedVersion === 'kjv_strongs' || selectedVersion === 'asvs') && (
-                  <p className="text-xs md:text-sm text-gray-600 dark:text-gray-400">
-                    Click on Strong's numbers (blue/purple links) to see definitions
-                  </p>
-                )}
-              </div>
-              
-              <div
-                id="verse-content"
-                className="text-base sm:text-lg leading-relaxed"
-                style={{
-                  WebkitOverflowScrolling: 'touch',
-                  overscrollBehavior: 'contain'
-                }}
-                suppressHydrationWarning>
-                {/* Show all verses */}
-                {Object.values(chapterContent.verses)
-                  .sort((a, b) => a.verse - b.verse)
-                  .map(verse => (
-                  <VerseDisplay
-                    key={verse.verse}
-                    verse={verse}
-                    bookName={selectedBook}
-                    chapterNumber={selectedChapter}
-                    isSelected={selectedVerse === verse.verse}
-                    highlights={chapterHighlights.get(verse.verse)}
-                    note={chapterNotes.get(verse.verse)}
-                    hasStrongs={selectedVersion === 'kjv_strongs' || selectedVersion === 'asvs'}
-                    fontSize={settings.fontSize}
-                    lineSpacing={settings.lineSpacing}
-                    verseSpacing={settings.verseSpacing}
-                    showVerseNumbers={settings.showVerseNumbers}
-                    onVerseClick={handleVerseClick}
-                    onHighlight={handleHighlightVerse}
-                    onRemoveHighlight={handleRemoveHighlight}
-                    onAddNote={() => {
-                      setSelectedVerse(verse.verse)
-                      // Show note dialog or panel
-                    }}
-                    onStrongsClick={handleStrongsClick}
-                  />
-                ))}
-              </div>
-            </div>
-          )}
-        </div>
-      )}
-
-      {/* Strong's Popover */}
       {strongsPopover && (
         <StrongsPopover
           strongsNumber={strongsPopover.strongsNumber}
@@ -819,19 +1085,6 @@ function BibleApp() {
         />
       )}
 
-      {/* Parallel Verse View Modal */}
-      {showParallelVerse && parallelVerseData && (
-        <ParallelVerseView
-          primaryVersion={selectedVersion}
-          secondaryVersion={parallelVersion}
-          book={parallelVerseData.book}
-          chapter={parallelVerseData.chapter}
-          verse={parallelVerseData.verse}
-          onClose={() => setShowParallelVerse(false)}
-        />
-      )}
-
-      {/* Parallel Scroll View Modal */}
       {showParallelScroll && (
         <ParallelScrollView
           primaryVersion={selectedVersion}
@@ -843,16 +1096,6 @@ function BibleApp() {
         />
       )}
 
-      {/* Notes Panel */}
-      <NotesPanel
-        notes={allNotes}
-        onNoteSelect={handleNoteSelect}
-        onDeleteNote={handleDeleteNote}
-        isOpen={showNotesPanel}
-        onClose={() => setShowNotesPanel(false)}
-      />
-
-      {/* Settings Modal */}
       <BibleSettingsModal
         isOpen={showSettingsModal}
         onClose={() => setShowSettingsModal(false)}
@@ -862,39 +1105,6 @@ function BibleApp() {
         onParallelVersionChange={setParallelVersion}
         primaryVersion={selectedVersion}
       />
-
-      {/* History Panel */}
-      <HistoryPanel
-        history={verseHistory}
-        onVerseSelect={handleHistoryVerseSelect}
-        onClearHistory={handleClearHistory}
-        onRemoveEntry={handleRemoveHistoryEntry}
-        onStrongsClick={handleStrongsClick}
-        isOpen={showHistoryPanel}
-        onClose={() => setShowHistoryPanel(false)}
-      />
-    </div>
-
-    {/* Fixed Parallel Comparison - Outside main content */}
-    {mounted && chapterContent && (
-      <FixedParallelComparison
-        primaryVersion={selectedVersion}
-        secondaryVersion={parallelVersion}
-        book={selectedBook}
-        chapter={selectedChapter}
-        verse={selectedVerse || 1}
-        primaryText={
-          selectedVerse
-            ? chapterContent.verses[selectedVerse]?.text
-            : chapterContent.verses[1]?.text
-        }
-        isVisible={parallelComparisonEnabled && chapterContent !== null}
-        fontSize={settings.fontSize}
-        lineSpacing={settings.lineSpacing}
-        verseSpacing={settings.verseSpacing}
-        onStrongsClick={handleStrongsClick}
-      />
-    )}
     </>
   )
 }

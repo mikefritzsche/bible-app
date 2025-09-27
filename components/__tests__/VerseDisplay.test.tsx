@@ -46,23 +46,24 @@ describe('VerseDisplay', () => {
 
   it('should display verse reference', () => {
     render(<VerseDisplay {...defaultProps} />)
-    
-    expect(screen.getByText('John 3:16')).toBeInTheDocument()
+
+    expect(screen.getByRole('button', { name: /16/ })).toBeInTheDocument()
   })
 
   it('should handle verse click', () => {
     render(<VerseDisplay {...defaultProps} />)
-    
-    const verseRef = screen.getByText('John 3:16')
+
+    const verseRef = screen.getByRole('button', { name: /16/ })
     fireEvent.click(verseRef)
-    
+
     expect(mockOnVerseClick).toHaveBeenCalledWith(defaultProps.verse)
   })
 
   it('should hide verse numbers when showVerseNumbers is false', () => {
     render(<VerseDisplay {...defaultProps} showVerseNumbers={false} />)
-    
-    expect(screen.queryByText('John 3:16')).not.toBeInTheDocument()
+
+    const verseNumberButton = screen.queryByText('16')
+    expect(verseNumberButton).not.toBeInTheDocument()
   })
 
   it('should apply custom font size', () => {
