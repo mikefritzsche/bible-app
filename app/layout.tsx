@@ -5,7 +5,7 @@ import { SettingsProvider } from '@/lib/SettingsContext'
 import { PanelProvider } from '@/lib/contexts/PanelContext'
 import FirstRunInitializer from '@/components/FirstRunInitializer'
 import DownloadProgress from '@/components/DownloadProgress'
-import { PanelContainer } from '@/components/PanelContainer'
+import { LayoutSystem } from '@/components/LayoutSystem'
 import './globals.css'
 
 export const metadata: Metadata = {
@@ -33,18 +33,18 @@ export default function RootLayout({
                     <Navigation />
                   </div>
                 </div>
-                {/* Scrollable Main Content */}
-                <div className="flex-1 overflow-y-auto" style={{
-                  WebkitOverflowScrolling: 'touch',
-                  overscrollBehavior: 'contain'
-                }}>
-                  <div className="max-w-5xl mx-auto px-3 sm:px-4 md:px-6 pb-6">
-                    {children}
-                  </div>
+                {/* Panel-based Layout System */}
+                <div className="flex-1 overflow-hidden">
+                  <LayoutSystem>
+                    <div className="max-w-5xl mx-auto px-3 sm:px-4 md:px-6 pb-6 overflow-y-auto" style={{
+                      WebkitOverflowScrolling: 'touch',
+                      overscrollBehavior: 'contain'
+                    }}>
+                      {children}
+                    </div>
+                  </LayoutSystem>
                 </div>
               </div>
-              {/* Panel Container */}
-              <PanelContainer />
             </PanelProvider>
           </SettingsProvider>
         </ThemeProvider>

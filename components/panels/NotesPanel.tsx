@@ -60,7 +60,7 @@ export function NotesPanelComponent({
 
   const handleNoteSelect = (book: string, chapter: number, verse: number) => {
     onNoteSelect(book, chapter, verse)
-    onClose()
+    onClose?.()
   }
 
   return (
@@ -170,6 +170,8 @@ export function NotesPanel() {
       onClose={() => hidePanel('notes')}
       onResize={(size) => console.log('Resize notes panel:', size)}
       onPositionChange={(position) => console.log('Move notes panel:', position)}
+      minSize={config.minSize}
+      maxSize={config.maxSize}
     >
       <NotesPanelComponent
         id="notes"

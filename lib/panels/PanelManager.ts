@@ -1,9 +1,9 @@
-import { PanelConfig, PanelState, PanelLayout, Template, PanelManagerConfig, PanelEvent, PanelSize, PanelPosition } from './types'
+import { PanelConfig, PanelState, GridLayout, Template, PanelManagerConfig, PanelEvent, PanelSize, PanelPosition } from './types'
 
 export class PanelManager {
   private panels: Map<string, PanelConfig> = new Map()
   private activePanels: Map<string, PanelState> = new Map()
-  private layouts: Map<string, PanelLayout> = new Map()
+  private layouts: Map<string, GridLayout> = new Map()
   private templates: Map<string, Template> = new Map()
   private eventListeners: Map<string, Function[]> = new Map()
   private config: Required<PanelManagerConfig>
@@ -38,9 +38,19 @@ export class PanelManager {
         isVisible: config.defaultVisible ?? false,
         position: config.defaultPosition,
         size: config.defaultSize,
-        order: this.getNextOrderForPosition(config.defaultPosition),
-        zIndex: this.getNextZIndex()
+        order: this.getNextOrderForPosition(config.defaultPosition)
       })
+    } else {
+      const existing = this.activePanels.get(config.id)
+      if (existing) {
+        existing.config = config
+        if (!existing.size) {
+          existing.size = config.defaultSize
+        }
+        if (!existing.position) {
+          existing.position = config.defaultPosition
+        }
+      }
     }
 
     this.emit('panel_registered', { panelId: config.id })
@@ -67,10 +77,16 @@ export class PanelManager {
   // Panel Visibility
   showPanel(panelId: string): boolean {
     const panel = this.activePanels.get(panelId)
-    if (!panel || !this.canShowPanel(panelId)) return false
+    if (!panel) return false
+
+    const panelConfig = this.panels.get(panelId) || panel.config
+    const bypassLimits = panelConfig?.closable === false
+
+    if (!bypassLimits && !this.canShowPanel(panelId)) {
+      return false
+    }
 
     panel.isVisible = true
-    panel.zIndex = this.getNextZIndex()
 
     this.emit('panel_opened', { panelId })
     this.saveToStorage()
@@ -109,7 +125,7 @@ export class PanelManager {
       .filter(panel => panel.isVisible)
       .sort((a, b) => {
         // Sort by position, then by order
-        const positionOrder = { left: 0, right: 1, top: 2, bottom: 3, floating: 4 }
+        const positionOrder = { left: 0, right: 1, top: 2, bottom: 3, main: 4 }
         if (positionOrder[a.position] !== positionOrder[b.position]) {
           return positionOrder[a.position] - positionOrder[b.position]
         }
@@ -124,10 +140,18 @@ export class PanelManager {
 
     if (!panel || !config) return false
 
-    // Apply size constraints
-    const constrainedSize = {
-      width: Math.max(config.minSize.width, Math.min(config.maxSize.width, size.width)),
-      height: Math.max(config.minSize.height, Math.min(config.maxSize.height, size.height))
+    const constrainedSize: PanelSize = { ...panel.size }
+
+    if (typeof size.width === 'number') {
+      const minWidth = config.minSize.width ?? 0
+      const maxWidth = config.maxSize.width ?? Number.MAX_SAFE_INTEGER
+      constrainedSize.width = Math.max(minWidth, Math.min(maxWidth, size.width))
+    }
+
+    if (typeof size.height === 'number') {
+      const minHeight = config.minSize.height ?? 0
+      const maxHeight = config.maxSize.height ?? Number.MAX_SAFE_INTEGER
+      constrainedSize.height = Math.max(minHeight, Math.min(maxHeight, size.height))
     }
 
     panel.size = constrainedSize
@@ -139,13 +163,10 @@ export class PanelManager {
 
   movePanel(panelId: string, position: PanelPosition): boolean {
     const panel = this.activePanels.get(panelId)
-    const config = this.panels.get(panelId)
-
-    if (!panel || !config || !config.dockable) return false
+    if (!panel) return false
 
     panel.position = position
     panel.order = this.getNextOrderForPosition(position)
-    panel.zIndex = this.getNextZIndex()
 
     this.emit('panel_moved', { panelId, position })
     this.saveToStorage()
@@ -155,18 +176,62 @@ export class PanelManager {
   // Layout Management
   saveLayout(name: string, description?: string): string {
     const layoutId = this.generateId()
-    const layout: PanelLayout = {
+    const layout: GridLayout = {
       id: layoutId,
       name,
       description,
-      panels: Array.from(this.activePanels.values()).map(panel => ({
-        id: panel.id,
-        isVisible: panel.isVisible,
-        position: panel.position,
-        size: panel.size,
-        order: panel.order,
-        zIndex: panel.zIndex
-      })),
+      areas: {
+        main: Array.from(this.activePanels.values())
+          .filter(panel => panel.position === 'main')
+          .map(panel => ({
+            id: panel.id,
+            config: panel.config,
+            isVisible: panel.isVisible,
+            position: panel.position,
+            size: panel.size,
+            order: panel.order
+          })),
+        left: Array.from(this.activePanels.values())
+          .filter(panel => panel.position === 'left')
+          .map(panel => ({
+            id: panel.id,
+            config: panel.config,
+            isVisible: panel.isVisible,
+            position: panel.position,
+            size: panel.size,
+            order: panel.order
+          })),
+        right: Array.from(this.activePanels.values())
+          .filter(panel => panel.position === 'right')
+          .map(panel => ({
+            id: panel.id,
+            config: panel.config,
+            isVisible: panel.isVisible,
+            position: panel.position,
+            size: panel.size,
+            order: panel.order
+          })),
+        top: Array.from(this.activePanels.values())
+          .filter(panel => panel.position === 'top')
+          .map(panel => ({
+            id: panel.id,
+            config: panel.config,
+            isVisible: panel.isVisible,
+            position: panel.position,
+            size: panel.size,
+            order: panel.order
+          })),
+        bottom: Array.from(this.activePanels.values())
+          .filter(panel => panel.position === 'bottom')
+          .map(panel => ({
+            id: panel.id,
+            config: panel.config,
+            isVisible: panel.isVisible,
+            position: panel.position,
+            size: panel.size,
+            order: panel.order
+          }))
+      },
       timestamp: new Date()
     }
 
@@ -182,15 +247,17 @@ export class PanelManager {
     const layout = this.layouts.get(layoutId)
     if (!layout) return false
 
-    layout.panels.forEach(panelData => {
-      const panel = this.activePanels.get(panelData.id)
-      if (panel) {
-        panel.isVisible = panelData.isVisible
-        panel.position = panelData.position
-        panel.size = panelData.size
-        panel.order = panelData.order
-        panel.zIndex = panelData.zIndex
-      }
+    // Update all panels based on the layout
+    Object.entries(layout.areas).forEach(([position, panels]) => {
+      panels.forEach(panelData => {
+        const panel = this.activePanels.get(panelData.id)
+        if (panel) {
+          panel.isVisible = panelData.isVisible
+          panel.position = position as PanelPosition
+          panel.size = panelData.size
+          panel.order = panelData.order
+        }
+      })
     })
 
     this.currentLayout = layoutId
@@ -199,11 +266,11 @@ export class PanelManager {
     return true
   }
 
-  getCurrentLayout(): PanelLayout | undefined {
+  getCurrentLayout(): GridLayout | undefined {
     return this.layouts.get(this.currentLayout)
   }
 
-  getAllLayouts(): PanelLayout[] {
+  getAllLayouts(): GridLayout[] {
     return Array.from(this.layouts.values())
   }
 
@@ -217,20 +284,55 @@ export class PanelManager {
     const template = this.templates.get(templateId)
     if (!template) return false
 
+    const normalizePanelsForLayout = (panels: PanelState[]): PanelState[] => {
+      return panels.map(panelData => {
+        const config = this.panels.get(panelData.id) ?? panelData.config
+        const position = panelData.position ?? config?.defaultPosition ?? 'main'
+        return {
+          id: panelData.id,
+          config,
+          isVisible: panelData.isVisible,
+          position,
+          size: { ...panelData.size },
+          order: panelData.order
+        }
+      })
+    }
+
     // Apply template layout
-    template.layout.panels.forEach(panelData => {
-      const panel = this.activePanels.get(panelData.id)
-      if (panel) {
-        panel.isVisible = panelData.isVisible
-        panel.position = panelData.position
-        panel.size = panelData.size
-        panel.order = panelData.order
-        panel.zIndex = panelData.zIndex
-      }
+    Object.entries(template.gridLayout.areas).forEach(([position, panels]) => {
+      panels.forEach(panelData => {
+        const panel = this.activePanels.get(panelData.id)
+        if (panel) {
+          panel.isVisible = panelData.isVisible
+          panel.position = position as PanelPosition
+          panel.size = { ...panelData.size }
+          panel.order = panelData.order
+          if (!panel.config && this.panels.has(panelData.id)) {
+            panel.config = this.panels.get(panelData.id)!
+          }
+        }
+      })
     })
 
-    this.currentLayout = template.layout.id
+    const appliedLayout: GridLayout = {
+      id: template.gridLayout.id,
+      name: template.gridLayout.name,
+      description: template.gridLayout.description,
+      areas: {
+        main: normalizePanelsForLayout(template.gridLayout.areas.main),
+        left: normalizePanelsForLayout(template.gridLayout.areas.left),
+        right: normalizePanelsForLayout(template.gridLayout.areas.right),
+        top: normalizePanelsForLayout(template.gridLayout.areas.top),
+        bottom: normalizePanelsForLayout(template.gridLayout.areas.bottom)
+      },
+      timestamp: new Date()
+    }
+
+    this.layouts.set(appliedLayout.id, appliedLayout)
+    this.currentLayout = appliedLayout.id
     this.emit('template_applied', { templateId })
+    this.emit('layout_changed', { layoutId: appliedLayout.id })
     this.saveToStorage()
     return true
   }
@@ -257,20 +359,15 @@ export class PanelManager {
   }
 
   private getNextOrderForPosition(position: PanelPosition): number {
-    const panelsInPosition = Array.from(this.activePanels.values())
+    const panelsInArea = Array.from(this.activePanels.values())
       .filter(panel => panel.position === position)
 
-    return panelsInPosition.length > 0
-      ? Math.max(...panelsInPosition.map(p => p.order)) + 1
+    return panelsInArea.length > 0
+      ? Math.max(...panelsInArea.map(p => p.order)) + 1
       : 0
   }
 
-  private getNextZIndex(): number {
-    const maxZIndex = Math.max(...Array.from(this.activePanels.values())
-      .map(panel => panel.zIndex), 0)
-    return maxZIndex + 1
-  }
-
+  
   private generateId(): string {
     return Math.random().toString(36).substr(2, 9)
   }
@@ -310,17 +407,89 @@ export class PanelManager {
         this.activePanels = new Map(
           data.activePanels.map(([id, state]: [string, any]) => {
             const config = this.panels.get(id)
-            return [id, { ...state, config }]
+            const normalizedState = { ...state }
+
+            if (normalizedState.area && !normalizedState.position) {
+              normalizedState.position = normalizedState.area
+            }
+
+            delete normalizedState.area
+
+            if (!normalizedState.size && config) {
+              normalizedState.size = config.defaultSize
+            }
+
+            if (!normalizedState.position && config) {
+              normalizedState.position = config.defaultPosition
+            }
+
+            return [id, { ...normalizedState, config }]
           })
         )
       }
 
       if (data.layouts) {
-        this.layouts = new Map(data.layouts)
+        const normalizeLayoutPanels = (panels: any[]) =>
+          panels.map(panel => {
+            const normalizedPanel = { ...panel }
+            if (normalizedPanel.area && !normalizedPanel.position) {
+              normalizedPanel.position = normalizedPanel.area
+            }
+            delete normalizedPanel.area
+            return normalizedPanel
+          })
+
+        this.layouts = new Map(
+          data.layouts.map(([id, layout]: [string, any]) => {
+            const areas = layout.areas || {}
+            const normalizedAreas = {
+              main: normalizeLayoutPanels(areas.main || []),
+              left: normalizeLayoutPanels(areas.left || []),
+              right: normalizeLayoutPanels(areas.right || []),
+              top: normalizeLayoutPanels(areas.top || []),
+              bottom: normalizeLayoutPanels(areas.bottom || [])
+            }
+
+            return [id, {
+              ...layout,
+              areas: normalizedAreas,
+              timestamp: layout.timestamp ? new Date(layout.timestamp) : new Date()
+            }]
+          })
+        )
       }
 
       if (data.templates) {
-        this.templates = new Map(data.templates)
+        this.templates = new Map(
+          data.templates.map(([id, template]: [string, any]) => {
+            const layout = template.gridLayout || {}
+            const areas = layout.areas || {}
+
+            const normalizeTemplatePanels = (panels: any[]) =>
+              panels.map(panel => {
+                const normalizedPanel = { ...panel }
+                if (normalizedPanel.area && !normalizedPanel.position) {
+                  normalizedPanel.position = normalizedPanel.area
+                }
+                delete normalizedPanel.area
+                return normalizedPanel
+              })
+
+            const normalizedLayout = {
+              ...layout,
+              areas: {
+                main: normalizeTemplatePanels(areas.main || []),
+                left: normalizeTemplatePanels(areas.left || []),
+                right: normalizeTemplatePanels(areas.right || []),
+                top: normalizeTemplatePanels(areas.top || []),
+                bottom: normalizeTemplatePanels(areas.bottom || [])
+              },
+              timestamp: layout.timestamp ? new Date(layout.timestamp) : new Date()
+            }
+
+            return [id, { ...template, gridLayout: normalizedLayout }]
+          })
+        )
       }
     } catch (error) {
       console.error('Failed to load panel state from storage:', error)
@@ -354,11 +523,35 @@ export class PanelManager {
 
   // Default Layout and Templates
   private initializeDefaultLayout(): void {
-    const defaultLayout: PanelLayout = {
+    const defaultLayout: GridLayout = {
       id: 'default',
       name: 'Default Layout',
       description: 'Default panel arrangement',
-      panels: [],
+      areas: {
+        main: [
+          {
+            id: 'bible-reader',
+            config: {} as PanelConfig,
+            isVisible: true,
+            position: 'main' as PanelPosition,
+            size: {},
+            order: 0
+          }
+        ],
+        left: [],
+        right: [
+          {
+            id: 'cross-references',
+            config: {} as PanelConfig,
+            isVisible: true,
+            position: 'right' as PanelPosition,
+            size: { width: 340, height: 360 },
+            order: 0
+          }
+        ],
+        top: [],
+        bottom: []
+      },
       timestamp: new Date()
     }
 
@@ -372,23 +565,46 @@ export class PanelManager {
       id: 'study-focus',
       name: 'Study Focus',
       description: 'Bible text with notes panel',
-      icon: '📖',
+      icon: 'book-open',
       category: 'study',
       isDefault: true,
       isBuiltIn: true,
-      layout: {
+      gridLayout: {
         id: 'study-focus-layout',
         name: 'Study Focus Layout',
-        panels: [
-          {
-            id: 'notes',
-            isVisible: true,
-            position: 'right' as PanelPosition,
-            size: { width: 320, height: 600 },
-            order: 0,
-            zIndex: 1
-          }
-        ],
+        areas: {
+          main: [
+            {
+              id: 'bible-reader',
+              config: {} as PanelConfig,
+              isVisible: true,
+              position: 'main' as PanelPosition,
+              size: {},
+              order: 0
+            }
+          ],
+          left: [],
+          right: [
+            {
+              id: 'cross-references',
+              config: {} as PanelConfig,
+              isVisible: true,
+              position: 'right' as PanelPosition,
+              size: { width: 340, height: 360 },
+              order: 0
+            },
+            {
+              id: 'notes',
+              config: {} as PanelConfig,
+              isVisible: true,
+              position: 'right' as PanelPosition,
+              size: { width: 320, height: 600 },
+              order: 1
+            }
+          ],
+          top: [],
+          bottom: []
+        },
         timestamp: new Date()
       }
     })
@@ -398,31 +614,55 @@ export class PanelManager {
       id: 'research-mode',
       name: 'Research Mode',
       description: 'Multi-panel research setup',
-      icon: '🔍',
+      icon: 'search',
       category: 'research',
       isDefault: true,
       isBuiltIn: true,
-      layout: {
+      gridLayout: {
         id: 'research-layout',
         name: 'Research Layout',
-        panels: [
-          {
-            id: 'commentary',
-            isVisible: true,
-            position: 'left' as PanelPosition,
-            size: { width: 300, height: 600 },
-            order: 0,
-            zIndex: 1
-          },
-          {
-            id: 'notes',
-            isVisible: true,
-            position: 'right' as PanelPosition,
-            size: { width: 320, height: 600 },
-            order: 0,
-            zIndex: 2
-          }
-        ],
+        areas: {
+          main: [
+            {
+              id: 'bible-reader',
+              config: {} as PanelConfig,
+              isVisible: true,
+              position: 'main' as PanelPosition,
+              size: {},
+              order: 0
+            }
+          ],
+          left: [
+            {
+              id: 'commentary',
+              config: {} as PanelConfig,
+              isVisible: true,
+              position: 'left' as PanelPosition,
+              size: { width: 300, height: 600 },
+              order: 0
+            }
+          ],
+          right: [
+            {
+              id: 'cross-references',
+              config: {} as PanelConfig,
+              isVisible: true,
+              position: 'right' as PanelPosition,
+              size: { width: 340, height: 360 },
+              order: 0
+            },
+            {
+              id: 'notes',
+              config: {} as PanelConfig,
+              isVisible: true,
+              position: 'right' as PanelPosition,
+              size: { width: 320, height: 600 },
+              order: 1
+            }
+          ],
+          top: [],
+          bottom: []
+        },
         timestamp: new Date()
       }
     })
@@ -432,14 +672,236 @@ export class PanelManager {
       id: 'devotional',
       name: 'Devotional Reading',
       description: 'Clean reading experience',
-      icon: '🙏',
+      icon: 'sun',
       category: 'devotional',
       isDefault: true,
       isBuiltIn: true,
-      layout: {
+      gridLayout: {
         id: 'devotional-layout',
         name: 'Devotional Layout',
-        panels: [],
+        areas: {
+          main: [
+            {
+              id: 'bible-reader',
+              config: {} as PanelConfig,
+              isVisible: true,
+              position: 'main' as PanelPosition,
+              size: {},
+              order: 0
+            }
+          ],
+          left: [],
+          right: [],
+          top: [],
+          bottom: []
+        },
+        timestamp: new Date()
+      }
+    })
+
+    // Parallel Study Template
+    this.registerTemplate({
+      id: 'parallel-study',
+      name: 'Parallel Study',
+      description: 'Compare translations with cross-references',
+      icon: 'layers',
+      category: 'study',
+      isDefault: true,
+      isBuiltIn: true,
+      gridLayout: {
+        id: 'parallel-layout',
+        name: 'Parallel Study Layout',
+        areas: {
+          main: [
+            {
+              id: 'bible-reader',
+              config: {} as PanelConfig,
+              isVisible: true,
+              position: 'main' as PanelPosition,
+              size: {},
+              order: 0
+            }
+          ],
+          left: [],
+          right: [
+            {
+              id: 'cross-references',
+              config: {} as PanelConfig,
+              isVisible: true,
+              position: 'right' as PanelPosition,
+              size: { width: 280, height: 400 },
+              order: 0
+            }
+          ],
+          top: [],
+          bottom: []
+        },
+        timestamp: new Date()
+      }
+    })
+
+    // Language Study Template
+    this.registerTemplate({
+      id: 'language-study',
+      name: 'Language Study',
+      description: 'Deep dive into original languages',
+      icon: 'type',
+      category: 'study',
+      isDefault: true,
+      isBuiltIn: true,
+      gridLayout: {
+        id: 'language-layout',
+        name: 'Language Study Layout',
+        areas: {
+          main: [
+            {
+              id: 'bible-reader',
+              config: {} as PanelConfig,
+              isVisible: true,
+              position: 'main' as PanelPosition,
+              size: {},
+              order: 0
+            }
+          ],
+          left: [
+            {
+              id: 'dictionary',
+              config: {} as PanelConfig,
+              isVisible: true,
+              position: 'left' as PanelPosition,
+              size: { width: 320, height: 500 },
+              order: 0
+            }
+          ],
+          right: [
+            {
+              id: 'commentary',
+              config: {} as PanelConfig,
+              isVisible: true,
+              position: 'right' as PanelPosition,
+              size: { width: 300, height: 500 },
+              order: 0
+            }
+          ],
+          top: [],
+          bottom: []
+        },
+        timestamp: new Date()
+      }
+    })
+
+    // Comprehensive Study Template
+    this.registerTemplate({
+      id: 'comprehensive-study',
+      name: 'Comprehensive Study',
+      description: 'Full-featured study workspace',
+      icon: 'clipboard-list',
+      category: 'research',
+      isDefault: true,
+      isBuiltIn: true,
+      gridLayout: {
+        id: 'comprehensive-layout',
+        name: 'Comprehensive Study Layout',
+        areas: {
+          main: [
+            {
+              id: 'bible-reader',
+              config: {} as PanelConfig,
+              isVisible: true,
+              position: 'main' as PanelPosition,
+              size: {},
+              order: 0
+            }
+          ],
+          left: [
+            {
+              id: 'commentary',
+              config: {} as PanelConfig,
+              isVisible: true,
+              position: 'left' as PanelPosition,
+              size: { width: 280, height: 600 },
+              order: 0
+            }
+          ],
+          right: [
+            {
+              id: 'cross-references',
+              config: {} as PanelConfig,
+              isVisible: true,
+              position: 'right' as PanelPosition,
+              size: { width: 340, height: 360 },
+              order: 0
+            },
+            {
+              id: 'notes',
+              config: {} as PanelConfig,
+              isVisible: true,
+              position: 'right' as PanelPosition,
+              size: { width: 320, height: 600 },
+              order: 1
+            }
+          ],
+          top: [],
+          bottom: [
+            {
+              id: 'dictionary',
+              config: {} as PanelConfig,
+              isVisible: true,
+              position: 'bottom' as PanelPosition,
+              size: { width: 400, height: 250 },
+              order: 0
+            }
+          ]
+        },
+        timestamp: new Date()
+      }
+    })
+
+    // Teaching Preparation Template
+    this.registerTemplate({
+      id: 'teaching-prep',
+      name: 'Teaching Preparation',
+      description: 'Prepare lessons and sermons',
+      icon: 'graduation-cap',
+      category: 'teaching',
+      isDefault: true,
+      isBuiltIn: true,
+      gridLayout: {
+        id: 'teaching-layout',
+        name: 'Teaching Preparation Layout',
+        areas: {
+          main: [
+            {
+              id: 'bible-reader',
+              config: {} as PanelConfig,
+              isVisible: true,
+              position: 'main' as PanelPosition,
+              size: {},
+              order: 0
+            }
+          ],
+          left: [],
+          right: [
+            {
+              id: 'cross-references',
+              config: {} as PanelConfig,
+              isVisible: true,
+              position: 'right' as PanelPosition,
+              size: { width: 340, height: 360 },
+              order: 0
+            },
+            {
+              id: 'notes',
+              config: {} as PanelConfig,
+              isVisible: true,
+              position: 'right' as PanelPosition,
+              size: { width: 350, height: 700 },
+              order: 1
+            }
+          ],
+          top: [],
+          bottom: []
+        },
         timestamp: new Date()
       }
     })

@@ -1,6 +1,6 @@
 'use client'
 
-import { createContext, useContext, useState, useEffect, ReactNode } from 'react'
+import { createContext, useContext, useState, useEffect, useCallback, ReactNode } from 'react'
 import { PanelManager } from '@/lib/panels/PanelManager'
 import { panelRegistry } from '@/lib/panels/PanelRegistry'
 import { PanelConfig, PanelState, Template, PanelSize, PanelPosition } from '@/lib/panels/types'
@@ -8,17 +8,20 @@ import { PanelConfig, PanelState, Template, PanelSize, PanelPosition } from '@/l
 interface PanelContextType {
   panelManager: PanelManager
   visiblePanels: PanelState[]
+  currentLayoutId: string | null
   showPanel: (panelId: string) => void
   hidePanel: (panelId: string) => void
   togglePanel: (panelId: string) => void
   resizePanel: (panelId: string, size: PanelSize) => void
   movePanel: (panelId: string, position: PanelPosition) => void
   applyTemplate: (templateId: string) => void
+  loadLayout: (layoutId: string) => void
   getCurrentTemplate: () => Template | undefined
   getAvailableTemplates: () => Template[]
   getPanelConfig: (panelId: string) => PanelConfig | undefined
   getAllPanelConfigs: () => PanelConfig[]
   isPanelVisible: (panelId: string) => boolean
+  refreshPanels: () => void
 }
 
 const PanelContext = createContext<PanelContextType | undefined>(undefined)
@@ -31,7 +34,15 @@ interface PanelProviderProps {
 export function PanelProvider({ children, initialPanels = [] }: PanelProviderProps) {
   const [panelManager] = useState(() => new PanelManager())
   const [visiblePanels, setVisiblePanels] = useState<PanelState[]>([])
+  const [currentLayoutId, setCurrentLayoutId] = useState<string | null>(() => panelManager.getCurrentLayout()?.id ?? null)
   const [isInitialized, setIsInitialized] = useState(false)
+
+  const updateVisiblePanels = useCallback(() => {
+    const panels = panelManager.getVisiblePanels()
+    setVisiblePanels([...panels])
+    const layout = panelManager.getCurrentLayout()
+    setCurrentLayoutId(layout ? layout.id : null)
+  }, [panelManager])
 
   // Initialize panels
   useEffect(() => {
@@ -54,20 +65,31 @@ export function PanelProvider({ children, initialPanels = [] }: PanelProviderPro
     panelManager.on('panel_resized', updateVisiblePanels)
     panelManager.on('panel_moved', updateVisiblePanels)
     panelManager.on('template_applied', updateVisiblePanels)
+    panelManager.on('layout_loaded', updateVisiblePanels)
+    panelManager.on('layout_saved', updateVisiblePanels)
+    panelManager.on('layout_changed', updateVisiblePanels)
 
     // Initial update
     updateVisiblePanels()
+
+    if (panelManager.getVisiblePanels().length === 0) {
+      panelManager.loadLayout('default')
+      panelManager.showPanel('bible-reader')
+      updateVisiblePanels()
+    }
     setIsInitialized(true)
 
     return () => {
-      // Cleanup event listeners if needed
+      panelManager.off('panel_opened', updateVisiblePanels)
+      panelManager.off('panel_closed', updateVisiblePanels)
+      panelManager.off('panel_resized', updateVisiblePanels)
+      panelManager.off('panel_moved', updateVisiblePanels)
+      panelManager.off('template_applied', updateVisiblePanels)
+      panelManager.off('layout_loaded', updateVisiblePanels)
+      panelManager.off('layout_saved', updateVisiblePanels)
+      panelManager.off('layout_changed', updateVisiblePanels)
     }
-  }, [panelManager, initialPanels, isInitialized])
-
-  const updateVisiblePanels = () => {
-    const panels = panelManager.getVisiblePanels()
-    setVisiblePanels(panels)
-  }
+  }, [panelManager, initialPanels, isInitialized, updateVisiblePanels])
 
   const showPanel = (panelId: string) => {
     panelManager.showPanel(panelId)
@@ -91,6 +113,11 @@ export function PanelProvider({ children, initialPanels = [] }: PanelProviderPro
 
   const applyTemplate = (templateId: string) => {
     panelManager.applyTemplate(templateId)
+  }
+
+  const loadLayout = (layoutId: string) => {
+    panelManager.loadLayout(layoutId)
+    updateVisiblePanels()
   }
 
   const getCurrentTemplate = (): Template | undefined => {
@@ -117,17 +144,20 @@ export function PanelProvider({ children, initialPanels = [] }: PanelProviderPro
   const value: PanelContextType = {
     panelManager,
     visiblePanels,
+    currentLayoutId,
     showPanel,
     hidePanel,
     togglePanel,
     resizePanel,
     movePanel,
     applyTemplate,
+    loadLayout,
     getCurrentTemplate,
     getAvailableTemplates,
     getPanelConfig,
     getAllPanelConfigs,
-    isPanelVisible
+    isPanelVisible,
+    refreshPanels: updateVisiblePanels
   }
 
   return (
@@ -144,4 +174,3 @@ export function usePanels() {
   }
   return context
 }
-

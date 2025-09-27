@@ -76,7 +76,7 @@ export function HistoryPanelComponent({
 
   const handleVerseSelect = (book: string, chapter: number, verse: number) => {
     onVerseSelect(book, chapter, verse)
-    onClose()
+    onClose?.()
   }
 
   return (
@@ -215,6 +215,8 @@ export function HistoryPanel() {
       onClose={() => hidePanel('history')}
       onResize={(size) => console.log('Resize history panel:', size)}
       onPositionChange={(position) => console.log('Move history panel:', position)}
+      minSize={config.minSize}
+      maxSize={config.maxSize}
     >
       <HistoryPanelComponent
         id="history"

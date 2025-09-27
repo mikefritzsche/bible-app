@@ -1,18 +1,17 @@
 'use client'
 
-import { useEffect, useRef, useState, useCallback } from 'react'
-import { X, Maximize2, Minimize2, GripHorizontal } from 'lucide-react'
-import type { PanelProps, PanelPosition, PanelSize } from '@/lib/panels/types'
+import { useEffect, useRef, useState, useCallback, type ReactNode } from 'react'
+import { X, GripHorizontal, ChevronDown, ChevronRight } from 'lucide-react'
+import type { PanelProps, PanelSize } from '@/lib/panels/types'
 
 // Re-export PanelProps for use by other panel components
 export type { PanelProps }
 
 interface BasePanelProps extends PanelProps {
-  children: React.ReactNode
+  children: ReactNode
   className?: string
   showHeader?: boolean
   isResizable?: boolean
-  isDraggable?: boolean
   isCollapsible?: boolean
   defaultCollapsed?: boolean
 }
@@ -23,323 +22,237 @@ export function BasePanel({
   isVisible,
   position,
   size,
-  onClose,
   onResize,
+  onClose,
   onPositionChange,
   children,
   className = '',
   showHeader = true,
   isResizable = true,
-  isDraggable = true,
   isCollapsible = true,
-  defaultCollapsed = false
+  defaultCollapsed = false,
+  minSize,
+  maxSize
 }: BasePanelProps) {
   const panelRef = useRef<HTMLDivElement>(null)
   const [isResizing, setIsResizing] = useState(false)
-  const [isDragging, setIsDragging] = useState(false)
   const [isCollapsed, setIsCollapsed] = useState(defaultCollapsed)
-  const [isMaximized, setIsMaximized] = useState(false)
   const [currentSize, setCurrentSize] = useState(size)
-  const [dragOffset, setDragOffset] = useState({ x: 0, y: 0 })
-  const [currentPosition, setCurrentPosition] = useState(position)
 
   // Handle resize
-  const handleResizeStart = useCallback((e: React.MouseEvent, direction: 'horizontal' | 'vertical' | 'both') => {
+  const handleResizeStart = useCallback((e: React.MouseEvent) => {
     e.preventDefault()
     setIsResizing(true)
 
     const startX = e.clientX
     const startY = e.clientY
-    const startWidth = currentSize.width
-    const startHeight = currentSize.height
+    const startWidth = panelRef.current?.offsetWidth || 0
+    const startHeight = panelRef.current?.offsetHeight || 0
 
-    const handleMouseMove = (e: MouseEvent) => {
+    const handleMouseMove = (moveEvent: MouseEvent) => {
       if (!isResizing) return
 
       let newWidth = startWidth
       let newHeight = startHeight
 
-      if (direction === 'horizontal' || direction === 'both') {
-        newWidth = startWidth + (position === 'left' ? startX - e.clientX : e.clientX - startX)
-      }
-      if (direction === 'vertical' || direction === 'both') {
-        newHeight = startHeight + (position === 'top' ? startY - e.clientY : e.clientY - startY)
-      }
-
-      const constrainedSize = {
-        width: Math.max(200, Math.min(800, newWidth)),
-        height: Math.max(150, Math.min(600, newHeight))
+      if (position === 'left' || position === 'right') {
+        const deltaX = position === 'left' ? startX - moveEvent.clientX : moveEvent.clientX - startX
+        const minWidth = minSize?.width ?? 200
+        const maxWidth = maxSize?.width ?? 800
+        newWidth = Math.max(minWidth, Math.min(maxWidth, startWidth + deltaX))
       }
 
-      setCurrentSize(constrainedSize)
+      if (position === 'bottom' || position === 'top') {
+        const deltaY = position === 'top' ? startY - moveEvent.clientY : moveEvent.clientY - startY
+        const minHeight = minSize?.height ?? 150
+        const maxHeight = maxSize?.height ?? 600
+        newHeight = Math.max(minHeight, Math.min(maxHeight, startHeight + deltaY))
+      }
+
+      const newSize: PanelSize = {}
+      if (position === 'left' || position === 'right') {
+        newSize.width = newWidth
+      }
+      if (position === 'bottom' || position === 'top') {
+        newSize.height = newHeight
+      }
+
+      setCurrentSize(newSize)
+      onResize(newSize)
     }
 
     const handleMouseUp = () => {
       setIsResizing(false)
-      onResize(currentSize)
       document.removeEventListener('mousemove', handleMouseMove)
       document.removeEventListener('mouseup', handleMouseUp)
     }
 
     document.addEventListener('mousemove', handleMouseMove)
     document.addEventListener('mouseup', handleMouseUp)
-  }, [isResizing, currentSize, position, onResize])
+  }, [isResizing, position, onResize])
 
-  // Handle drag
-  const handleDragStart = useCallback((e: React.MouseEvent) => {
-    if (!isDraggable) return
+  // Handle collapse/expand
+  const toggleCollapse = useCallback(() => {
+    setIsCollapsed(!isCollapsed)
+  }, [isCollapsed])
 
-    e.preventDefault()
-    setIsDragging(true)
-
-    const rect = panelRef.current?.getBoundingClientRect()
-    if (!rect) return
-
-    setDragOffset({
-      x: e.clientX - rect.left,
-      y: e.clientY - rect.top
-    })
-  }, [isDraggable])
-
-  // Handle drag movement
+  // Update size when prop changes
   useEffect(() => {
-    if (!isDragging) return
+    setCurrentSize(size)
+  }, [size])
 
-    const handleMouseMove = (e: MouseEvent) => {
-      if (!panelRef.current) return
-
-      const newX = e.clientX - dragOffset.x
-      const newY = e.clientY - dragOffset.y
-
-      // Update panel position for floating panels
-      if (currentPosition === 'floating') {
-        panelRef.current.style.left = `${newX}px`
-        panelRef.current.style.top = `${newY}px`
-      }
-    }
-
-    const handleMouseUp = () => {
-      setIsDragging(false)
-      document.removeEventListener('mousemove', handleMouseMove)
-      document.removeEventListener('mouseup', handleMouseUp)
-    }
-
-    document.addEventListener('mousemove', handleMouseMove)
-    document.addEventListener('mouseup', handleMouseUp)
-
-    return () => {
-      document.removeEventListener('mousemove', handleMouseMove)
-      document.removeEventListener('mouseup', handleMouseUp)
-    }
-  }, [isDragging, dragOffset, currentPosition])
-
-  // Handle keyboard shortcuts
-  useEffect(() => {
-    const handleKeyDown = (e: KeyboardEvent) => {
-      if (e.key === 'Escape' && isVisible) {
-        onClose()
-      }
-    }
-
-    document.addEventListener('keydown', handleKeyDown)
-    return () => document.removeEventListener('keydown', handleKeyDown)
-  }, [isVisible, onClose])
-
-  // Calculate panel classes based on position and state
+  // Get panel classes based on position
   const getPanelClasses = () => {
-    const baseClasses = 'fixed bg-white dark:bg-gray-800 shadow-2xl border border-gray-200 dark:border-gray-700 flex flex-col transition-all duration-200'
+    const baseClasses = 'bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 flex flex-col overflow-hidden'
 
-    let positionClasses = ''
-    let sizeClasses = ''
-
-    if (isMaximized) {
-      positionClasses = 'inset-0'
-      sizeClasses = 'w-full h-full'
-    } else if (currentPosition === 'floating') {
-      positionClasses = ''
-      sizeClasses = `w-[${currentSize.width}px] h-[${currentSize.height}px]`
-    } else {
-      switch (currentPosition) {
-        case 'left':
-          positionClasses = 'left-0 top-0 bottom-0'
-          sizeClasses = isCollapsed ? 'w-12' : `w-[${currentSize.width}px]`
-          break
-        case 'right':
-          positionClasses = 'right-0 top-0 bottom-0'
-          sizeClasses = isCollapsed ? 'w-12' : `w-[${currentSize.width}px]`
-          break
-        case 'top':
-          positionClasses = 'left-0 right-0 top-0'
-          sizeClasses = isCollapsed ? 'h-12' : `h-[${currentSize.height}px]`
-          break
-        case 'bottom':
-          positionClasses = 'left-0 right-0 bottom-0'
-          sizeClasses = isCollapsed ? 'h-12' : `h-[${currentSize.height}px]`
-          break
-      }
+    switch (position) {
+      case 'left':
+        return `${baseClasses} border-r-0 ${isCollapsed ? 'w-12' : ''}`
+      case 'right':
+        return `${baseClasses} border-l-0 ${isCollapsed ? 'w-12' : ''}`
+      case 'top':
+        return `${baseClasses} border-b-0 ${isCollapsed ? 'h-12' : ''}`
+      case 'bottom':
+        return `${baseClasses} border-t-0 ${isCollapsed ? 'h-12' : ''}`
+      case 'main':
+        return `${baseClasses} flex-1`
+      default:
+        return baseClasses
     }
-
-    const visibilityClasses = isVisible
-      ? 'opacity-100 translate-x-0 translate-y-0'
-      : currentPosition === 'left'
-        ? 'opacity-0 -translate-x-full'
-        : currentPosition === 'right'
-        ? 'opacity-0 translate-x-full'
-        : currentPosition === 'top'
-        ? 'opacity-0 -translate-y-full'
-        : currentPosition === 'bottom'
-        ? 'opacity-0 translate-y-full'
-        : 'opacity-0 scale-95'
-
-    const interactionClasses = isResizing ? 'select-none' : ''
-
-    return `${baseClasses} ${positionClasses} ${sizeClasses} ${visibilityClasses} ${interactionClasses} ${className}`
   }
 
-  // Render resize handles
-  const renderResizeHandles = () => {
-    if (!isResizable || isCollapsed || isMaximized) return null
+  // Get panel styles
+  const getPanelStyles = () => {
+    const styles: React.CSSProperties = {}
 
-    const handles = []
-
-    if (currentPosition === 'left' || currentPosition === 'right') {
-      handles.push(
-        <div
-          key="vertical"
-          className={`absolute top-0 bottom-0 w-2 cursor-ew-resize ${
-            currentPosition === 'left' ? 'right-0' : 'left-0'
-          } hover:bg-blue-500/20 transition-colors`}
-          onMouseDown={(e) => handleResizeStart(e, 'horizontal')}
-        />
-      )
+    if (!isCollapsed) {
+      if (position === 'left' || position === 'right') {
+        if (currentSize.width) {
+          styles.width = currentSize.width
+        }
+      }
+      if (position === 'top' || position === 'bottom') {
+        if (currentSize.height) {
+          styles.height = currentSize.height
+        }
+      }
     }
 
-    if (currentPosition === 'top' || currentPosition === 'bottom') {
-      handles.push(
-        <div
-          key="horizontal"
-          className={`absolute left-0 right-0 h-2 cursor-ns-resize ${
-            currentPosition === 'top' ? 'bottom-0' : 'top-0'
-          } hover:bg-blue-500/20 transition-colors`}
-          onMouseDown={(e) => handleResizeStart(e, 'vertical')}
-        />
-      )
-    }
+    return styles
+  }
 
-    if (currentPosition === 'floating') {
-      handles.push(
-        <>
-          <div
-            key="corner-nw"
-            className="absolute top-0 left-0 w-3 h-3 cursor-nw-resize"
-            onMouseDown={(e) => handleResizeStart(e, 'both')}
-          />
-          <div
-            key="corner-ne"
-            className="absolute top-0 right-0 w-3 h-3 cursor-ne-resize"
-            onMouseDown={(e) => handleResizeStart(e, 'both')}
-          />
-          <div
-            key="corner-sw"
-            className="absolute bottom-0 left-0 w-3 h-3 cursor-sw-resize"
-            onMouseDown={(e) => handleResizeStart(e, 'both')}
-          />
-          <div
-            key="corner-se"
-            className="absolute bottom-0 right-0 w-3 h-3 cursor-se-resize"
-            onMouseDown={(e) => handleResizeStart(e, 'both')}
-          />
-        </>
-      )
-    }
+  // Get resize handle
+  const getResizeHandle = () => {
+    if (!isResizable || isCollapsed) return null
 
-    return handles
+    switch (position) {
+      case 'left':
+        return (
+          <div
+            className="absolute top-0 right-0 w-2 h-full cursor-col-resize bg-blue-500/20 hover:bg-blue-500/40 dark:bg-blue-500/30 dark:hover:bg-blue-500/50 transition-colors z-10"
+            onMouseDown={handleResizeStart}
+          />
+        )
+      case 'right':
+        return (
+          <div
+            className="absolute top-0 left-0 w-2 h-full cursor-col-resize bg-blue-500/20 hover:bg-blue-500/40 dark:bg-blue-500/30 dark:hover:bg-blue-500/50 transition-colors z-10"
+            onMouseDown={handleResizeStart}
+          />
+        )
+      case 'top':
+        return (
+          <div
+            className="absolute bottom-0 left-0 w-full h-2 cursor-row-resize bg-blue-500/20 hover:bg-blue-500/40 dark:bg-blue-500/30 dark:hover:bg-blue-500/50 transition-colors z-10"
+            onMouseDown={handleResizeStart}
+          />
+        )
+      case 'bottom':
+        return (
+          <div
+            className="absolute top-0 left-0 w-full h-2 cursor-row-resize bg-blue-500/20 hover:bg-blue-500/40 dark:bg-blue-500/30 dark:hover:bg-blue-500/50 transition-colors z-10"
+            onMouseDown={handleResizeStart}
+          />
+        )
+      default:
+        return null
+    }
   }
 
   if (!isVisible) return null
 
   return (
-    <>
-      {/* Backdrop for non-floating panels */}
-      {currentPosition !== 'floating' && (
-        <div
-          className="fixed inset-0 bg-black/50 z-40"
-          onClick={onClose}
-          style={{ display: isVisible ? 'block' : 'none' }}
-        />
-      )}
+    <div
+      ref={panelRef}
+      className={`${getPanelClasses()} ${className}`}
+      style={getPanelStyles()}
+    >
+      {/* Resize Handle */}
+      {getResizeHandle()}
 
-      {/* Panel */}
-      <div
-        ref={panelRef}
-        className={getPanelClasses()}
-        style={{
-          zIndex: 50,
-          ...(currentPosition === 'floating' ? {
-            width: currentSize.width,
-            height: currentSize.height,
-            left: 100,
-            top: 100
-          } : {})
-        }}
-      >
-        {/* Header */}
-        {showHeader && (
-          <div
-            className={`flex items-center justify-between p-3 border-b border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-900/50 ${
-              isDraggable && currentPosition === 'floating' ? 'cursor-move' : ''
-            }`}
-            onMouseDown={handleDragStart}
-          >
-            <div className="flex items-center gap-2 min-w-0">
-              {isCollapsible && (
-                <button
-                  onClick={() => setIsCollapsed(!isCollapsed)}
-                  className="p-1 hover:bg-gray-200 dark:hover:bg-gray-700 rounded transition-colors flex-shrink-0"
-                >
-                  <GripHorizontal className="w-4 h-4 text-gray-500" />
-                </button>
-              )}
-              <h3 className={`font-medium text-gray-900 dark:text-gray-100 truncate ${
-                isCollapsed ? 'sr-only' : ''
-              }`}>
+      {/* Header */}
+      {showHeader && (
+        <div className="flex items-center justify-between p-3 bg-gray-50 dark:bg-gray-700 border-b border-gray-200 dark:border-gray-600 min-h-12">
+          <div className="flex items-center gap-2 flex-1 min-w-0">
+            <span className="flex items-center justify-center w-6 h-6 rounded-full bg-gray-200 dark:bg-gray-600 text-gray-600 dark:text-gray-300">
+              <GripHorizontal className="w-3 h-3" />
+            </span>
+            {isCollapsible && (
+              <button
+                onClick={toggleCollapse}
+                className="p-1 rounded hover:bg-gray-200 dark:hover:bg-gray-600 transition-colors flex-shrink-0"
+                title={isCollapsed ? 'Expand' : 'Collapse'}
+              >
+                {isCollapsed ? (
+                  <ChevronRight className="w-4 h-4" />
+                ) : (
+                  <ChevronDown className="w-4 h-4" />
+                )}
+              </button>
+            )}
+            {!isCollapsed && (
+              <h3 className="text-sm font-medium text-gray-900 dark:text-gray-100 truncate">
                 {title}
               </h3>
-            </div>
+            )}
+          </div>
 
-            <div className="flex items-center gap-1 flex-shrink-0">
-              {currentPosition === 'floating' && (
-                <button
-                  onClick={() => setIsMaximized(!isMaximized)}
-                  className="p-1 hover:bg-gray-200 dark:hover:bg-gray-700 rounded transition-colors"
-                  title={isMaximized ? 'Restore' : 'Maximize'}
-                >
-                  {isMaximized ? (
-                    <Minimize2 className="w-4 h-4 text-gray-500" />
-                  ) : (
-                    <Maximize2 className="w-4 h-4 text-gray-500" />
-                  )}
-                </button>
-              )}
+          <div className="flex items-center gap-2">
+            {onPositionChange && (
+              <div className="text-xs text-gray-500 dark:text-gray-400 capitalize">
+                {position}
+              </div>
+            )}
+            {onClose && (
               <button
                 onClick={onClose}
-                className="p-1 hover:bg-gray-200 dark:hover:bg-gray-700 rounded transition-colors"
-                title="Close (Esc)"
+                className="p-1 rounded hover:bg-red-100 dark:hover:bg-red-900/40 text-red-500 dark:text-red-300 transition-colors"
+                title="Close panel"
               >
-                <X className="w-4 h-4 text-gray-500" />
+                <X className="w-4 h-4" />
               </button>
-            </div>
+            )}
           </div>
-        )}
+        </div>
+      )}
 
-        {/* Content */}
-        <div className={`flex-1 overflow-hidden ${isCollapsed ? 'hidden' : ''}`}>
+      {/* Content */}
+      {!isCollapsed && (
+        <div className="flex-1 overflow-hidden">
           {children}
         </div>
+      )}
 
-        {/* Resize Handles */}
-        {renderResizeHandles()}
-      </div>
-    </>
+      {/* Collapsed indicator */}
+      {isCollapsed && (
+        <div className="flex-1 flex items-center justify-center">
+          <div className="text-xs text-gray-500 dark:text-gray-400 text-center">
+            <div className="transform -rotate-90 whitespace-nowrap">
+              {title}
+            </div>
+          </div>
+        </div>
+      )}
+    </div>
   )
 }

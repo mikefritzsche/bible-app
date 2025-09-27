@@ -41,18 +41,6 @@ const CrossReferencesPlaceholder = () => {
   ])
 }
 
-const ParallelVersionsPlaceholder = () => {
-  return React.createElement('div', { className: 'p-4' }, [
-    React.createElement('h3', {
-      key: 'title',
-      className: 'text-lg font-semibold mb-4'
-    }, 'Parallel Versions'),
-    React.createElement('p', {
-      key: 'content',
-      className: 'text-gray-600 dark:text-gray-400'
-    }, 'Parallel versions panel will be implemented in a future update.')
-  ])
-}
 
 export class PanelRegistry {
   private static instance: PanelRegistry
@@ -94,12 +82,30 @@ export class PanelRegistry {
   }
 
   private registerDefaultPanels(): void {
+    // Bible Reader Panel
+    this.registerPanel({
+      id: 'bible-reader',
+      title: 'Bible Reader',
+      description: 'Primary Bible reading pane',
+      icon: 'book-open',
+      category: 'study',
+      defaultPosition: 'main' as PanelPosition,
+      defaultSize: { width: 0, height: 0 },
+      minSize: { width: 320, height: 480 },
+      maxSize: { width: 10000, height: 10000 },
+      resizable: false,
+      dockable: false,
+      closable: false,
+      defaultVisible: true,
+      component: null as any
+    })
+
     // Notes Panel - will be imported from components/panels/NotesPanel
     this.registerPanel({
       id: 'notes',
       title: 'Notes',
       description: 'View and manage your study notes',
-      icon: '📝',
+      icon: 'file-text',
       category: 'study',
       defaultPosition: 'right' as PanelPosition,
       defaultSize: { width: 320, height: 600 },
@@ -118,7 +124,7 @@ export class PanelRegistry {
       id: 'history',
       title: 'History',
       description: 'View your reading history',
-      icon: '📚',
+      icon: 'history',
       category: 'study',
       defaultPosition: 'right' as PanelPosition,
       defaultSize: { width: 320, height: 600 },
@@ -137,7 +143,7 @@ export class PanelRegistry {
       id: 'commentary',
       title: 'Commentary',
       description: 'View commentaries for current passage',
-      icon: '📖',
+      icon: 'scroll-text',
       category: 'resources',
       defaultPosition: 'left' as PanelPosition,
       defaultSize: { width: 300, height: 600 },
@@ -156,7 +162,7 @@ export class PanelRegistry {
       id: 'dictionary',
       title: 'Dictionary',
       description: 'Look up words and definitions',
-      icon: '📚',
+      icon: 'book',
       category: 'resources',
       defaultPosition: 'left' as PanelPosition,
       defaultSize: { width: 300, height: 400 },
@@ -175,38 +181,20 @@ export class PanelRegistry {
       id: 'cross-references',
       title: 'Cross References',
       description: 'View related verses',
-      icon: '🔗',
+      icon: 'link-2',
       category: 'resources',
-      defaultPosition: 'bottom' as PanelPosition,
-      defaultSize: { width: 400, height: 200 },
-      minSize: { width: 300, height: 150 },
-      maxSize: { width: 800, height: 400 },
+      defaultPosition: 'right' as PanelPosition,
+      defaultSize: { width: 340, height: 300 },
+      minSize: { width: 260, height: 200 },
+      maxSize: { width: 520, height: 500 },
       resizable: true,
       dockable: true,
       closable: true,
-      defaultVisible: false,
+      defaultVisible: true,
       keyboardShortcut: 'CmdOrCtrl+R',
       component: CrossReferencesPlaceholder
     })
 
-    // Parallel Versions Panel
-    this.registerPanel({
-      id: 'parallel-versions',
-      title: 'Parallel Versions',
-      description: 'Compare multiple Bible translations',
-      icon: '📖',
-      category: 'comparison',
-      defaultPosition: 'bottom' as PanelPosition,
-      defaultSize: { width: 600, height: 300 },
-      minSize: { width: 400, height: 200 },
-      maxSize: { width: 1000, height: 500 },
-      resizable: true,
-      dockable: true,
-      closable: true,
-      defaultVisible: false,
-      keyboardShortcut: 'CmdOrCtrl+P',
-      component: ParallelVersionsPlaceholder
-    })
   }
 
   // Method to dynamically set panel components after they're imported

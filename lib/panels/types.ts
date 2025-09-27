@@ -1,3 +1,7 @@
+import type { ComponentType } from 'react'
+
+export type PanelPosition = 'main' | 'left' | 'right' | 'bottom' | 'top'
+
 export interface PanelConfig {
   id: string
   title: string
@@ -9,11 +13,11 @@ export interface PanelConfig {
   minSize: PanelSize
   maxSize: PanelSize
   resizable: boolean
-  dockable: boolean
-  closable: boolean
-  component: React.ComponentType<PanelProps>
+  dockable?: boolean
+  closable?: boolean
   defaultVisible?: boolean
   keyboardShortcut?: string
+  component: ComponentType<PanelProps> | null
 }
 
 export interface PanelProps {
@@ -22,17 +26,18 @@ export interface PanelProps {
   isVisible: boolean
   position: PanelPosition
   size: PanelSize
-  onClose: () => void
   onResize: (size: PanelSize) => void
-  onPositionChange: (position: PanelPosition) => void
+  onClose?: () => void
+  onPositionChange?: (position: PanelPosition) => void
+  minSize?: PanelSize
+  maxSize?: PanelSize
   [key: string]: any
 }
 
-export type PanelPosition = 'left' | 'right' | 'bottom' | 'top' | 'floating'
-
 export interface PanelSize {
-  width: number
-  height: number
+  width?: number // in pixels or percentage
+  height?: number // in pixels or percentage
+  flex?: number // flex grow factor
 }
 
 export interface PanelState {
@@ -42,14 +47,19 @@ export interface PanelState {
   position: PanelPosition
   size: PanelSize
   order: number
-  zIndex: number
 }
 
-export interface PanelLayout {
+export interface GridLayout {
   id: string
   name: string
   description?: string
-  panels: Omit<PanelState, 'config'>[]
+  areas: {
+    main: PanelState[]
+    left: PanelState[]
+    right: PanelState[]
+    bottom: PanelState[]
+    top: PanelState[]
+  }
   timestamp: Date
 }
 
@@ -59,7 +69,7 @@ export interface Template {
   description?: string
   icon?: string
   category: 'study' | 'research' | 'devotional' | 'teaching' | 'custom'
-  layout: PanelLayout
+  gridLayout: GridLayout
   screenshot?: string
   author?: string
   isDefault: boolean
