@@ -28,6 +28,7 @@ export function LayoutSelector() {
   } = usePanels()
 
   const templates = getAvailableTemplates()
+  console.log('LayoutSelector: Available templates from manager:', templates.map(t => ({ id: t.id, name: t.name })))
 
   const layoutTemplates: LayoutTemplate[] = useMemo(() => [
     {
@@ -65,7 +66,7 @@ export function LayoutSelector() {
     {
       id: 'parallel-study',
       name: 'Parallel',
-      description: 'Side-by-side comparison',
+      description: 'Compare translations with cross-references',
       icon: <Layers className="w-5 h-5" />,
       category: 'study',
       preview: { main: true, left: false, right: true, top: false, bottom: false }
@@ -73,23 +74,23 @@ export function LayoutSelector() {
     {
       id: 'language-study',
       name: 'Language',
-      description: 'Original language tools',
+      description: 'Deep dive into original languages',
       icon: <Book className="w-5 h-5" />,
       category: 'academic',
       preview: { main: true, left: true, right: true, top: false, bottom: false }
     },
     {
-      id: 'comprehensive',
+      id: 'comprehensive-study',
       name: 'Comprehensive',
-      description: 'Complete study workspace',
+      description: 'Full-featured study workspace',
       icon: <BookText className="w-5 h-5" />,
       category: 'advanced',
-      preview: { main: true, left: true, right: true, top: true, bottom: true }
+      preview: { main: true, left: true, right: true, top: false, bottom: true }
     },
     {
-      id: 'teaching',
+      id: 'teaching-prep',
       name: 'Teaching',
-      description: 'Teaching preparation layout',
+      description: 'Prepare lessons and sermons',
       icon: <BookOpen className="w-5 h-5" />,
       category: 'teaching',
       preview: { main: true, left: false, right: true, top: false, bottom: false }
@@ -106,12 +107,25 @@ export function LayoutSelector() {
   }, [templates, currentLayoutId])
 
   const handleTemplateSelect = (templateId: string) => {
+    console.log('LayoutSelector: handleTemplateSelect called with:', templateId)
+    console.log('LayoutSelector: Available templates:', templates.map(t => ({ id: t.id, name: t.name })))
+
     if (templateId === '__default') {
+      console.log('LayoutSelector: Loading default layout')
       loadLayout('default')
       return
     }
 
-    applyTemplate(templateId)
+    const template = templates.find(t => t.id === templateId)
+    console.log('LayoutSelector: Found template:', template)
+
+    if (template) {
+      console.log('LayoutSelector: Applying template:', templateId)
+      applyTemplate(templateId)
+    } else {
+      console.error('LayoutSelector: Template not found:', templateId)
+      console.error('LayoutSelector: Available template IDs:', templates.map(t => t.id))
+    }
   }
 
   const renderLayoutPreview = (preview: LayoutTemplate['preview']) => {
@@ -176,11 +190,20 @@ export function LayoutSelector() {
         {layoutTemplates.map((template) => {
           const isSelected = selectedTemplateId === template.id
           const isAvailable = template.id === '__default' || templates.some(t => t.id === template.id)
+          console.log(`LayoutSelector: Template ${template.id} availability:`, isAvailable, 'Available templates:', templates.map(t => t.id))
 
           return (
             <button
               key={template.id}
-              onClick={() => isAvailable && handleTemplateSelect(template.id)}
+              onClick={() => {
+                console.log('LayoutSelector: Button clicked for template:', template.id)
+                console.log('LayoutSelector: isAvailable:', isAvailable)
+                if (isAvailable) {
+                  handleTemplateSelect(template.id)
+                } else {
+                  console.log('LayoutSelector: Template not available, skipping')
+                }
+              }}
               disabled={!isAvailable}
               className={`
                 relative p-3 rounded-lg border transition-all duration-200 text-left

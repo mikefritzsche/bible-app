@@ -126,7 +126,7 @@ export function PanelProvider({ children, initialPanels = [] }: PanelProviderPro
   }
 
   const getAvailableTemplates = (): Template[] => {
-    return panelManager.getTemplates()
+    return panelManager.getAvailableTemplates()
   }
 
   const getPanelConfig = (panelId: string): PanelConfig | undefined => {

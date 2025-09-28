@@ -1,46 +1,6 @@
 import React from 'react'
 import { PanelConfig, PanelPosition, PanelSize } from './types'
 
-// Simple placeholder components
-const CommentaryPlaceholder = () => {
-  return React.createElement('div', { className: 'p-4' }, [
-    React.createElement('h3', {
-      key: 'title',
-      className: 'text-lg font-semibold mb-4'
-    }, 'Commentary'),
-    React.createElement('p', {
-      key: 'content',
-      className: 'text-gray-600 dark:text-gray-400'
-    }, 'Commentary panel will be implemented in a future update.')
-  ])
-}
-
-const DictionaryPlaceholder = () => {
-  return React.createElement('div', { className: 'p-4' }, [
-    React.createElement('h3', {
-      key: 'title',
-      className: 'text-lg font-semibold mb-4'
-    }, 'Dictionary'),
-    React.createElement('p', {
-      key: 'content',
-      className: 'text-gray-600 dark:text-gray-400'
-    }, 'Dictionary panel will be implemented in a future update.')
-  ])
-}
-
-const CrossReferencesPlaceholder = () => {
-  return React.createElement('div', { className: 'p-4' }, [
-    React.createElement('h3', {
-      key: 'title',
-      className: 'text-lg font-semibold mb-4'
-    }, 'Cross References'),
-    React.createElement('p', {
-      key: 'content',
-      className: 'text-gray-600 dark:text-gray-400'
-    }, 'Cross references panel will be implemented in a future update.')
-  ])
-}
-
 
 export class PanelRegistry {
   private static instance: PanelRegistry
@@ -154,7 +114,7 @@ export class PanelRegistry {
       closable: true,
       defaultVisible: false,
       keyboardShortcut: 'CmdOrCtrl+C',
-      component: CommentaryPlaceholder
+      component: null as any // Will be set dynamically
     })
 
     // Dictionary Panel
@@ -173,7 +133,7 @@ export class PanelRegistry {
       closable: true,
       defaultVisible: false,
       keyboardShortcut: 'CmdOrCtrl+D',
-      component: DictionaryPlaceholder
+      component: null as any // Will be set dynamically
     })
 
     // Cross References Panel
@@ -192,7 +152,7 @@ export class PanelRegistry {
       closable: true,
       defaultVisible: true,
       keyboardShortcut: 'CmdOrCtrl+R',
-      component: CrossReferencesPlaceholder
+      component: null as any // Will be set dynamically
     })
 
   }

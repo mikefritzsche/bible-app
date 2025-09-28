@@ -341,6 +341,22 @@ export class PanelManager {
     return Array.from(this.templates.values())
   }
 
+  getAvailableTemplates(): Template[] {
+    return Array.from(this.templates.values()).filter(template => {
+      // Check if all panels referenced in the template are registered
+      const panelIds = new Set<string>()
+
+      Object.values(template.gridLayout.areas).forEach(panels => {
+        panels.forEach(panel => {
+          panelIds.add(panel.id)
+        })
+      })
+
+      // Template is available if all its panels are registered
+      return Array.from(panelIds).every(panelId => this.panels.has(panelId))
+    })
+  }
+
   getTemplatesByCategory(category: string): Template[] {
     return this.getTemplates().filter(template => template.category === category)
   }

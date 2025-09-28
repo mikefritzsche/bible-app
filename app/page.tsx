@@ -405,6 +405,17 @@ function BibleApp() {
     panelRegistry.setPanelComponent('notes', NotesPanelWithData)
     panelRegistry.setPanelComponent('history', HistoryPanelWithData)
 
+    // Import and set placeholder panel components dynamically
+    import('@/components/panels/CommentaryPanel').then(({ CommentaryPanel }) => {
+      panelRegistry.setPanelComponent('commentary', CommentaryPanel)
+    })
+    import('@/components/panels/DictionaryPanel').then(({ DictionaryPanel }) => {
+      panelRegistry.setPanelComponent('dictionary', DictionaryPanel)
+    })
+    import('@/components/panels/CrossReferencesPanel').then(({ CrossReferencesPanel }) => {
+      panelRegistry.setPanelComponent('cross-references', CrossReferencesPanel)
+    })
+
     panelManager.showPanel('bible-reader')
     panelManager.movePanel('bible-reader', 'main')
     hasEnsuredBiblePanel.current = true
