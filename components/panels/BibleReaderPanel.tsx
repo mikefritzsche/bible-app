@@ -131,6 +131,29 @@ export function BibleReaderPanel({
   showParallelComparison,
   parallelVersion
 }: BibleReaderPanelProps) {
+  // Wrapper function to handle parameter order difference
+  const handleVerseHighlight = async (
+    verseNum: number,
+    color: string,
+    selectedText?: string,
+    startOffset?: number,
+    endOffset?: number
+  ) => {
+    return onHighlightVerse(verseNum, startOffset, endOffset, color)
+  }
+
+  // Wrapper function to ensure Promise<void> return type
+  const handleRemoveHighlight = async (
+    verseNum: number,
+    startOffset?: number,
+    endOffset?: number
+  ): Promise<void> => {
+    const result = onRemoveHighlight(verseNum, startOffset, endOffset)
+    if (result instanceof Promise) {
+      return result
+    }
+  }
+
   const activeVerseNumber = selectedVerse && selectedVerse > 0 ? selectedVerse : 1
   const activePrimaryText = chapterContent?.verses?.[String(activeVerseNumber)]?.text
 
@@ -312,8 +335,8 @@ export function BibleReaderPanel({
                           verseSpacing={settings.verseSpacing}
                           showVerseNumbers={settings.showVerseNumbers}
                           onVerseClick={onVerseClick}
-                          onHighlight={onHighlightVerse}
-                          onRemoveHighlight={onRemoveHighlight}
+                          onHighlight={handleVerseHighlight}
+                          onRemoveHighlight={handleRemoveHighlight}
                           onAddNote={() => onAddNote(verse.verse)}
                           onStrongsClick={onStrongsClick}
                         />

@@ -116,7 +116,7 @@ export function LayoutSystem({ children }: LayoutSystemProps) {
       {/* Top Panel Area */}
       {hasTopPanels && (
         <div
-          className="border-b border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 overflow-hidden"
+          className="border-b border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 overflow-hidden transition-all duration-300 ease-in-out"
           style={getContainerStyle('top')}
         >
           {renderPanels('top')}
@@ -128,7 +128,7 @@ export function LayoutSystem({ children }: LayoutSystemProps) {
         {/* Left Panel Area */}
         {hasLeftPanels && (
           <div
-            className="border-r border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 overflow-hidden"
+            className="border-r border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 overflow-hidden transition-all duration-300 ease-in-out"
             style={getContainerStyle('left')}
           >
             <div className="h-full flex flex-col overflow-auto">
@@ -147,7 +147,7 @@ export function LayoutSystem({ children }: LayoutSystemProps) {
         {/* Right Panel Area */}
         {hasRightPanels && (
           <div
-            className="border-l border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 overflow-hidden"
+            className="border-l border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 overflow-hidden transition-all duration-300 ease-in-out"
             style={getContainerStyle('right')}
           >
             <div className="h-full flex flex-col overflow-auto">
@@ -160,7 +160,7 @@ export function LayoutSystem({ children }: LayoutSystemProps) {
       {/* Bottom Panel Area */}
       {hasBottomPanels && (
         <div
-          className="border-t border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 overflow-hidden"
+          className="border-t border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 overflow-hidden transition-all duration-300 ease-in-out"
           style={getContainerStyle('bottom')}
         >
           {renderPanels('bottom')}

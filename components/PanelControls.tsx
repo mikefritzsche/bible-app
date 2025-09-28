@@ -1,19 +1,18 @@
 'use client'
 
-import { useEffect, useMemo, useState, type ChangeEvent } from 'react'
+import { useEffect, useState } from 'react'
 import { usePanels } from '@/lib/contexts/PanelContext'
 import { panelRegistry } from '@/lib/panels/PanelRegistry'
-import { FileText, History, BookOpen, Book, Link2, Square, LayoutGrid } from 'lucide-react'
+import { FileText, History, BookOpen, Book, Link2, Square, LayoutGrid, ChevronDown } from 'lucide-react'
+import { LayoutSelector } from './LayoutSelector'
+import { Popover } from '@/components/ui/popover'
 
 export function PanelControls() {
   const {
     visiblePanels,
     togglePanel,
     isPanelVisible,
-    getAvailableTemplates,
-    applyTemplate,
-    currentLayoutId,
-    loadLayout
+    getAvailableTemplates
   } = usePanels()
 
   const [isHydrated, setIsHydrated] = useState(false)
@@ -43,27 +42,6 @@ export function PanelControls() {
     .filter(panel => panel.closable !== false)
   const templates = getAvailableTemplates()
 
-  const selectedTemplateId = useMemo(() => {
-    if (!currentLayoutId || currentLayoutId === 'default') {
-      return '__default'
-    }
-
-    const matched = templates.find(template => template.gridLayout.id === currentLayoutId)
-    return matched?.id ?? '__default'
-  }, [templates, currentLayoutId])
-
-  const handleTemplateChange = (event: ChangeEvent<HTMLSelectElement>) => {
-    const templateId = event.target.value
-    if (!templateId) return
-
-    if (templateId === '__default') {
-      loadLayout('default')
-      return
-    }
-
-    applyTemplate(templateId)
-  }
-
   if (!isHydrated) {
     return null
   }
@@ -72,24 +50,20 @@ export function PanelControls() {
     <div className="flex items-center gap-2">
       {/* Layout template selector */}
       {templates.length > 0 && (
-        <div className="flex items-center gap-2">
-          <span className="inline-flex items-center gap-1 text-sm text-gray-600 dark:text-gray-300">
+        <Popover
+          content={
+            <LayoutSelector />
+          }
+          side="bottom"
+          align="start"
+          sideOffset={8}
+        >
+          <button className="flex items-center gap-2 px-3 py-2 text-sm rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors shadow-sm">
             <LayoutGrid className="w-4 h-4" />
             <span>Layout</span>
-          </span>
-          <select
-            value={selectedTemplateId}
-            onChange={handleTemplateChange}
-            className="text-sm rounded-md border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-200 px-2 py-1 focus:outline-none focus:ring-2 focus:ring-blue-500 dark:focus:ring-blue-400"
-          >
-            <option value="__default">Default</option>
-            {templates.map((template) => (
-              <option key={template.id} value={template.id}>
-                {template.name}
-              </option>
-            ))}
-          </select>
-        </div>
+            <ChevronDown className="w-3 h-3 opacity-60" />
+          </button>
+        </Popover>
       )}
 
       {/* Panel Toggle Buttons */}
