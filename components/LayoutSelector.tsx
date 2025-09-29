@@ -27,8 +27,8 @@ export function LayoutSelector() {
     loadLayout
   } = usePanels()
 
+  
   const templates = getAvailableTemplates()
-  console.log('LayoutSelector: Available templates from manager:', templates.map(t => ({ id: t.id, name: t.name })))
 
   const layoutTemplates: LayoutTemplate[] = useMemo(() => [
     {
@@ -102,29 +102,37 @@ export function LayoutSelector() {
       return '__default'
     }
 
-    const matched = templates.find(template => template.gridLayout.id === currentLayoutId)
-    return matched?.id ?? '__default'
+    // First try to find by direct template gridLayout matching
+    const matchedByGridLayout = templates.find(template => template.gridLayout.id === currentLayoutId)
+    if (matchedByGridLayout) {
+      return matchedByGridLayout.id
+    }
+
+    // Map layout IDs back to template IDs
+    const layoutToTemplateMap: Record<string, string> = {
+      'default': '__default',
+      'devotional-layout': 'devotional',
+      'study-layout': 'study-focus',
+      'research-layout': 'research-mode',
+      'parallel-layout': 'parallel-study',
+      'language-layout': 'language-study',
+      'comprehensive-layout': 'comprehensive-study',
+      'teaching-layout': 'teaching-prep'
+    }
+
+    const templateId = layoutToTemplateMap[currentLayoutId] || '__default'
+    return templateId
   }, [templates, currentLayoutId])
 
   const handleTemplateSelect = (templateId: string) => {
-    console.log('LayoutSelector: handleTemplateSelect called with:', templateId)
-    console.log('LayoutSelector: Available templates:', templates.map(t => ({ id: t.id, name: t.name })))
-
     if (templateId === '__default') {
-      console.log('LayoutSelector: Loading default layout')
       loadLayout('default')
       return
     }
 
     const template = templates.find(t => t.id === templateId)
-    console.log('LayoutSelector: Found template:', template)
-
     if (template) {
-      console.log('LayoutSelector: Applying template:', templateId)
       applyTemplate(templateId)
-    } else {
-      console.error('LayoutSelector: Template not found:', templateId)
-      console.error('LayoutSelector: Available template IDs:', templates.map(t => t.id))
     }
   }
 
@@ -190,18 +198,13 @@ export function LayoutSelector() {
         {layoutTemplates.map((template) => {
           const isSelected = selectedTemplateId === template.id
           const isAvailable = template.id === '__default' || templates.some(t => t.id === template.id)
-          console.log(`LayoutSelector: Template ${template.id} availability:`, isAvailable, 'Available templates:', templates.map(t => t.id))
 
           return (
             <button
               key={template.id}
               onClick={() => {
-                console.log('LayoutSelector: Button clicked for template:', template.id)
-                console.log('LayoutSelector: isAvailable:', isAvailable)
                 if (isAvailable) {
                   handleTemplateSelect(template.id)
-                } else {
-                  console.log('LayoutSelector: Template not available, skipping')
                 }
               }}
               disabled={!isAvailable}

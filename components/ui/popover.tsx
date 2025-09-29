@@ -56,43 +56,42 @@ export function Popover({ children, content, align = 'center', side = 'bottom', 
     const updatePosition = () => {
       if (triggerRef.current && isOpen) {
         const triggerRect = triggerRef.current.getBoundingClientRect()
+        const viewportWidth = window.innerWidth
+        const viewportHeight = window.innerHeight
+        const dropdownWidth = 500
+        const dropdownHeight = 400 // Approximate height
+
         let top = 0
         let left = 0
 
+        // Determine preferred position based on side prop
         if (side === 'bottom') {
           top = triggerRect.bottom + sideOffset
           left = align === 'start' ? triggerRect.left :
-                 align === 'end' ? triggerRect.right :
-                 triggerRect.left + triggerRect.width / 2
+                 align === 'end' ? triggerRect.right - dropdownWidth :
+                 triggerRect.left + triggerRect.width / 2 - dropdownWidth / 2
+
+          // If not enough space below, try to position above
+          if (top + dropdownHeight > viewportHeight - 10) {
+            top = triggerRect.top - dropdownHeight - sideOffset
+          }
         } else if (side === 'top') {
-          top = triggerRect.top - sideOffset
+          top = triggerRect.top - dropdownHeight - sideOffset
           left = align === 'start' ? triggerRect.left :
-                 align === 'end' ? triggerRect.right :
-                 triggerRect.left + triggerRect.width / 2
-        } else if (side === 'left') {
-          top = align === 'start' ? triggerRect.top :
-                align === 'end' ? triggerRect.bottom :
-                triggerRect.top + triggerRect.height / 2
-          left = triggerRect.left - sideOffset
-        } else if (side === 'right') {
-          top = align === 'start' ? triggerRect.top :
-                align === 'end' ? triggerRect.bottom :
-                triggerRect.top + triggerRect.height / 2
-          left = triggerRect.right + sideOffset
+                 align === 'end' ? triggerRect.right - dropdownWidth :
+                 triggerRect.left + triggerRect.width / 2 - dropdownWidth / 2
+
+          // If not enough space above, position below
+          if (top < 10) {
+            top = triggerRect.bottom + sideOffset
+          }
         }
 
-        // Apply transforms
-        if (align === 'center' && (side === 'bottom' || side === 'top')) {
-          left = left - 250 // Half of max width
-        } else if (align === 'end') {
-          left = left - 500 // Full width adjustment
-        }
+        // Ensure dropdown stays within horizontal bounds
+        left = Math.max(10, Math.min(left, viewportWidth - dropdownWidth - 10))
 
-        if (align === 'center' && (side === 'left' || side === 'right')) {
-          top = top - 150 // Approximate half height
-        } else if (align === 'end') {
-          top = top - 300 // Full height adjustment
-        }
+        // Final vertical boundary check
+        top = Math.max(10, Math.min(top, viewportHeight - dropdownHeight - 10))
 
         setPosition({ top, left })
       }
@@ -124,10 +123,10 @@ export function Popover({ children, content, align = 'center', side = 'bottom', 
       {isOpen && (
         <div
           ref={contentRef}
-          className="fixed z-50 w-[500px] max-w-[90vw] rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 shadow-xl"
+          className="fixed z-50 w-[480px] max-w-[85vw] rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 shadow-xl"
           style={{
             top: `${position.top}px`,
-            left: `${Math.max(8, Math.min(window.innerWidth - 508, position.left))}px`,
+            left: `${position.left}px`,
           }}
         >
           <div className="p-4">

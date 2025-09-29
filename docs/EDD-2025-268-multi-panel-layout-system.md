@@ -345,3 +345,30 @@ This enhanced panel system will significantly improve the Bible study experience
 **Document Status**: Draft
 **Next Review**: With development team
 **Approval Required**: Project Lead
+
+### Expected layout content
+📋 What to Look For in Each Layout
+
+📖 Devotional Layout
+Visual: Clean Bible text only, no colored panels
+Width: Full-width Bible reading experience
+
+🎯 Study Focus Layout
+Visual: Bible text + Purple panel on right
+Look for: Cross References panel with purple styling
+
+🔬 Research Mode Layout
+Visual: Blue panel (left) + Bible text + Purple panel (right)
+Look for: Commentary on left, Cross References on right
+
+📚 Language Study Layout
+Visual: Green panel (left) + Bible text + Blue panel (right)
+Look for: Dictionary on left, Commentary on right
+
+🌟 Comprehensive Study Layout
+Visual: Blue panel (left) + Bible text + Purple panel (right) + Green panel (bottom)
+Look for: All three panels + bottom dictionary panel (most distinctive!)
+
+👨‍🏫 Teaching Prep Layout
+Visual: Bible text + Purple panel on right (larger)
+Look for: Similar to Study Focus but different panel sizing

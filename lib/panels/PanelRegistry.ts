@@ -140,7 +140,7 @@ export class PanelRegistry {
     this.registerPanel({
       id: 'cross-references',
       title: 'Cross References',
-      description: 'View related verses',
+      description: 'View related verses and cross-references from various sources',
       icon: 'link-2',
       category: 'resources',
       defaultPosition: 'right' as PanelPosition,
@@ -154,7 +154,6 @@ export class PanelRegistry {
       keyboardShortcut: 'CmdOrCtrl+R',
       component: null as any // Will be set dynamically
     })
-
   }
 
   // Method to dynamically set panel components after they're imported

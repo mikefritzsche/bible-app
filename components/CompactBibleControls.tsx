@@ -10,7 +10,10 @@ import {
   Settings,
   CalendarCheck,
   History,
-  FileText
+  FileText,
+  ArrowLeft,
+  ArrowRight,
+  Clock
 } from 'lucide-react'
 import getModuleManager from '@/lib/modules/ModuleManager'
 
@@ -45,6 +48,14 @@ interface CompactBibleControlsProps {
   isInReadingPlan?: boolean
   readingPlanProgress?: {psalmCompleted: boolean, proverbsCompleted: boolean} | null
   onMarkAsRead?: () => void
+  // History navigation
+  canGoBack?: boolean
+  canGoForward?: boolean
+  onGoBack?: () => void
+  onGoForward?: () => void
+  // Display mode
+  displayMode?: 'bible' | 'history'
+  onExitHistoryMode?: () => void
 }
 
 const normalizeVersion = (value: string) => value.replace(/_/g, '-').toLowerCase()
@@ -88,7 +99,13 @@ export function CompactBibleControls({
   notesCount = 0,
   isInReadingPlan = false,
   readingPlanProgress = null,
-  onMarkAsRead
+  onMarkAsRead,
+  canGoBack = false,
+  canGoForward = false,
+  onGoBack,
+  onGoForward,
+  displayMode = 'bible',
+  onExitHistoryMode
 }: CompactBibleControlsProps) {
   const [selectorMode, setSelectorMode] = useState<SelectorMode>(null)
   const [showVersionDropdown, setShowVersionDropdown] = useState(false)
@@ -248,6 +265,28 @@ export function CompactBibleControls({
     <>
       {/* Compact Controls Bar - Mobile Responsive */}
       <div className="sticky top-0 z-20 bg-white dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700 shadow-sm">
+        {/* History Mode Header */}
+        {displayMode === 'history' && (
+          <div className="border-b border-gray-200 dark:border-gray-700 bg-blue-50 dark:bg-blue-900/20">
+            <div className="flex items-center justify-between px-3 py-2">
+              <div className="flex items-center gap-2">
+                <Clock className="w-5 h-5 text-blue-600 dark:text-blue-400 animate-pulse" />
+                <span className="text-sm font-medium text-blue-900 dark:text-blue-100">
+                  Reading History Mode
+                </span>
+              </div>
+              {onExitHistoryMode && (
+                <button
+                  onClick={onExitHistoryMode}
+                  className="flex items-center gap-1 px-3 py-1.5 text-sm bg-blue-500 hover:bg-blue-600 dark:bg-blue-600 dark:hover:bg-blue-700 text-white rounded-md transition-colors shadow-sm font-medium"
+                >
+                  <ArrowLeft className="w-4 h-4" />
+                  Back to Bible
+                </button>
+              )}
+            </div>
+          </div>
+        )}
         {/* Mobile Layout */}
         <div className="md:hidden">
           {/* Top Row: Location + Version + Quick Actions (icons only) */}
@@ -327,13 +366,18 @@ export function CompactBibleControls({
               )}
               {onHistoryClick && (
                 <button
-                  onClick={onHistoryClick}
+                  onClick={() => {
+                    console.log('[CompactBibleControls] History button clicked, displayMode:', displayMode)
+                    onHistoryClick()
+                  }}
                   className={`p-2 rounded transition-colors ${
-                    showHistoryPanel
+                    displayMode === 'history'
+                      ? 'bg-blue-500 text-white'
+                      : showHistoryPanel
                       ? 'bg-blue-100 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400'
                       : 'hover:bg-gray-100 dark:hover:bg-gray-700'
                   }`}
-                  title="History"
+                  title={displayMode === 'history' ? "Exit History Mode" : "History"}
                 >
                   <History className="w-4 h-4" />
                 </button>
@@ -528,6 +572,31 @@ export function CompactBibleControls({
                 </>
               )}
             </div>
+
+            {/* History Navigation */}
+            {(canGoBack || canGoForward) && (
+              <>
+                <div className="w-px h-6 bg-gray-300 dark:bg-gray-600 mx-1" />
+                <div className="flex items-center gap-1">
+                  <button
+                    onClick={onGoBack}
+                    disabled={!canGoBack}
+                    className="p-1.5 rounded hover:bg-gray-100 dark:hover:bg-gray-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                    title="Go Back in History"
+                  >
+                    <ArrowLeft className="w-4 h-4" />
+                  </button>
+                  <button
+                    onClick={onGoForward}
+                    disabled={!canGoForward}
+                    className="p-1.5 rounded hover:bg-gray-100 dark:hover:bg-gray-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                    title="Go Forward in History"
+                  >
+                    <ArrowRight className="w-4 h-4" />
+                  </button>
+                </div>
+              </>
+            )}
           </div>
 
           {/* Right: Navigation and Actions */}
@@ -616,16 +685,21 @@ export function CompactBibleControls({
             )}
             {onHistoryClick && (
               <button
-                onClick={onHistoryClick}
+                onClick={() => {
+                  console.log('[CompactBibleControls] Desktop History button clicked, displayMode:', displayMode)
+                  onHistoryClick()
+                }}
                 className={`px-3 py-1.5 rounded transition-colors flex items-center gap-2 text-sm ${
-                  showHistoryPanel
-                    ? 'bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300'
+                  displayMode === 'history'
+                    ? 'bg-blue-500 text-white'
+                    : showHistoryPanel
+                    ? 'bg-blue-100 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400'
                     : 'hover:bg-gray-100 dark:hover:bg-gray-700'
                 }`}
-                title="History"
+                title={displayMode === 'history' ? "Exit History Mode" : "History"}
               >
                 <History className="w-4 h-4" />
-                <span className="hidden lg:inline">History</span>
+                <span className="hidden lg:inline">{displayMode === 'history' ? 'Exit History' : 'History'}</span>
               </button>
             )}
             {onNotesClick && (

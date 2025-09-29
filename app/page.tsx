@@ -17,6 +17,7 @@ import { BibleSettingsModal } from '@/components/BibleSettingsModal'
 import { NotesPanelComponent } from '@/components/panels/NotesPanel'
 import { HistoryPanelComponent } from '@/components/panels/HistoryPanel'
 import { BibleReaderPanel } from '@/components/panels/BibleReaderPanel'
+import { CrossReferencesPanel } from '@/components/panels/CrossReferencesPanel'
 import type { BibleData, Chapter, StrongsDefinition } from '@/types/bible'
 import type { VerseHistoryEntry } from '@/lib/VerseHistoryManager'
 import type { VerseHighlight } from '@/lib/HighlightManager'
@@ -120,6 +121,8 @@ function BibleApp() {
   const [strongsPopover, setStrongsPopover] = useState<StrongsPopoverState | null>(null)
   const [strongsHistory, setStrongsHistory] = useState<StrongsHistoryEntry[]>([])
   const [verseHistory, setVerseHistory] = useState<VerseHistoryEntry[]>([])
+  const [historyIndex, setHistoryIndex] = useState(-1)
+  const [displayMode, setDisplayMode] = useState<'bible' | 'history'>('bible')
   const [chapterHighlights, setChapterHighlights] = useState<Map<number, VerseHighlight[]>>(new Map())
   const [chapterNotes, setChapterNotes] = useState<Map<number, VerseNote>>(new Map())
   const [bookNames, setBookNames] = useState<string[]>([])
@@ -287,7 +290,14 @@ function BibleApp() {
   }
 
   const handleHistoryToggle = () => {
-    togglePanel('history')
+    console.log('[handleHistoryToggle] Called! Current displayMode:', displayMode)
+    if (displayMode === 'bible') {
+      console.log('[handleHistoryToggle] Switching to history mode')
+      setDisplayMode('history')
+    } else {
+      console.log('[handleHistoryToggle] Switching to bible mode')
+      setDisplayMode('bible')
+    }
   }
 
   const handleNotesToggle = () => {
@@ -298,6 +308,22 @@ function BibleApp() {
     setSelectedVerse(verse)
     refreshPanels()
   }
+
+  const handleHistoryEntryClick = (entry: VerseHistoryEntry) => {
+    setSelectedBook(entry.book)
+    setSelectedChapter(entry.chapter)
+    setSelectedVerse(entry.verse)
+    setDisplayMode('bible')
+  }
+
+  const handleExitHistoryMode = () => {
+    console.log('[handleExitHistoryMode] Called!')
+    setDisplayMode('bible')
+  }
+
+  useEffect(() => {
+    console.log('[displayMode useEffect] displayMode changed to:', displayMode)
+  }, [displayMode])
 
   useEffect(() => {
     selectedBookRef.current = selectedBook
@@ -346,13 +372,30 @@ function BibleApp() {
     />
   )
 
+  const CrossReferencesPanelWithData = (props: any) => (
+    <CrossReferencesPanel
+      {...props}
+      book={selectedBook}
+      chapter={selectedChapter}
+      verse={selectedVerse || 1}
+      onReferenceClick={(book: string, chapter: number, verse: number) => {
+        setSelectedBook(book)
+        setSelectedChapter(chapter)
+        setSelectedVerse(verse)
+      }}
+    />
+  )
+
   const BibleReaderPanelWithData = (panelProps: any) => {
     console.log('[BibleApp] render BibleReaderPanelWithData', {
       loading,
       hasChapterContent: !!chapterContent,
       verses: chapterContent ? Object.keys(chapterContent.verses || {}).length : 0,
       book: selectedBook,
-      chapter: selectedChapter
+      chapter: selectedChapter,
+      displayMode,
+      historyEntries: verseHistory,
+      historyEntriesLength: verseHistory?.length
     })
     return (
       <BibleReaderPanel
@@ -393,6 +436,14 @@ function BibleApp() {
         onStrongsClick={handleStrongsClick}
         showParallelComparison={parallelComparisonEnabled}
         parallelVersion={parallelVersion}
+        canGoBack={canGoBack}
+        canGoForward={canGoForward}
+        onGoBack={handleGoBack}
+        onGoForward={handleGoForward}
+        displayMode={displayMode}
+        historyEntries={verseHistory}
+        onHistoryEntryClick={handleHistoryEntryClick}
+        onExitHistoryMode={handleExitHistoryMode}
       />
     )
   }
@@ -404,6 +455,9 @@ function BibleApp() {
     panelRegistry.setPanelComponent('bible-reader', BibleReaderPanelWithData)
     panelRegistry.setPanelComponent('notes', NotesPanelWithData)
     panelRegistry.setPanelComponent('history', HistoryPanelWithData)
+    panelRegistry.setPanelComponent('cross-references', CrossReferencesPanelWithData)
+
+    console.log('[BibleApp] All registered panels:', panelRegistry.getAllPanels().map(p => p.id))
 
     // Import and set placeholder panel components dynamically
     import('@/components/panels/CommentaryPanel').then(({ CommentaryPanel }) => {
@@ -411,9 +465,6 @@ function BibleApp() {
     })
     import('@/components/panels/DictionaryPanel').then(({ DictionaryPanel }) => {
       panelRegistry.setPanelComponent('dictionary', DictionaryPanel)
-    })
-    import('@/components/panels/CrossReferencesPanel').then(({ CrossReferencesPanel }) => {
-      panelRegistry.setPanelComponent('cross-references', CrossReferencesPanel)
     })
 
     panelManager.showPanel('bible-reader')
@@ -425,7 +476,7 @@ function BibleApp() {
       panelManager.showPanel('cross-references')
     }
     hasEnsuredCrossPanel.current = true
-  }, [panelManager, visiblePanels, BibleReaderPanelWithData, NotesPanelWithData, HistoryPanelWithData])
+  }, [panelManager, visiblePanels, BibleReaderPanelWithData, NotesPanelWithData, HistoryPanelWithData, CrossReferencesPanelWithData])
   const [showSettingsModal, setShowSettingsModal] = useState(false)
   const [parallelComparisonEnabled, setParallelComparisonEnabledState] = useState(() => {
     if (typeof window !== 'undefined') {
@@ -732,10 +783,52 @@ function BibleApp() {
     try {
       await historyManager.init()
       const history = await historyManager.getHistory(50)
-      console.log('Loaded history:', history)
-      setVerseHistory(history)
+      console.log('[BibleApp] Loaded history:', history)
+      console.log('[BibleApp] History length:', history?.length)
+
+      // If no history exists, add some sample entries for testing
+      if (!history || history.length === 0) {
+        console.log('[BibleApp] No history found, adding sample entries')
+        const sampleEntries = [
+          {
+            book: 'Genesis',
+            chapter: 1,
+            verse: 1,
+            verseText: 'In the beginning God created the heaven and the earth.',
+            version: 'kjv',
+            reference: 'Genesis 1:1'
+          },
+          {
+            book: 'John',
+            chapter: 3,
+            verse: 16,
+            verseText: 'For God so loved the world, that he gave his only begotten Son, that whosoever believeth in him should not perish, but have everlasting life.',
+            version: 'kjv',
+            reference: 'John 3:16'
+          },
+          {
+            book: 'Psalms',
+            chapter: 23,
+            verse: 1,
+            verseText: 'The LORD is my shepherd; I shall not want.',
+            version: 'kjv',
+            reference: 'Psalms 23:1'
+          }
+        ]
+
+        for (const entry of sampleEntries) {
+          await historyManager.addToHistory(entry)
+        }
+
+        const newHistory = await historyManager.getHistory(50)
+        console.log('[BibleApp] After adding samples, history:', newHistory)
+        setVerseHistory(newHistory)
+      } else {
+        setVerseHistory(history)
+      }
+      setHistoryIndex(-1) // Reset history index when loading new history
     } catch (error) {
-      console.error('Failed to load verse history:', error)
+      console.error('[BibleApp] Failed to load verse history:', error)
     }
   }
 
@@ -766,6 +859,10 @@ function BibleApp() {
           reference
         })
         await loadVerseHistory()
+        // Set history index to the newest entry (which should be at the end)
+        setTimeout(() => {
+          setHistoryIndex(verseHistory.length - 1)
+        }, 0)
       } catch (error) {
         console.error('Failed to add to history:', error)
       }
@@ -776,6 +873,14 @@ function BibleApp() {
     setSelectedBook(book)
     setSelectedChapter(chapter)
     setSelectedVerse(verse)
+
+    // Update history index to match the selected entry
+    const entryIndex = verseHistory.findIndex(entry =>
+      entry.book === book && entry.chapter === chapter && entry.verse === verse
+    )
+    if (entryIndex !== -1) {
+      setHistoryIndex(entryIndex)
+    }
   }
 
   const handleClearHistory = async () => {
@@ -786,6 +891,32 @@ function BibleApp() {
   const handleRemoveHistoryEntry = async (id: string) => {
     await historyManager.removeFromHistory(id)
     loadVerseHistory()
+  }
+
+  // History navigation functions
+  const canGoBack = historyIndex > 0
+  const canGoForward = historyIndex < verseHistory.length - 1
+
+  const handleGoBack = () => {
+    if (canGoBack) {
+      const newIndex = historyIndex - 1
+      const entry = verseHistory[newIndex]
+      setHistoryIndex(newIndex)
+      setSelectedBook(entry.book)
+      setSelectedChapter(entry.chapter)
+      setSelectedVerse(entry.verse)
+    }
+  }
+
+  const handleGoForward = () => {
+    if (canGoForward) {
+      const newIndex = historyIndex + 1
+      const entry = verseHistory[newIndex]
+      setHistoryIndex(newIndex)
+      setSelectedBook(entry.book)
+      setSelectedChapter(entry.chapter)
+      setSelectedVerse(entry.verse)
+    }
   }
 
   const initHighlights = async () => {

@@ -83,29 +83,29 @@ export default function Navigation() {
         </div>
 
         {/* Desktop Navigation */}
-        <div className="hidden md:flex items-center justify-between">
-          <div className="flex items-center gap-6">
+        <div className="hidden md:flex items-center justify-between gap-4">
+          <div className="flex items-center gap-3">
             <Link
               href="/reading-plan"
-              className="text-blue-600 dark:text-blue-400 font-bold text-xl no-underline hover:text-blue-700 dark:hover:text-blue-300 transition-colors flex items-center gap-2"
+              className="text-blue-600 dark:text-blue-400 font-bold text-lg no-underline hover:text-blue-700 dark:hover:text-blue-300 transition-colors flex items-center gap-1.5"
             >
-              <CalendarCheck className="w-6 h-6" />
+              <CalendarCheck className="w-5 h-5" />
               <span>Reading Plan</span>
             </Link>
-            <div className="flex gap-2">
+            <div className="flex gap-1">
               {navItems.filter(item => item.href !== '/reading-plan').map((item) => {
                 const Icon = item.icon
                 return (
                   <Link
                     key={item.href}
                     href={item.href}
-                    className={`px-4 py-2 rounded-md transition-colors no-underline flex items-center gap-2 ${
+                    className={`px-3 py-1.5 rounded-md transition-colors no-underline flex items-center gap-1.5 text-sm ${
                       isActive(item.href) && (item.href === '/' ? pathname === '/' : true)
                         ? 'bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300 font-semibold'
                         : 'bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-600'
                     }`}
                   >
-                    <Icon className="w-4 h-4" />
+                    <Icon className="w-3.5 h-3.5" />
                     <span>{item.label}</span>
                   </Link>
                 )
@@ -114,7 +114,7 @@ export default function Navigation() {
           </div>
 
           {/* Panel Controls */}
-          <div className="flex items-center gap-4">
+          <div className="flex items-center gap-2">
             <PanelControls />
           </div>
         </div>

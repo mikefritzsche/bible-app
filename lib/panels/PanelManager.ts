@@ -12,7 +12,7 @@ export class PanelManager {
   constructor(config: PanelManagerConfig = {}) {
     this.config = {
       storageKey: config.storageKey || 'bible-app-panel-layout',
-      maxPanels: config.maxPanels || 6,
+      maxPanels: config.maxPanels || 12,
       enablePersistence: config.enablePersistence ?? true,
       enableKeyboardShortcuts: config.enableKeyboardShortcuts ?? true,
       ...config
@@ -77,7 +77,10 @@ export class PanelManager {
   // Panel Visibility
   showPanel(panelId: string): boolean {
     const panel = this.activePanels.get(panelId)
-    if (!panel) return false
+    if (!panel) {
+      console.warn(`PanelManager: Panel ${panelId} not found in active panels`)
+      return false
+    }
 
     const panelConfig = this.panels.get(panelId) || panel.config
     const bypassLimits = panelConfig?.closable === false
@@ -106,7 +109,10 @@ export class PanelManager {
 
   togglePanel(panelId: string): boolean {
     const panel = this.activePanels.get(panelId)
-    if (!panel) return false
+    if (!panel) {
+      console.warn(`PanelManager: Panel ${panelId} not found in active panels`)
+      return false
+    }
 
     if (panel.isVisible) {
       return this.hidePanel(panelId)
@@ -281,8 +287,16 @@ export class PanelManager {
   }
 
   applyTemplate(templateId: string): boolean {
+    console.log('🔍 PanelManager: applyTemplate called with:', templateId)
+    console.log('🔍 PanelManager: Available templates:', Array.from(this.templates.keys()))
+
     const template = this.templates.get(templateId)
-    if (!template) return false
+    if (!template) {
+      console.error('🔍 PanelManager: Template not found:', templateId)
+      return false
+    }
+
+    console.log('🔍 PanelManager: Applying template:', template.name, 'with layout:', template.gridLayout.id)
 
     const normalizePanelsForLayout = (panels: PanelState[]): PanelState[] => {
       return panels.map(panelData => {
@@ -300,10 +314,13 @@ export class PanelManager {
     }
 
     // Apply template layout
+    console.log('🔍 PanelManager: Applying layout with areas:', Object.keys(template.gridLayout.areas))
     Object.entries(template.gridLayout.areas).forEach(([position, panels]) => {
+      console.log(`🔍 PanelManager: Processing ${position} area with ${panels.length} panels:`, panels.map(p => ({ id: p.id, visible: p.isVisible })))
       panels.forEach(panelData => {
         const panel = this.activePanels.get(panelData.id)
         if (panel) {
+          console.log(`🔍 PanelManager: Setting panel ${panelData.id} to position ${position}, visible: ${panelData.isVisible}`)
           panel.isVisible = panelData.isVisible
           panel.position = position as PanelPosition
           panel.size = { ...panelData.size }
@@ -311,6 +328,8 @@ export class PanelManager {
           if (!panel.config && this.panels.has(panelData.id)) {
             panel.config = this.panels.get(panelData.id)!
           }
+        } else {
+          console.warn(`🔍 PanelManager: Panel ${panelData.id} not found in active panels`)
         }
       })
     })
@@ -367,7 +386,7 @@ export class PanelManager {
     const maxPanels = this.config.maxPanels
 
     if (visibleCount >= maxPanels) {
-      console.warn(`Maximum number of panels (${maxPanels}) reached`)
+      console.warn(`PanelManager: Maximum number of panels (${maxPanels}) reached`)
       return false
     }
 
@@ -921,5 +940,6 @@ export class PanelManager {
         timestamp: new Date()
       }
     })
+
   }
 }

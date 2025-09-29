@@ -5,9 +5,11 @@ import { BasePanel, type PanelProps } from './BasePanel'
 import { CompactBibleControls } from '@/components/CompactBibleControls'
 import { VerseDisplay } from '@/components/VerseDisplay'
 import { ParallelComparison } from '@/components/ParallelComparison'
+import { Clock, ArrowLeft, BookOpen } from 'lucide-react'
 import type { Chapter } from '@/types/bible'
 import type { VerseHighlight } from '@/lib/HighlightManager'
 import type { VerseNote } from '@/lib/NotesManager'
+import type { VerseHistoryEntry } from '@/lib/VerseHistoryManager'
 
 const MIN_PARALLEL_HEIGHT = 80
 const MAX_PARALLEL_HEIGHT = 640
@@ -83,6 +85,16 @@ interface BibleReaderPanelProps extends PanelProps {
   onStrongsClick: StrongsClickHandler
   showParallelComparison: boolean
   parallelVersion: string
+  // History navigation
+  canGoBack: boolean
+  canGoForward: boolean
+  onGoBack: () => void
+  onGoForward: () => void
+  // History display mode
+  displayMode: 'bible' | 'history'
+  historyEntries: VerseHistoryEntry[]
+  onHistoryEntryClick: (entry: VerseHistoryEntry) => void
+  onExitHistoryMode: () => void
 }
 
 export function BibleReaderPanel({
@@ -129,8 +141,24 @@ export function BibleReaderPanel({
   onAddNote,
   onStrongsClick,
   showParallelComparison,
-  parallelVersion
+  parallelVersion,
+  canGoBack,
+  canGoForward,
+  onGoBack,
+  onGoForward,
+  displayMode = 'bible',
+  historyEntries = [],
+  onHistoryEntryClick,
+  onExitHistoryMode
 }: BibleReaderPanelProps) {
+  console.log('[BibleReaderPanel] Rendering with props:', {
+    displayMode,
+    historyEntriesLength: historyEntries?.length,
+    historyEntries: historyEntries?.slice(0, 3), // Log first 3 entries
+    selectedBook,
+    selectedChapter
+  })
+  console.log('[BibleReaderPanel] render with displayMode:', displayMode)
   // Wrapper function to handle parameter order difference
   const handleVerseHighlight = async (
     verseNum: number,
@@ -299,6 +327,12 @@ export function BibleReaderPanel({
             isInReadingPlan={isInReadingPlan}
             readingPlanProgress={readingPlanProgress}
             onMarkAsRead={onMarkAsRead}
+            canGoBack={canGoBack}
+            canGoForward={canGoForward}
+            onGoBack={onGoBack}
+            onGoForward={onGoForward}
+            displayMode={displayMode}
+            onExitHistoryMode={onExitHistoryMode}
           />
         </div>
 
@@ -307,7 +341,7 @@ export function BibleReaderPanel({
           className="flex-1 min-h-0 px-3 sm:px-4 md:px-6 pb-8"
           data-bible-scroll
         >
-          {chapterContent && (
+          {displayMode === 'bible' && chapterContent && (
             <div className="flex h-full flex-col gap-4">
               <div className="flex-1 min-h-0">
                 <div className="flex h-full flex-col overflow-hidden rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 shadow-sm">
@@ -399,7 +433,79 @@ export function BibleReaderPanel({
             </div>
           )}
 
-          {!chapterContent && (
+          {displayMode === 'history' && (
+            <div className="flex h-full flex-col">
+              <div className="flex-1 min-h-0">
+                <div className="flex h-full flex-col overflow-hidden rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 shadow-sm">
+                  <div className="px-4 sm:px-6 md:px-8 py-4 border-b border-gray-200 dark:border-gray-700 flex items-center justify-between">
+                    <div className="flex items-center gap-3">
+                      <div className="flex items-center gap-2">
+                        <Clock className="w-5 h-5 text-blue-600 dark:text-blue-400" />
+                        <h2 className="text-xl md:text-2xl font-semibold text-gray-900 dark:text-gray-100">
+                          Reading History
+                        </h2>
+                      </div>
+                      <span className="text-sm text-gray-500 dark:text-gray-400">
+                        {historyEntries.length} entries
+                      </span>
+                    </div>
+                    <button
+                      onClick={onExitHistoryMode}
+                      className="flex items-center gap-2 px-3 py-1.5 text-sm bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 rounded-md hover:bg-gray-200 dark:hover:bg-gray-600 transition-colors"
+                    >
+                      <ArrowLeft className="w-4 h-4" />
+                      Back to Bible
+                    </button>
+                  </div>
+
+                  <div className="flex-1 overflow-y-auto">
+                    {historyEntries.length === 0 ? (
+                      <div className="flex flex-col items-center justify-center h-full p-8 text-gray-500 dark:text-gray-400">
+                        <Clock className="w-12 h-12 mb-4 text-gray-300 dark:text-gray-600" />
+                        <p className="text-lg font-medium mb-2">No reading history</p>
+                        <p className="text-sm">Your reading history will appear here as you navigate through the Bible.</p>
+                      </div>
+                    ) : (
+                      <div className="divide-y divide-gray-200 dark:divide-gray-700">
+                        {historyEntries.map((entry) => (
+                          <div
+                            key={entry.id}
+                            onClick={() => onHistoryEntryClick(entry)}
+                            className="p-4 hover:bg-gray-50 dark:hover:bg-gray-700 cursor-pointer transition-colors group"
+                          >
+                            <div className="flex items-start justify-between">
+                              <div className="flex-1">
+                                <div className="flex items-center gap-2 mb-1">
+                                  <BookOpen className="w-4 h-4 text-gray-400 group-hover:text-gray-600 dark:group-hover:text-gray-300" />
+                                  <h3 className="font-medium text-gray-900 dark:text-gray-100 group-hover:text-blue-600 dark:group-hover:text-blue-400">
+                                    {entry.reference}
+                                  </h3>
+                                  <span className="text-xs text-gray-500 dark:text-gray-400 bg-gray-100 dark:bg-gray-700 px-2 py-0.5 rounded">
+                                    {entry.version}
+                                  </span>
+                                </div>
+                                <p className="text-sm text-gray-600 dark:text-gray-300 mb-1 line-clamp-2">
+                                  {entry.verseText}
+                                </p>
+                                <p className="text-xs text-gray-500 dark:text-gray-400">
+                                  {new Date(entry.timestamp).toLocaleDateString()} at {new Date(entry.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                                </p>
+                              </div>
+                              <div className="ml-4 opacity-0 group-hover:opacity-100 transition-opacity">
+                                <ArrowLeft className="w-4 h-4 text-gray-400 group-hover:text-blue-600 dark:group-hover:text-blue-400 transform rotate-180" />
+                              </div>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {displayMode === 'bible' && !chapterContent && (
             <div className="flex h-full items-center justify-center p-8 text-gray-500 dark:text-gray-400">
               {loading ? 'Loading Bible…' : 'Select a book and chapter to begin reading.'}
             </div>

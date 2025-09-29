@@ -38,9 +38,12 @@ export function PanelProvider({ children, initialPanels = [] }: PanelProviderPro
   const [isInitialized, setIsInitialized] = useState(false)
 
   const updateVisiblePanels = useCallback(() => {
+    console.log('🔍 PanelContext: updateVisiblePanels called')
     const panels = panelManager.getVisiblePanels()
+    console.log('🔍 PanelContext: New visible panels:', panels.map(p => ({ id: p.id, visible: p.isVisible, position: p.position })))
     setVisiblePanels([...panels])
     const layout = panelManager.getCurrentLayout()
+    console.log('🔍 PanelContext: Current layout from manager:', layout?.id)
     setCurrentLayoutId(layout ? layout.id : null)
   }, [panelManager])
 
@@ -112,7 +115,16 @@ export function PanelProvider({ children, initialPanels = [] }: PanelProviderPro
   }
 
   const applyTemplate = (templateId: string) => {
+    console.log('🔍 PanelContext: applyTemplate called with:', templateId)
+    console.log('🔍 PanelContext: Visible panels before:', visiblePanels.map(p => p.id))
+
     panelManager.applyTemplate(templateId)
+
+    // Force immediate state update to ensure UI reflects the change
+    setTimeout(() => {
+      console.log('🔍 PanelContext: Forcing state update after template application')
+      updateVisiblePanels()
+    }, 0)
   }
 
   const loadLayout = (layoutId: string) => {
